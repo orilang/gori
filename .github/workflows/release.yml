@@ -1,0 +1,75 @@
+name: Create Release
+
+# tags matching pattern can be found here:
+# https://docs.github.com/en/actions/reference/workflows-and-actions/workflow-syntax#filter-pattern-cheat-sheet
+on:
+  push:
+    tags:
+      - 'v[0-9]+\.[0-9]+\.[0-9]+-*'
+      - 'v[0-9]+\.[0-9]+\.[0-9]+'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go:
+          - "1.25.5"
+    env:
+      GOLANGCI_LINT_VERSION: 2.7.2 # https://github.com/golangci/golangci-lint/releases
+    steps:
+      - uses: actions/checkout@v6 # https://github.com/actions/checkout/releases
+
+      - name: Set up Go environment
+        uses: actions/setup-go@v6 # https://github.com/actions/setup-go/releases
+        with:
+          go-version: ${{ matrix.go }}
+
+      - name: Install golangci-lint
+        run: wget -O /tmp/golangci-lint.deb https://github.com/golangci/golangci-lint/releases/download/v${GOLANGCI_LINT_VERSION}/golangci-lint-${GOLANGCI_LINT_VERSION}-linux-amd64.deb ; sudo dpkg -i /tmp/golangci-lint.deb
+
+      - name: Run golangci-lint
+        run: golangci-lint run
+
+      - name: Run unit testing
+        run: |
+          go test -v -race ./... -coverprofile=coverage.out
+
+      - name: Print coverage status
+        run: |
+          go tool cover -func=coverage.out
+
+      - name: Install github-release
+        run: |
+          go install github.com/github-release/github-release@latest
+          git checkout .
+
+      - name: Publish release
+        env:
+          RELEASE_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          PRE_RELEASE_RE="^v[0-9]+\.[0-9]+\.[0-9]+-(.*)$"
+          # GITHUB_REPOSITORY_NAME will get the last part from Lord-Y/rafty
+          GITHUB_REPOSITORY_NAME=${GITHUB_REPOSITORY##*/}
+
+          if [[ "${GITHUB_REF_NAME}" =~ ${PRE_RELEASE_RE} ]]
+          then
+            # MD_RELEASE_FILE will remove suffix like -rc1
+            MD_RELEASE_FILE="${GITHUB_REF_NAME%-*}"
+            github-release release \
+            --pre-release \
+            --security-token "${RELEASE_TOKEN}" \
+            --tag "${GITHUB_REF_NAME}" \
+            --user "${GITHUB_REPOSITORY_OWNER}" \
+            --repo "${GITHUB_REPOSITORY_NAME}" \
+            --target "${GITHUB_SHA}" \
+            --description "$(cat changelog/${MD_RELEASE_FILE}.md)"
+          else
+            github-release release \
+            --security-token "${RELEASE_TOKEN}" \
+            --tag "${GITHUB_REF_NAME}" \
+            --user "${GITHUB_REPOSITORY_OWNER}" \
+            --repo "${GITHUB_REPOSITORY_NAME}" \
+            --target "${GITHUB_SHA}" \
+            --description "$(cat changelog/${GITHUB_REF_NAME}.md)"
+          fi

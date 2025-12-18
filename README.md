@@ -1,2 +1,3 @@
 # gori
-Ori lexer and parser
+
+Gori is `Ori` lexer and parser.
