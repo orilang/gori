@@ -346,7 +346,7 @@ func (l *Lexer) Tokenize() {
 					sizex := len(datax)
 					countDot := 0
 					for xi, v := range datax {
-						if v == '.' || v == ',' {
+						if v == '.' || v == '_' {
 							if v == '.' {
 								countDot++
 							}
@@ -366,7 +366,7 @@ func (l *Lexer) Tokenize() {
 						if countDot > 1 {
 							l.Tokens = append(l.Tokens, token.Token{Kind: token.Illegal, Value: result, Line: xline})
 						} else {
-							if strings.HasPrefix(result, ".") || strings.HasSuffix(result, ".") || strings.HasSuffix(result, ",") {
+							if strings.HasPrefix(result, ".") || strings.HasSuffix(result, ".") || strings.HasSuffix(result, "_") {
 								l.Tokens = append(l.Tokens, token.Token{Kind: token.Illegal, Value: result, Line: xline})
 							} else {
 								l.Tokens = append(l.Tokens, token.Token{Kind: token.FloatLit, Value: result, Line: xline})
