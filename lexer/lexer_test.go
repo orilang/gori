@@ -72,7 +72,7 @@ func main() {
   var h float64 = 0
   var pi float64 = 3.14
   var pi2 float64 = 3.14 // comment
-  var pi3 float64 = 3.141,592,653,59
+  var pi3 float64 = 3.141_592_653_59
 
   var i bool = false
   // new test
@@ -155,7 +155,7 @@ func main() {
 			{Kind: token.Ident, Value: "pi3"},
 			{Kind: token.KWFloat64, Value: "float64"},
 			{Kind: token.Assign, Value: "="},
-			{Kind: token.FloatLit, Value: "3.141,592,653,59"},
+			{Kind: token.FloatLit, Value: "3.141_592_653_59"},
 
 			{Kind: token.KWVar, Value: "var"},
 			{Kind: token.Ident, Value: "i"},
@@ -382,9 +382,9 @@ func main() {
 		input := `package main
 
 func main() {
-  var pi1 float64 = 3.141.592,653,59
+  var pi1 float64 = 3.141.592_653_59
   var pi2 float64 = 3.141.
-  var pi3 float64 = 3.141,
+  var pi3 float64 = 3.141_
   var x string = "test
 }
 
@@ -402,7 +402,7 @@ func main() {
 			{Kind: token.Ident, Value: "pi1"},
 			{Kind: token.KWFloat64, Value: "float64"},
 			{Kind: token.Assign, Value: "="},
-			{Kind: token.Illegal, Value: "3.141.592,653,59"},
+			{Kind: token.Illegal, Value: "3.141.592_653_59"},
 
 			{Kind: token.KWVar, Value: "var"},
 			{Kind: token.Ident, Value: "pi2"},
@@ -414,7 +414,7 @@ func main() {
 			{Kind: token.Ident, Value: "pi3"},
 			{Kind: token.KWFloat64, Value: "float64"},
 			{Kind: token.Assign, Value: "="},
-			{Kind: token.Illegal, Value: "3.141,"},
+			{Kind: token.Illegal, Value: "3.141_"},
 
 			{Kind: token.KWVar, Value: "var"},
 			{Kind: token.Ident, Value: "x"},
