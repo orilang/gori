@@ -1,0 +1,11 @@
+package main
+
+func main() {
+  var add int = 2 + 2
+  var sub int -= 1
+  var plus int += 1
+  var multiply int = 2 * 2
+  var substract int = 2 - 2
+  var divide int = 2 / 2
+  var modulo int = 2 % 2
+}

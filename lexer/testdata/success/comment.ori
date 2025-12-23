@@ -1,0 +1,10 @@
+package main
+
+func main() {
+  var pi2 float64 = 3.14 // comment
+  var pi3 float64 = 3.141,592,653,59
+
+  var i bool = false
+  // new test
+  var j bool = true // test
+}
