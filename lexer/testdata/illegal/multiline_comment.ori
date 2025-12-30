@@ -1,0 +1,6 @@
+package main
+
+func main() {
+  /*
+  var pi1 float64 = 3.141.592_653_59
+}

@@ -1,5 +1,0 @@
-package main
-
-func main() {
-  var pi3 float64 = 3.141.592,653,59
-}
