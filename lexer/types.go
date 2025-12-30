@@ -19,9 +19,12 @@ type Files struct {
 	Files []string
 }
 
+// Lexer holds requirements to parse tokens
 type Lexer struct {
-	line     uint
-	position int
-	input    string
 	Tokens   []token.Token
+	input    []byte
+	position int
+	line     int
+	column   int
+	size     int
 }

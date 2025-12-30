@@ -5,7 +5,6 @@ type Kind uint16
 const (
 	Illegal Kind = iota
 	EOF
-	EOL
 
 	Comment // // or /* */
 
@@ -72,7 +71,9 @@ const (
 	MinusEq // -=
 	MMinus  // --
 	Star    // *
+	StarEq  // *=
 	Slash   // /
+	SlashEq // /=
 	Modulo  // %
 
 	// Comparison operators
