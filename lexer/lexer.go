@@ -425,16 +425,18 @@ func (l *Lexer) stringLit() {
 	var (
 		tok   []byte
 		count int
+		prev  byte
 	)
 	line, column := l.line, l.column
 	for _, v := range l.input[l.position:] {
 		tok = append(tok, v)
-		if v == '"' {
+		if prev != '\\' && v == '"' {
 			count++
 			if count == 2 {
 				break
 			}
 		}
+		prev = v
 	}
 
 	l.advance(len(tok), false)
