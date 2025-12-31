@@ -58,6 +58,36 @@ func main() {}
 		assert.Equal(len(result), len(lex.Tokens))
 	})
 
+	t.Run("line_column", func(t *testing.T) {
+		input := `package main
+
+func main() {
+// comment
+/*
+multi line
+*/
+}
+`
+		result := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 10},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 13},
+			{Kind: token.Comment, Value: "// comment", Line: 4, Column: 1},
+			{Kind: token.Comment, Value: `/*
+multi line
+*/`, Line: 5, Column: 1},
+			{Kind: token.RBrace, Value: "}", Line: 8, Column: 1},
+			{Kind: token.EOF, Value: "", Line: 9, Column: 1},
+		}
+		lex := New([]byte(input))
+		lex.Tokenize()
+		assert.Equal(result, lex.Tokens)
+	})
+
 	t.Run("vars", func(t *testing.T) {
 		input := `package main
 
