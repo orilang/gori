@@ -6,5 +6,4 @@ type Token struct {
 	Value  string
 	Line   int
 	Column int
-	EOF    bool
 }

@@ -1,6 +1,8 @@
 package lexer
 
 import (
+	"os"
+	"path/filepath"
 	"syscall"
 	"testing"
 
@@ -22,13 +24,19 @@ func TestLexer_lexer(t *testing.T) {
 	})
 
 	t.Run("success", func(t *testing.T) {
-		lex, err := NewLexer(Config{Directory: "testdata/success"})
+		workingDir, err := os.Getwd()
+		assert.Nil(err)
+
+		lex, err := NewLexer(Config{Directory: filepath.Join(workingDir, "..", "testdata/success")})
 		assert.Nil(err)
 		assert.Nil(lex.StartLexing())
 	})
 
 	t.Run("illegal", func(t *testing.T) {
-		lex, err := NewLexer(Config{Directory: "testdata/illegal"})
+		workingDir, err := os.Getwd()
+		assert.Nil(err)
+
+		lex, err := NewLexer(Config{Directory: filepath.Join(workingDir, "..", "testdata/illegal")})
 		assert.Nil(err)
 		assert.Nil(lex.StartLexing())
 	})

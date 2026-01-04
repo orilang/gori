@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/orilang/gori/lexer"
+	"github.com/orilang/gori/walk"
 	"github.com/urfave/cli/v3"
 )
 
@@ -29,7 +30,7 @@ func Lexer() *cli.Command {
 		},
 		Action: func(ctx context.Context, _ *cli.Command) error {
 			if app.File == "" && app.Directory == "" {
-				return lexer.ErrNoFileOrDirectoryPassed
+				return walk.ErrNoFileOrDirectoryPassed
 			}
 
 			lex, err := lexer.NewLexer(app)
