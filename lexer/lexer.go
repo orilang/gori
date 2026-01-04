@@ -5,11 +5,19 @@ import (
 	"os"
 
 	"github.com/orilang/gori/token"
+	"github.com/orilang/gori/walk"
 )
 
 // NewLexer returns files config to StartLexing
 func NewLexer(config Config) (*Files, error) {
-	return walk(config)
+	w, err := walk.Walk(walk.Config{File: config.File, Directory: config.Directory})
+	if err != nil {
+		return nil, err
+	}
+
+	return &Files{
+		Files: w.Files,
+	}, nil
 }
 
 // StartLexing ranges over files to tokenization

@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/orilang/gori/lexer"
+	"github.com/orilang/gori/walk"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,6 +46,6 @@ func TestCommandsLex(t *testing.T) {
 
 	t.Run("error_no_file_or_directory", func(t *testing.T) {
 		cmd := Lexer()
-		assert.ErrorIs(lexer.ErrNoFileOrDirectoryPassed, cmd.Run(context.Background(), []string{"lex"}))
+		assert.ErrorIs(walk.ErrNoFileOrDirectoryPassed, cmd.Run(context.Background(), []string{"lex"}))
 	})
 }

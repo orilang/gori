@@ -1,4 +1,4 @@
-package lexer
+package walk
 
 import (
 	"io/fs"
@@ -10,7 +10,7 @@ import (
 
 // walk checks if specified file exist.
 // If directory is specified, it will return all .ori and .mod files
-func walk(config Config) (files *Files, err error) {
+func Walk(config Config) (files *Files, err error) {
 	var f Files
 	exentions := []string{".ori", ".mod"}
 	if config.File != "" && slices.Contains(exentions, filepath.Ext(config.File)) {
