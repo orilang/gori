@@ -20,11 +20,11 @@ func main() {
 		EnableShellCompletion: true,
 		Commands: []*cli.Command{
 			commands.Lexer(),
+			commands.Parse(),
 		},
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
-		// log.Fatalf("Error occured while executing the program with error: %s", err.Error())
 		log.Fatal(err.Error())
 	}
 }
