@@ -14,7 +14,7 @@ func TestCommandsLex(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("success", func(t *testing.T) {
-		configDir := "../lexer/testdata"
+		configDir := "../testdata"
 		configFile := filepath.Join(configDir, "success/main.ori")
 
 		cmd := Lexer()
@@ -37,7 +37,7 @@ func TestCommandsLex(t *testing.T) {
 	})
 
 	t.Run("error_no_such_file_or_directory", func(t *testing.T) {
-		configDir := "../lexer/testdata"
+		configDir := "../testdata"
 		configFile := filepath.Join(configDir, "main.ori")
 
 		cmd := Lexer()
