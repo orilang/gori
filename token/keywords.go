@@ -35,3 +35,23 @@ var keywords = map[string]Kind{
 	"true":        BoolLit,
 	"false":       BoolLit,
 }
+
+var builtinTypes = map[Kind]bool{
+	KWInt:       true,
+	KWInt8:      true,
+	KWInt32:     true,
+	KWInt64:     true,
+	KWUint:      true,
+	KWUint8:     true,
+	KWUint32:    true,
+	KWUint64:    true,
+	KWFloat:     true,
+	KWFloat32:   true,
+	KWFloat64:   true,
+	KWConst:     true,
+	KWString:    true,
+	KWBool:      true,
+	KWType:      true,
+	KWStruct:    true,
+	KWInterface: true,
+}
