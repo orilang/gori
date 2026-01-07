@@ -6,3 +6,10 @@ func LookupKeyword(s string) Kind {
 	}
 	return Ident
 }
+
+func IsBuiltinType(k Kind) bool {
+	if builtinTypes[k] {
+		return true
+	}
+	return false
+}

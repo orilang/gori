@@ -28,4 +28,24 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, LookupKeyword(tc.input))
 		}
 	})
+
+	t.Run("builtin_types", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWInt,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsBuiltinType(tc.input))
+		}
+	})
 }
