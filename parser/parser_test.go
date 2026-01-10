@@ -479,8 +479,76 @@ func TestParser_bad(t *testing.T) {
 		}
 
 		parser := New(input)
-		pr := parser.parseExpr()
+		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
+	})
+}
+
+func TestParser_expr(t *testing.T) {
+	assert := assert.New(t)
+	t.Run("grouping", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 2},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 3},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `ParenExpr
+ IdentExpr
+  Name: "a" @1:2 (kind=3)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("error_unclosed", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 2},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("error_empty", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 2},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		assert.Contains(ast.Dump(pr), "BadExpr")
+		assert.Contains(ast.Dump(pr), "expected expression inside parentheses")
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("grouping", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 2},
+			{Kind: token.Ident, Value: "+", Line: 1, Column: 3},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 4},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 5},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `ParenExpr
+ IdentExpr
+  Name: "b" @1:4 (kind=3)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
 	})
 }

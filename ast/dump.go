@@ -19,6 +19,9 @@ func Dump(input any) string {
 
 func (d *dumper) node(n any, indent int) {
 	switch v := n.(type) {
+	case token.Token:
+		d.line(indent, fmt.Sprintf("Token %s", fmtTok(v)))
+
 	case *File:
 		d.line(indent, "File")
 		d.kv(indent+1, "Package", v.PackageKW)
@@ -120,6 +123,9 @@ func (d *dumper) node(n any, indent int) {
 	case *BadType:
 		d.line(indent+2, fmtBadType(v))
 
+	case *BadExpr:
+		d.line(indent+2, fmtBadExpr(v))
+
 	case *IdentExpr:
 		d.line(indent, "IdentExpr")
 		d.kv(indent+1, "Name", v.Name)
@@ -144,8 +150,12 @@ func (d *dumper) node(n any, indent int) {
 		d.line(indent, "NameType")
 		d.kv(indent+1, "Name", v.Name)
 
-	case token.Token:
-		d.line(indent, fmt.Sprintf("Token %s", fmtTok(v)))
+	case *ParenExpr:
+		d.line(indent, "ParenExpr")
+		if v.Inner == nil {
+			return
+		}
+		d.expr(v.Inner, indent+1)
 
 	default:
 		if n == nil {
@@ -175,9 +185,17 @@ func fmtTok(t token.Token) string {
 // fmtBadType returns bad type content with line, column etc
 func fmtBadType(b *BadType) string {
 	if b.From != b.To && b.To != (token.Token{}) {
-		return fmt.Sprintf("BadType from @%d:%d to @%d:%d reason=%s value=%s", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value)
+		return fmt.Sprintf("BadType from @%d:%d to @%d:%d reason=%s from=%s to =%s", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
 	}
 	return fmt.Sprintf("BadType at @%d:%d reason=%s value=%s", b.From.Line, b.From.Column, b.Reason, b.From.Value)
+}
+
+// fmtBadExpr returns bad expr content with line, column etc
+func fmtBadExpr(b *BadExpr) string {
+	if b.From != b.To && b.To != (token.Token{}) {
+		return fmt.Sprintf("BadExpr at @%d:%d to @%d:%d reason=%s from=%s to =%s", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
+	}
+	return fmt.Sprintf("BadExpr at @%d:%d reason=%s value=%s", b.From.Line, b.From.Column, b.Reason, b.From.Value)
 }
 
 func (d *dumper) decl(n Decl, indent int) {
@@ -228,6 +246,9 @@ func (d *dumper) stmt(n Stmt, indent int) {
 func (d *dumper) expr(n Expr, indent int) {
 	switch v := n.(type) {
 	case *IdentExpr, *IntLitExpr, *FloatLitExpr, *BoolLitExpr, *StringLitExpr:
+		d.node(v, indent)
+
+	case *BadExpr:
 		d.node(v, indent)
 
 	default:

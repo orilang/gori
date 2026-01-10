@@ -57,6 +57,11 @@ func (p *Parser) peek() token.Token {
 	return p.Tokens[p.position]
 }
 
+// kind returns only the current token kind
+func (p *Parser) kind() token.Kind {
+	return p.peek().Kind
+}
+
 // next returns the current token AND advance the position
 func (p *Parser) next() token.Token {
 	tok := p.peek()
@@ -68,8 +73,8 @@ func (p *Parser) next() token.Token {
 
 // match compares the current token with the provided token Kind
 func (p *Parser) match(k token.Kind) (token.Token, bool) {
-	if p.peek().Kind == k {
-		return p.peek(), true
+	if p.kind() == k {
+		return p.next(), true
 	}
 	return token.Token{}, false
 }
@@ -94,8 +99,8 @@ func (p *Parser) ParseFile() *ast.File {
 		Name:      name,
 	}
 
-	for p.peek().Kind != token.EOF {
-		switch p.peek().Kind {
+	for p.kind() != token.EOF {
+		switch p.kind() {
 		case token.KWConst:
 			f.Const = append(f.Const, p.parseConstDecl())
 
@@ -116,25 +121,25 @@ func (p *Parser) ParseFile() *ast.File {
 func (p *Parser) parseFuncDecl() *ast.FuncDecl {
 	kw := p.expect(token.KWFunc, "expected 'func'")
 	name := p.expect(token.Ident, "expected function name")
-	p.expect(token.LParen, "expected '(' after function name")
+	_ = p.expect(token.LParen, "expected '(' after function name")
 
 	f := &ast.FuncDecl{
 		FuncKW: kw,
 		Name:   name,
 	}
-	if tok := p.peek().Kind; tok != token.RParen {
-		for p.peek().Kind != token.EOF {
-			if p.peek().Kind == token.Comma {
-				p.next()
-				continue
-			} else if p.peek().Kind == token.RParen {
-				break
-			}
-			f.Params = append(f.Params, p.parseFuncParam())
+	for {
+		if p.kind() == token.RParen || p.kind() == token.EOF {
+			break
 		}
+
+		if p.kind() == token.Comma {
+			p.next()
+			continue
+		}
+		f.Params = append(f.Params, p.parseFuncParam())
 	}
 
-	p.expect(token.RParen, "expected ')' after function name")
+	_ = p.expect(token.RParen, "expected ')' after function name")
 
 	body := p.parseBlock()
 	f.Body = body
@@ -178,7 +183,7 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 	lb := p.expect(token.LBrace, "expected '{'")
 	var stmts []ast.Stmt
 
-	for p.peek().Kind != token.RBrace && p.peek().Kind != token.EOF {
+	for p.kind() != token.RBrace {
 		stmts = append(stmts, p.parseStmt())
 	}
 	rb := p.expect(token.RBrace, "expected '}'")
@@ -192,7 +197,7 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 
 // parseStmt returns declaration within parseBlock
 func (p *Parser) parseStmt() ast.Stmt {
-	switch p.peek().Kind {
+	switch p.kind() {
 	case token.KWConst:
 		return p.parseConstDecl()
 
@@ -213,13 +218,12 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 	kw := p.expect(token.KWConst, "expected 'const'")
 	name := p.expect(token.Ident, "expected constant name")
 
-	// typeTok := p.expect(token.Ident, "expected type name")
 	typeTok := p.peek()
 	p.next()
 	typ := &ast.NameType{Name: typeTok}
 
 	eq := p.expect(token.Assign, "expected '=")
-	init := p.parseExpr()
+	init := p.parseExpr(LOWEST)
 
 	return &ast.ConstDeclStmt{
 		ConstKW: kw,
@@ -235,13 +239,12 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 	kw := p.expect(token.KWVar, "expected 'var'")
 	name := p.expect(token.Ident, "expected variable name")
 
-	// typeTok := p.expect(token.Ident, "expected type name")
 	typeTok := p.peek()
 	p.next()
 	typ := &ast.NameType{Name: typeTok}
 
 	eq := p.expect(token.Assign, "expected '=")
-	init := p.parseExpr()
+	init := p.parseExpr(LOWEST)
 
 	return &ast.VarDeclStmt{
 		VarKW: kw,
@@ -253,8 +256,8 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 }
 
 // parseExpr returns the type of declaration being parsed
-func (p *Parser) parseExpr() ast.Expr {
-	switch p.peek().Kind {
+func (p *Parser) parseExpr(minPrecedence int) ast.Expr {
+	switch p.kind() {
 	case token.IntLit:
 		return &ast.IntLitExpr{Name: p.next()}
 
@@ -270,10 +273,35 @@ func (p *Parser) parseExpr() ast.Expr {
 	case token.Ident:
 		return &ast.IdentExpr{Name: p.next()}
 
-	default:
-		tok := p.peek()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-		p.next()
-		return &ast.IdentExpr{}
+	case token.LParen:
+		return p.parseGroupExpr()
 	}
+
+	tok := p.peek()
+	p.errors = append(p.errors, fmt.Errorf("%d:%d: expected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+	p.next()
+	return &ast.BadExpr{From: tok, Reason: "unexpected expression"}
+}
+
+func (p *Parser) parseGroupExpr() *ast.ParenExpr {
+	from := p.peek()
+	g := &ast.ParenExpr{Left: from}
+	p.next()
+
+	for {
+		if p.kind() == token.RParen || p.kind() == token.EOF {
+			break
+		}
+		g.Inner = p.parseExpr(LOWEST)
+	}
+
+	to := p.peek()
+	_ = p.expect(token.RParen, "expected ')")
+	g.Right = to
+	if g.Inner == nil {
+		g.Inner = &ast.BadExpr{From: from, To: to, Reason: "expected expression inside parentheses"}
+		return g
+	}
+
+	return g
 }

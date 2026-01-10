@@ -49,6 +49,16 @@ func TestAst_dump(t *testing.T) {
 		assert.NotNil(result)
 	})
 
+	t.Run("nil_parent_expr", func(t *testing.T) {
+		f := &ParenExpr{
+			Left:  token.Token{Kind: token.LParen, Value: "("},
+			Right: token.Token{Kind: token.RParen, Value: ")"},
+			Inner: nil,
+		}
+		result := Dump(f)
+		assert.NotNil(result)
+	})
+
 	t.Run("bad_type_from", func(t *testing.T) {
 		f := &ConstDeclStmt{
 			ConstKW: token.Token{Kind: token.KWConst, Value: "const"},
@@ -133,5 +143,26 @@ func TestAst_dump(t *testing.T) {
 		d := dumper{w: &b}
 		d.expr(&dumpType{}, 0)
 		assert.Equal("<<unhandled expr *ast.dumpType>>\n", b.String())
+	})
+
+	t.Run("bad_expr_from", func(t *testing.T) {
+		f := &BadExpr{
+			From:   token.Token{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			Reason: "unexpected expression",
+		}
+		result := Dump(f)
+		assert.NotNil(result)
+		assert.Contains(result, "BadExpr")
+	})
+
+	t.Run("bad_expr_from_to", func(t *testing.T) {
+		f := &BadExpr{
+			From:   token.Token{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			To:     token.Token{Kind: token.RParen, Value: ")", Line: 1, Column: 2},
+			Reason: "expected expression inside parentheses",
+		}
+		result := Dump(f)
+		assert.NotNil(result)
+		assert.Contains(result, "BadExpr")
 	})
 }
