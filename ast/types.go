@@ -75,6 +75,12 @@ type BadType struct {
 	Reason   string
 }
 
+// BadExpr holds returned bad expr with reason
+type BadExpr struct {
+	From, To token.Token
+	Reason   string
+}
+
 // dumpType is only used for testing purpose
 type dumpType struct {
 	S string
@@ -98,6 +104,13 @@ type BoolLitExpr struct {
 // StringLitExpr holds string content
 type StringLitExpr struct {
 	Name token.Token
+}
+
+// ParenExpr handles contents between open and closing parenthesis
+type ParenExpr struct {
+	Left  token.Token
+	Inner Expr
+	Right token.Token
 }
 
 type Decl interface{ declNode() }

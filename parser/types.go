@@ -33,3 +33,33 @@ type Parser struct {
 	size     int
 	position int
 }
+
+const (
+	LOWEST int = iota
+	OR
+	AND
+	EQUALITY
+	COMPARE
+	ADDITIVE
+	MULTIPLICATIVE
+	LPARENT
+	RPARENT
+)
+
+var precedence = map[token.Kind]int{
+	token.Or:     OR,
+	token.And:    AND,
+	token.Eq:     EQUALITY,
+	token.Neq:    EQUALITY,
+	token.Lt:     COMPARE,
+	token.Lte:    COMPARE,
+	token.Gt:     COMPARE,
+	token.Gte:    COMPARE,
+	token.Plus:   ADDITIVE,
+	token.Minus:  ADDITIVE,
+	token.Slash:  MULTIPLICATIVE,
+	token.Star:   MULTIPLICATIVE,
+	token.Modulo: MULTIPLICATIVE,
+	token.LParen: LPARENT,
+	token.RParen: RPARENT,
+}
