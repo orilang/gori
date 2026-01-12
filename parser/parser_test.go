@@ -638,7 +638,7 @@ func TestParser_expr(t *testing.T) {
 			{Kind: token.LParen, Value: "(", Line: 1, Column: 3},
 			{Kind: token.Ident, Value: "b", Line: 1, Column: 4},
 			{Kind: token.Ident, Value: "+", Line: 1, Column: 5},
-			{Kind: token.Ident, Value: "b", Line: 1, Column: 6},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 6},
 			{Kind: token.RParen, Value: ")", Line: 1, Column: 7},
 			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
 		}
@@ -654,8 +654,8 @@ func TestParser_expr(t *testing.T) {
    IdentExpr
     Name: "b" @1:4 (kind=3)
    Operator: "+" @1:5 (kind=3)
-   IdentExpr
-    Name: "b" @1:6 (kind=3)
+   IntLitExpr
+    Value: "1" @1:6 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
