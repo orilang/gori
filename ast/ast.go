@@ -18,4 +18,5 @@ func (*StringLitExpr) exprNode() {}
 func (*BadType) exprNode()       {}
 func (*ParenExpr) exprNode()     {}
 func (*BadExpr) exprNode()       {}
+func (*BinaryExpr) exprNode()    {}
 func (*dumpType) exprNode()      {}

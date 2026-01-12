@@ -113,6 +113,14 @@ type ParenExpr struct {
 	Right token.Token
 }
 
+// BinaryExpr handles complex binary expressions like addition
+// multiplication etc
+type BinaryExpr struct {
+	Left     Expr
+	Operator token.Token
+	Right    Expr
+}
+
 type Decl interface{ declNode() }
 type Type interface{ typeNode() }
 type Stmt interface{ stmtNode() }

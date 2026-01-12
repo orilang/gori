@@ -55,3 +55,22 @@ var builtinTypes = map[Kind]bool{
 	KWStruct:    true,
 	KWInterface: true,
 }
+
+var prefix = map[Kind]bool{
+	LParen:    true,
+	Ident:     true,
+	IntLit:    true,
+	FloatLit:  true,
+	StringLit: true,
+	BoolLit:   true,
+	Plus:      true,
+}
+
+var infix = map[Kind]bool{
+	Plus:   true,
+	Minus:  true,
+	Star:   true,
+	Slash:  true,
+	Modulo: true,
+	Ident:  true,
+}
