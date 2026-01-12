@@ -62,6 +62,14 @@ func (p *Parser) kind() token.Kind {
 	return p.peek().Kind
 }
 
+// peekPrecedence returns the precedence level of the current token.Kind
+func (p *Parser) peekPrecedence() int {
+	if v, ok := precedence[p.kind()]; ok {
+		return v
+	}
+	return LOWEST
+}
+
 // next returns the current token AND advance the position
 func (p *Parser) next() token.Token {
 	tok := p.peek()
@@ -127,11 +135,7 @@ func (p *Parser) parseFuncDecl() *ast.FuncDecl {
 		FuncKW: kw,
 		Name:   name,
 	}
-	for {
-		if p.kind() == token.RParen || p.kind() == token.EOF {
-			break
-		}
-
+	for p.kind() != token.RParen && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
 			p.next()
 			continue
@@ -257,30 +261,61 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 
 // parseExpr returns the type of declaration being parsed
 func (p *Parser) parseExpr(minPrecedence int) ast.Expr {
-	switch p.kind() {
-	case token.IntLit:
-		return &ast.IntLitExpr{Name: p.next()}
-
-	case token.FloatLit:
-		return &ast.FloatLitExpr{Name: p.next()}
-
-	case token.BoolLit:
-		return &ast.BoolLitExpr{Name: p.next()}
-
-	case token.StringLit:
-		return &ast.StringLitExpr{Name: p.next()}
-
-	case token.Ident:
-		return &ast.IdentExpr{Name: p.next()}
-
-	case token.LParen:
-		return p.parseGroupExpr()
+	if !token.IsPrefix(p.kind()) && !token.IsInfix(p.kind()) {
+		tok := p.peek()
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		return &ast.BadExpr{From: tok, Reason: "unexpected expression"}
 	}
 
-	tok := p.peek()
-	p.errors = append(p.errors, fmt.Errorf("%d:%d: expected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-	p.next()
-	return &ast.BadExpr{From: tok, Reason: "unexpected expression"}
+	var left ast.Expr
+	if token.IsPrefix(p.kind()) {
+		left = p.parsePrefix()
+	}
+
+	for p.kind() != token.EOF && token.IsInfix(p.kind()) && p.peekPrecedence() >= minPrecedence {
+		left = p.parseInfix(left)
+	}
+	return left
+}
+
+// parsePrefix returns expressions for parseExpr func
+func (p *Parser) parsePrefix() ast.Expr {
+	var expr ast.Expr
+	switch p.kind() {
+	case token.IntLit:
+		expr = &ast.IntLitExpr{Name: p.next()}
+
+	case token.FloatLit:
+		expr = &ast.FloatLitExpr{Name: p.next()}
+
+	case token.BoolLit:
+		expr = &ast.BoolLitExpr{Name: p.next()}
+
+	case token.StringLit:
+		expr = &ast.StringLitExpr{Name: p.next()}
+
+	case token.Ident:
+		expr = &ast.IdentExpr{Name: p.next()}
+
+	case token.LParen:
+		expr = p.parseGroupExpr()
+	}
+
+	return expr
+}
+
+// parseInfix returns expressions for parseExpr func
+func (p *Parser) parseInfix(left ast.Expr) ast.Expr {
+	expr := &ast.BinaryExpr{
+		Left:     left,
+		Operator: p.peek(),
+	}
+
+	precedence := p.peekPrecedence()
+	_ = p.next()
+	expr.Right = p.parseExpr(precedence)
+
+	return expr
 }
 
 func (p *Parser) parseGroupExpr() *ast.ParenExpr {
@@ -288,15 +323,13 @@ func (p *Parser) parseGroupExpr() *ast.ParenExpr {
 	g := &ast.ParenExpr{Left: from}
 	p.next()
 
-	for {
-		if p.kind() == token.RParen || p.kind() == token.EOF {
-			break
-		}
+	for p.kind() != token.RParen && p.kind() != token.EOF {
 		g.Inner = p.parseExpr(LOWEST)
 	}
 
 	to := p.peek()
 	_ = p.expect(token.RParen, "expected ')")
+
 	g.Right = to
 	if g.Inner == nil {
 		g.Inner = &ast.BadExpr{From: from, To: to, Reason: "expected expression inside parentheses"}

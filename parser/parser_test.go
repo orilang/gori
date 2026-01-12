@@ -475,7 +475,7 @@ func TestParser_bad(t *testing.T) {
 			{Kind: token.Ident, Value: "a"},
 			{Kind: token.KWInt, Value: "int"},
 			{Kind: token.Assign, Value: "="},
-			{Kind: token.IntLit, Value: "!"},
+			{Kind: token.Not, Value: "!"},
 		}
 
 		parser := New(input)
@@ -532,7 +532,82 @@ func TestParser_expr(t *testing.T) {
 		assert.Equal(0, len(parser.errors))
 	})
 
-	t.Run("grouping", func(t *testing.T) {
+	t.Run("additive", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 2},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 3},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 4},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ IntLitExpr
+  Value: "1" @1:2 (kind=4)
+ Operator: "+" @1:3 (kind=51)
+ IntLitExpr
+  Value: "2" @1:4 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("multiplicative", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 2},
+			{Kind: token.Star, Value: "*", Line: 1, Column: 3},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 4},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ IntLitExpr
+  Value: "1" @1:2 (kind=4)
+ Operator: "*" @1:3 (kind=57)
+ IntLitExpr
+  Value: "2" @1:4 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("multiplicative_precedence", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 1},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "3", Line: 1, Column: 3},
+			{Kind: token.Star, Value: "*", Line: 1, Column: 4},
+			{Kind: token.IntLit, Value: "4", Line: 1, Column: 5},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 6},
+			{Kind: token.IntLit, Value: "5", Line: 1, Column: 7},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ IntLitExpr
+  Value: "2" @1:1 (kind=4)
+ Operator: "+" @1:2 (kind=51)
+ BinaryExpr
+  BinaryExpr
+   IntLitExpr
+    Value: "3" @1:3 (kind=4)
+   Operator: "*" @1:4 (kind=57)
+   IntLitExpr
+    Value: "4" @1:5 (kind=4)
+  Operator: "+" @1:6 (kind=51)
+  IntLitExpr
+   Value: "5" @1:7 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("grouping_binary", func(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
 			{Kind: token.Ident, Value: "a", Line: 1, Column: 2},
@@ -545,8 +620,42 @@ func TestParser_expr(t *testing.T) {
 		parser := New(input)
 		pr := parser.parseExpr(LOWEST)
 		result := `ParenExpr
+ BinaryExpr
+  IdentExpr
+   Name: "a" @1:2 (kind=3)
+  Operator: "+" @1:3 (kind=3)
+  IdentExpr
+   Name: "b" @1:4 (kind=3)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("grouping_binary_extended", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "+", Line: 1, Column: 2},
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 3},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 4},
+			{Kind: token.Ident, Value: "+", Line: 1, Column: 5},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 6},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 7},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
  IdentExpr
-  Name: "b" @1:4 (kind=3)
+  Name: "a" @1:1 (kind=3)
+ Operator: "+" @1:2 (kind=3)
+ ParenExpr
+  BinaryExpr
+   IdentExpr
+    Name: "b" @1:4 (kind=3)
+   Operator: "+" @1:5 (kind=3)
+   IdentExpr
+    Name: "b" @1:6 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
