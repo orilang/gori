@@ -171,6 +171,9 @@ func (p *Parser) parseType() (*ast.NameType, *ast.BadType, bool) {
 	case token.IsBuiltinType(tok.Kind):
 		typ.Name = tok
 
+	case tok.Kind == token.Ident:
+		typ.Name = tok
+
 	default:
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		btyp.From = tok
@@ -261,16 +264,14 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 
 // parseExpr returns the type of declaration being parsed
 func (p *Parser) parseExpr(minPrecedence int) ast.Expr {
-	if !token.IsPrefix(p.kind()) && !token.IsInfix(p.kind()) {
-		tok := p.peek()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-		return &ast.BadExpr{From: tok, Reason: "unexpected expression"}
+	if !token.IsPrefix(p.kind()) {
+		tok := p.next()
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected prefix expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		return &ast.BadExpr{From: tok, Reason: "unexpected prefix expression"}
 	}
 
 	var left ast.Expr
-	if token.IsPrefix(p.kind()) {
-		left = p.parsePrefix()
-	}
+	left = p.parsePrefix()
 
 	for p.kind() != token.EOF && token.IsInfix(p.kind()) && p.peekPrecedence() >= minPrecedence {
 		left = p.parseInfix(left)
@@ -306,6 +307,12 @@ func (p *Parser) parsePrefix() ast.Expr {
 
 // parseInfix returns expressions for parseExpr func
 func (p *Parser) parseInfix(left ast.Expr) ast.Expr {
+	if !token.IsOperator(p.kind()) {
+		tok := p.next()
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected operator, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		return &ast.BadExpr{From: tok, Reason: "unexpected operator"}
+	}
+
 	expr := &ast.BinaryExpr{
 		Left:     left,
 		Operator: p.peek(),
@@ -313,28 +320,25 @@ func (p *Parser) parseInfix(left ast.Expr) ast.Expr {
 
 	precedence := p.peekPrecedence()
 	_ = p.next()
-	expr.Right = p.parseExpr(precedence)
+	expr.Right = p.parseExpr(precedence + 1)
 
 	return expr
 }
 
 func (p *Parser) parseGroupExpr() *ast.ParenExpr {
-	from := p.peek()
+	from := p.expect(token.LParen, "expected '('")
 	g := &ast.ParenExpr{Left: from}
-	p.next()
 
-	for p.kind() != token.RParen && p.kind() != token.EOF {
-		g.Inner = p.parseExpr(LOWEST)
-	}
-
-	to := p.peek()
-	_ = p.expect(token.RParen, "expected ')")
-
-	g.Right = to
-	if g.Inner == nil {
+	if p.kind() == token.RParen {
+		to := p.expect(token.RParen, "expected ')'")
+		g.Right = to
 		g.Inner = &ast.BadExpr{From: from, To: to, Reason: "expected expression inside parentheses"}
 		return g
 	}
+
+	g.Inner = p.parseExpr(LOWEST)
+	to := p.expect(token.RParen, "expected ')'")
+	g.Right = to
 
 	return g
 }

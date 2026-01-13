@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"syscall"
 	"testing"
 
@@ -224,15 +225,20 @@ func TestParser_parse_file(t *testing.T) {
 			{Kind: token.Ident, Value: "a", Line: 3, Column: 8},
 			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
 
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 10},
+			{Kind: token.Comma, Value: ",", Line: 3, Column: 13},
 
 			{Kind: token.Ident, Value: "b", Line: 3, Column: 15},
 			{Kind: token.KWString, Value: "string", Line: 3, Column: 17},
 
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 23},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 24},
+			{Kind: token.Comma, Value: ",", Line: 3, Column: 23},
 
-			{Kind: token.RBrace, Value: "}", Line: 3, Column: 25},
+			{Kind: token.Ident, Value: "c", Line: 3, Column: 25},
+			{Kind: token.Ident, Value: "string", Line: 3, Column: 27},
+
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 28},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 29},
+
+			{Kind: token.RBrace, Value: "}", Line: 3, Column: 30},
 			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
 		}
 
@@ -256,6 +262,11 @@ func TestParser_parse_file(t *testing.T) {
      Type
       NameType
        Name: "string" @3:17 (kind=24)
+    Param
+     Function: "c" @3:25 (kind=3)
+     Type
+      NameType
+       Name: "string" @3:27 (kind=3)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -501,8 +512,41 @@ func TestParser_expr(t *testing.T) {
  IdentExpr
   Name: "a" @1:2 (kind=3)
 `
+		for _, v := range parser.errors {
+			fmt.Println(v.Error())
+		}
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("grouping_bad_expr_operator_indent", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 2},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 4},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 5},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("grouping_bad_expr_operator_int", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 4},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 5},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("error_unclosed", func(t *testing.T) {
@@ -532,11 +576,11 @@ func TestParser_expr(t *testing.T) {
 		assert.Equal(0, len(parser.errors))
 	})
 
-	t.Run("additive", func(t *testing.T) {
+	t.Run("additive_plus", func(t *testing.T) {
 		input := []token.Token{
-			{Kind: token.IntLit, Value: "1", Line: 1, Column: 2},
-			{Kind: token.Plus, Value: "+", Line: 1, Column: 3},
-			{Kind: token.IntLit, Value: "2", Line: 1, Column: 4},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 1},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 3},
 			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
 		}
 
@@ -544,10 +588,37 @@ func TestParser_expr(t *testing.T) {
 		pr := parser.parseExpr(LOWEST)
 		result := `BinaryExpr
  IntLitExpr
-  Value: "1" @1:2 (kind=4)
- Operator: "+" @1:3 (kind=51)
+  Value: "1" @1:1 (kind=4)
+ Operator: "+" @1:2 (kind=51)
  IntLitExpr
-  Value: "2" @1:4 (kind=4)
+  Value: "2" @1:3 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("additive_minus", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 1},
+			{Kind: token.Minus, Value: "-", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 3},
+			{Kind: token.Minus, Value: "-", Line: 1, Column: 4},
+			{Kind: token.IntLit, Value: "3", Line: 1, Column: 5},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ BinaryExpr
+  IntLitExpr
+   Value: "1" @1:1 (kind=4)
+  Operator: "-" @1:2 (kind=54)
+  IntLitExpr
+   Value: "2" @1:3 (kind=4)
+ Operator: "-" @1:4 (kind=54)
+ IntLitExpr
+  Value: "3" @1:5 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -589,19 +660,76 @@ func TestParser_expr(t *testing.T) {
 		parser := New(input)
 		pr := parser.parseExpr(LOWEST)
 		result := `BinaryExpr
- IntLitExpr
-  Value: "2" @1:1 (kind=4)
- Operator: "+" @1:2 (kind=51)
  BinaryExpr
+  IntLitExpr
+   Value: "2" @1:1 (kind=4)
+  Operator: "+" @1:2 (kind=51)
   BinaryExpr
    IntLitExpr
     Value: "3" @1:3 (kind=4)
    Operator: "*" @1:4 (kind=57)
    IntLitExpr
     Value: "4" @1:5 (kind=4)
-  Operator: "+" @1:6 (kind=51)
+ Operator: "+" @1:6 (kind=51)
+ IntLitExpr
+  Value: "5" @1:7 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("grouping_precedence", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 2},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 3},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 4},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 5},
+			{Kind: token.Star, Value: "*", Line: 1, Column: 6},
+			{Kind: token.IntLit, Value: "3", Line: 1, Column: 7},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ ParenExpr
+  BinaryExpr
+   IntLitExpr
+    Value: "1" @1:2 (kind=4)
+   Operator: "+" @1:3 (kind=51)
+   IntLitExpr
+    Value: "2" @1:4 (kind=4)
+ Operator: "*" @1:6 (kind=57)
+ IntLitExpr
+  Value: "3" @1:7 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("divide", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.IntLit, Value: "8", Line: 1, Column: 1},
+			{Kind: token.Slash, Value: "/", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "4", Line: 1, Column: 3},
+			{Kind: token.Slash, Value: "/", Line: 1, Column: 4},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 5},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ BinaryExpr
   IntLitExpr
-   Value: "5" @1:7 (kind=4)
+   Value: "8" @1:1 (kind=4)
+  Operator: "/" @1:2 (kind=59)
+  IntLitExpr
+   Value: "4" @1:3 (kind=4)
+ Operator: "/" @1:4 (kind=59)
+ IntLitExpr
+  Value: "2" @1:5 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -611,7 +739,7 @@ func TestParser_expr(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
 			{Kind: token.Ident, Value: "a", Line: 1, Column: 2},
-			{Kind: token.Ident, Value: "+", Line: 1, Column: 3},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 3},
 			{Kind: token.Ident, Value: "b", Line: 1, Column: 4},
 			{Kind: token.RParen, Value: ")", Line: 1, Column: 5},
 			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
@@ -623,7 +751,7 @@ func TestParser_expr(t *testing.T) {
  BinaryExpr
   IdentExpr
    Name: "a" @1:2 (kind=3)
-  Operator: "+" @1:3 (kind=3)
+  Operator: "+" @1:3 (kind=51)
   IdentExpr
    Name: "b" @1:4 (kind=3)
 `
@@ -634,10 +762,10 @@ func TestParser_expr(t *testing.T) {
 	t.Run("grouping_binary_extended", func(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.Ident, Value: "a", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "+", Line: 1, Column: 2},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 2},
 			{Kind: token.LParen, Value: "(", Line: 1, Column: 3},
 			{Kind: token.Ident, Value: "b", Line: 1, Column: 4},
-			{Kind: token.Ident, Value: "+", Line: 1, Column: 5},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 5},
 			{Kind: token.IntLit, Value: "1", Line: 1, Column: 6},
 			{Kind: token.RParen, Value: ")", Line: 1, Column: 7},
 			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
@@ -648,12 +776,12 @@ func TestParser_expr(t *testing.T) {
 		result := `BinaryExpr
  IdentExpr
   Name: "a" @1:1 (kind=3)
- Operator: "+" @1:2 (kind=3)
+ Operator: "+" @1:2 (kind=51)
  ParenExpr
   BinaryExpr
    IdentExpr
     Name: "b" @1:4 (kind=3)
-   Operator: "+" @1:5 (kind=3)
+   Operator: "+" @1:5 (kind=51)
    IntLitExpr
     Value: "1" @1:6 (kind=4)
 `
