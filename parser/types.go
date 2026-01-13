@@ -42,8 +42,7 @@ const (
 	COMPARE
 	ADDITIVE
 	MULTIPLICATIVE
-	LPARENT
-	RPARENT
+	PREFIX
 )
 
 var precedence = map[token.Kind]int{
@@ -60,6 +59,5 @@ var precedence = map[token.Kind]int{
 	token.Slash:  MULTIPLICATIVE,
 	token.Star:   MULTIPLICATIVE,
 	token.Modulo: MULTIPLICATIVE,
-	token.LParen: LPARENT,
-	token.RParen: RPARENT,
+	token.Not:    PREFIX,
 }

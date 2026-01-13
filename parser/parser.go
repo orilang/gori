@@ -300,6 +300,9 @@ func (p *Parser) parsePrefix() ast.Expr {
 
 	case token.LParen:
 		expr = p.parseGroupExpr()
+
+	case token.Minus, token.Not:
+		expr = p.parseUnaryExpr()
 	}
 
 	return expr
@@ -307,12 +310,6 @@ func (p *Parser) parsePrefix() ast.Expr {
 
 // parseInfix returns expressions for parseExpr func
 func (p *Parser) parseInfix(left ast.Expr) ast.Expr {
-	if !token.IsOperator(p.kind()) {
-		tok := p.next()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected operator, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-		return &ast.BadExpr{From: tok, Reason: "unexpected operator"}
-	}
-
 	expr := &ast.BinaryExpr{
 		Left:     left,
 		Operator: p.peek(),
@@ -325,6 +322,7 @@ func (p *Parser) parseInfix(left ast.Expr) ast.Expr {
 	return expr
 }
 
+// parseGroupExpr parses expressions within parenthesis
 func (p *Parser) parseGroupExpr() *ast.ParenExpr {
 	from := p.expect(token.LParen, "expected '('")
 	g := &ast.ParenExpr{Left: from}
@@ -341,4 +339,12 @@ func (p *Parser) parseGroupExpr() *ast.ParenExpr {
 	g.Right = to
 
 	return g
+}
+
+// parseUnaryExpr parses unary expression like - and !
+func (p *Parser) parseUnaryExpr() *ast.UnaryExpr {
+	tok := p.next()
+	u := &ast.UnaryExpr{Operator: tok}
+	u.Right = p.parseExpr(PREFIX)
+	return u
 }

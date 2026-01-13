@@ -64,6 +64,8 @@ var prefix = map[Kind]bool{
 	StringLit: true,
 	BoolLit:   true,
 	Plus:      true,
+	Minus:     true,
+	Not:       true,
 }
 
 var infix = map[Kind]bool{
@@ -72,21 +74,12 @@ var infix = map[Kind]bool{
 	Star:   true,
 	Slash:  true,
 	Modulo: true,
-	Ident:  true,
-}
-
-var operator = map[Kind]bool{
-	LParen: true,
-	Plus:   true,
-	Minus:  true,
-	Star:   true,
-	Slash:  true,
-	Neq:    true,
-	Lt:     true,
-	Lte:    true,
-	Gt:     true,
-	Gte:    true,
-	And:    true,
-	Or:     true,
-	Not:    true,
+	// Ident:  true,
+	Neq: true,
+	Lt:  true,
+	Lte: true,
+	Gt:  true,
+	Gte: true,
+	And: true,
+	Or:  true,
 }
