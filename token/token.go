@@ -23,8 +23,3 @@ func IsPrefix(k Kind) bool {
 func IsInfix(k Kind) bool {
 	return infix[k]
 }
-
-// IsOperator returns true when the provided kind is found is the list
-func IsOperator(k Kind) bool {
-	return operator[k]
-}

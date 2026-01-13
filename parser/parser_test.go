@@ -78,6 +78,24 @@ func TestParser_parse_common(t *testing.T) {
 		assert.NotNil(parse.errors)
 		assert.Equal(token.KWPackage, tok.Kind)
 	})
+
+	t.Run("peekPrecedence_lowest", func(t *testing.T) {
+		input := "package"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(LOWEST, parse.peekPrecedence())
+	})
+
+	t.Run("peekPrecedence_multiplicative", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(MULTIPLICATIVE, parse.peekPrecedence())
+	})
 }
 
 func TestParser_parse_file(t *testing.T) {
@@ -853,6 +871,165 @@ func TestParser_expr(t *testing.T) {
    Operator: "+" @1:5 (kind=51)
    IntLitExpr
     Value: "1" @1:6 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("unary_minus", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Minus, Value: "-", Line: 1, Column: 1},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 2},
+			{Kind: token.Star, Value: "*", Line: 1, Column: 3},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 4},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ UnaryExpr
+  Operator: "-" @1:1 (kind=54)
+  IntLitExpr
+   Value: "1" @1:2 (kind=4)
+ Operator: "*" @1:3 (kind=57)
+ IntLitExpr
+  Value: "2" @1:4 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("unary_minus_grouping", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Minus, Value: "-", Line: 1, Column: 1},
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 3},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 4},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 5},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 6},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `UnaryExpr
+ Operator: "-" @1:1 (kind=54)
+ ParenExpr
+  BinaryExpr
+   IntLitExpr
+    Value: "1" @1:3 (kind=4)
+   Operator: "+" @1:4 (kind=51)
+   IntLitExpr
+    Value: "2" @1:5 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("comparison_unary", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Not, Value: "!", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 2},
+			{Kind: token.And, Value: "&&", Line: 1, Column: 3},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 4},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ UnaryExpr
+  Operator: "!" @1:1 (kind=70)
+  IdentExpr
+   Name: "a" @1:2 (kind=3)
+ Operator: "&&" @1:3 (kind=68)
+ IdentExpr
+  Name: "b" @1:4 (kind=3)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("unary_one", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Not, Value: "-", Line: 1, Column: 1},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 2},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `UnaryExpr
+ Operator: "-" @1:1 (kind=70)
+ IntLitExpr
+  Value: "1" @1:2 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("unary_minus_one", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Minus, Value: "-", Line: 1, Column: 1},
+			{Kind: token.Minus, Value: "-", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 3},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `UnaryExpr
+ Operator: "-" @1:1 (kind=54)
+ UnaryExpr
+  Operator: "-" @1:2 (kind=54)
+  IntLitExpr
+   Value: "1" @1:3 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("multiplicative_unary", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 1},
+			{Kind: token.Star, Value: "*", Line: 1, Column: 2},
+			{Kind: token.Minus, Value: "-", Line: 1, Column: 3},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 4},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ IntLitExpr
+  Value: "1" @1:1 (kind=4)
+ Operator: "*" @1:2 (kind=57)
+ UnaryExpr
+  Operator: "-" @1:3 (kind=54)
+  IntLitExpr
+   Value: "2" @1:4 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("unary_not_not", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Not, Value: "!", Line: 1, Column: 1},
+			{Kind: token.Not, Value: "!", Line: 1, Column: 2},
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 3},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `UnaryExpr
+ Operator: "!" @1:1 (kind=70)
+ UnaryExpr
+  Operator: "!" @1:2 (kind=70)
+  IdentExpr
+   Name: "a" @1:3 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))

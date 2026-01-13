@@ -163,6 +163,11 @@ func (d *dumper) node(n any, indent int) {
 		d.kv(indent+1, "Operator", v.Operator)
 		d.expr(v.Right, indent+1)
 
+	case *UnaryExpr:
+		d.line(indent, "UnaryExpr")
+		d.kv(indent+1, "Operator", v.Operator)
+		d.expr(v.Right, indent+1)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -261,6 +266,9 @@ func (d *dumper) expr(n Expr, indent int) {
 		d.node(v, indent)
 
 	case *ParenExpr:
+		d.node(v, indent)
+
+	case *UnaryExpr:
 		d.node(v, indent)
 
 	default:

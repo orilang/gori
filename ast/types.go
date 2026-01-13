@@ -121,6 +121,12 @@ type BinaryExpr struct {
 	Right    Expr
 }
 
+// UnaryExpr handles expressions like - or !
+type UnaryExpr struct {
+	Operator token.Token
+	Right    Expr
+}
+
 type Decl interface{ declNode() }
 type Type interface{ typeNode() }
 type Stmt interface{ stmtNode() }
