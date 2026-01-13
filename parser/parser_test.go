@@ -678,7 +678,37 @@ func TestParser_expr(t *testing.T) {
 		assert.Equal(0, len(parser.errors))
 	})
 
-	t.Run("grouping_precedence", func(t *testing.T) {
+	t.Run("grouping_precedence_prefix", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 1},
+			{Kind: token.Star, Value: "*", Line: 1, Column: 2},
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 3},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 4},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 5},
+			{Kind: token.IntLit, Value: "3", Line: 1, Column: 6},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 7},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ IntLitExpr
+  Value: "1" @1:1 (kind=4)
+ Operator: "*" @1:2 (kind=57)
+ ParenExpr
+  BinaryExpr
+   IntLitExpr
+    Value: "2" @1:4 (kind=4)
+   Operator: "+" @1:5 (kind=51)
+   IntLitExpr
+    Value: "3" @1:6 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("grouping_precedence_postfix", func(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
 			{Kind: token.IntLit, Value: "1", Line: 1, Column: 2},
@@ -703,6 +733,45 @@ func TestParser_expr(t *testing.T) {
  Operator: "*" @1:6 (kind=57)
  IntLitExpr
   Value: "3" @1:7 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("grouping_of_grouping", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 1},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 2},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 3},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 4},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 5},
+			{Kind: token.Star, Value: "*", Line: 1, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 7},
+			{Kind: token.IntLit, Value: "3", Line: 1, Column: 8},
+			{Kind: token.Plus, Value: "+", Line: 1, Column: 9},
+			{Kind: token.IntLit, Value: "4", Line: 1, Column: 10},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 11},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ ParenExpr
+  BinaryExpr
+   IntLitExpr
+    Value: "1" @1:2 (kind=4)
+   Operator: "+" @1:3 (kind=51)
+   IntLitExpr
+    Value: "2" @1:4 (kind=4)
+ Operator: "*" @1:6 (kind=57)
+ ParenExpr
+  BinaryExpr
+   IntLitExpr
+    Value: "3" @1:8 (kind=4)
+   Operator: "+" @1:9 (kind=51)
+   IntLitExpr
+    Value: "4" @1:10 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
