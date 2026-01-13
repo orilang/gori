@@ -27,6 +27,13 @@ func Lexer() *cli.Command {
 				Usage:       "directory to use",
 				Destination: &app.Directory,
 			},
+			&cli.BoolFlag{
+				Name:        "output",
+				Aliases:     []string{"o"},
+				Usage:       "print the result",
+				Destination: &app.Output,
+				Value:       true,
+			},
 		},
 		Action: func(ctx context.Context, _ *cli.Command) error {
 			if app.File == "" && app.Directory == "" {
