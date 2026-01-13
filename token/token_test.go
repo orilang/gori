@@ -68,4 +68,24 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsPrefix(tc.input))
 		}
 	})
+
+	t.Run("is_operator", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    Plus,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsOperator(tc.input))
+		}
+	})
 }
