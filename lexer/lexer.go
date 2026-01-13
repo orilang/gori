@@ -16,7 +16,8 @@ func NewLexer(config Config) (*Files, error) {
 	}
 
 	return &Files{
-		Files: w.Files,
+		Files:  w.Files,
+		output: config.Output,
 	}, nil
 }
 
@@ -30,6 +31,12 @@ func (f *Files) StartLexing() error {
 
 		l := New(data)
 		l.Tokenize()
+
+		if f.output {
+			for _, v := range l.Tokens {
+				fmt.Printf("Kind %d value %s line %d column %d\n", v.Kind, v.Value, v.Line, v.Column)
+			}
+		}
 	}
 	return nil
 }
@@ -312,10 +319,6 @@ func (l *Lexer) Tokenize() {
 		}
 	}
 	l.newToken(token.EOF, nil, l.line, l.column)
-
-	for _, v := range l.Tokens {
-		fmt.Printf("Kind %d value %s line %d column %d\n", v.Kind, v.Value, v.Line, v.Column)
-	}
 }
 
 // skipWhitespace skips any white space characters

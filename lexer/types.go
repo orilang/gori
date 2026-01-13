@@ -11,12 +11,18 @@ type Config struct {
 
 	// Directory to take as input and list files to parse
 	Directory string
+
+	// Output when set to true outputs the result
+	Output bool
 }
 
 // LexerFiles holds all files to use for tokenization
 type Files struct {
 	// Files holds the list of files to parse
 	Files []string
+
+	// output when set to true outputs the result
+	output bool
 }
 
 // Lexer holds requirements to parse tokens
