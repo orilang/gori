@@ -68,4 +68,44 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsPrefix(tc.input))
 		}
 	})
+
+	t.Run("is_comparison", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    Eq,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsComparison(tc.input))
+		}
+	})
+
+	t.Run("is_chaining_comparison", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    Eq,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsChainingComparison(tc.input))
+		}
+	})
 }

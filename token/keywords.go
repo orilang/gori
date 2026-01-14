@@ -74,12 +74,30 @@ var infix = map[Kind]bool{
 	Star:   true,
 	Slash:  true,
 	Modulo: true,
-	// Ident:  true,
+	Eq:     true,
+	Neq:    true,
+	Lt:     true,
+	Lte:    true,
+	Gt:     true,
+	Gte:    true,
+	And:    true,
+	Or:     true,
+}
+
+var comparison = map[Kind]bool{
+	Eq:  true,
 	Neq: true,
 	Lt:  true,
 	Lte: true,
 	Gt:  true,
 	Gte: true,
-	And: true,
-	Or:  true,
+}
+
+var chainingComparison = map[Kind]bool{
+	Eq:  true,
+	Neq: true,
+	Lt:  true,
+	Lte: true,
+	Gt:  true,
+	Gte: true,
 }
