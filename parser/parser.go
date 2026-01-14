@@ -118,7 +118,7 @@ func (p *Parser) ParseFile() *ast.File {
 		default:
 			tok := p.peek()
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-			p.next()
+			_ = p.next()
 		}
 	}
 
@@ -181,7 +181,7 @@ func (p *Parser) parseType() (*ast.NameType, *ast.BadType, bool) {
 		bad = true
 	}
 
-	p.next()
+	_ = p.next()
 	return typ, btyp, bad
 }
 
@@ -214,7 +214,7 @@ func (p *Parser) parseStmt() ast.Stmt {
 	default:
 		tok := p.peek()
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-		p.next()
+		_ = p.next()
 	}
 
 	return &ast.BlockStmt{}
@@ -318,6 +318,11 @@ func (p *Parser) parseInfix(left ast.Expr) ast.Expr {
 	precedence := p.peekPrecedence()
 	_ = p.next()
 	expr.Right = p.parseExpr(precedence + 1)
+	l, lok := expr.Left.(*ast.BinaryExpr)
+	if lok && token.IsChainingComparison(l.Operator.Kind) && token.IsChainingComparison(expr.Operator.Kind) {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected chaining comparison expression, got %v %q", expr.Operator.Line, expr.Operator.Column, expr.Operator.Kind, expr.Operator.Value))
+		return &ast.BadExpr{From: l.Operator, To: expr.Operator, Reason: "unexpected chaining comparison expression, use && (e.g. a < b && b < c)"}
+	}
 
 	return expr
 }
@@ -343,8 +348,7 @@ func (p *Parser) parseGroupExpr() *ast.ParenExpr {
 
 // parseUnaryExpr parses unary expression like - and !
 func (p *Parser) parseUnaryExpr() *ast.UnaryExpr {
-	tok := p.next()
-	u := &ast.UnaryExpr{Operator: tok}
+	u := &ast.UnaryExpr{Operator: p.next()}
 	u.Right = p.parseExpr(PREFIX)
 	return u
 }

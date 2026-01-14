@@ -196,17 +196,17 @@ func fmtTok(t token.Token) string {
 // fmtBadType returns bad type content with line, column etc
 func fmtBadType(b *BadType) string {
 	if b.From != b.To && b.To != (token.Token{}) {
-		return fmt.Sprintf("BadType from @%d:%d to @%d:%d reason=%s from=%s to =%s", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
+		return fmt.Sprintf("BadType from @%d:%d to @%d:%d reason=%s from=%q to=%q", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
 	}
-	return fmt.Sprintf("BadType at @%d:%d reason=%s value=%s", b.From.Line, b.From.Column, b.Reason, b.From.Value)
+	return fmt.Sprintf("BadType at @%d:%d reason=%s value=%q", b.From.Line, b.From.Column, b.Reason, b.From.Value)
 }
 
 // fmtBadExpr returns bad expr content with line, column etc
 func fmtBadExpr(b *BadExpr) string {
 	if b.From != b.To && b.To != (token.Token{}) {
-		return fmt.Sprintf("BadExpr at @%d:%d to @%d:%d reason=%s from=%s to =%s", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
+		return fmt.Sprintf("BadExpr at @%d:%d to @%d:%d reason=%s from=%q to=%q", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
 	}
-	return fmt.Sprintf("BadExpr at @%d:%d reason=%s value=%s", b.From.Line, b.From.Column, b.Reason, b.From.Value)
+	return fmt.Sprintf("BadExpr at @%d:%d reason=%s value=%q", b.From.Line, b.From.Column, b.Reason, b.From.Value)
 }
 
 func (d *dumper) decl(n Decl, indent int) {

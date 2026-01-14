@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"syscall"
 	"testing"
 
@@ -530,9 +529,6 @@ func TestParser_expr(t *testing.T) {
  IdentExpr
   Name: "a" @1:2 (kind=3)
 `
-		for _, v := range parser.errors {
-			fmt.Println(v.Error())
-		}
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
@@ -1030,6 +1026,121 @@ func TestParser_expr(t *testing.T) {
   Operator: "!" @1:2 (kind=70)
   IdentExpr
    Name: "a" @1:3 (kind=3)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("comparison_x1", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 1},
+			{Kind: token.Lt, Value: "<", Line: 1, Column: 2},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 3},
+			{Kind: token.And, Value: "&&", Line: 1, Column: 4},
+			{Kind: token.Ident, Value: "c", Line: 1, Column: 5},
+			{Kind: token.Lt, Value: "<", Line: 1, Column: 6},
+			{Kind: token.Ident, Value: "d", Line: 1, Column: 7},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ BinaryExpr
+  IdentExpr
+   Name: "a" @1:1 (kind=3)
+  Operator: "<" @1:2 (kind=64)
+  IdentExpr
+   Name: "b" @1:3 (kind=3)
+ Operator: "&&" @1:4 (kind=68)
+ BinaryExpr
+  IdentExpr
+   Name: "c" @1:5 (kind=3)
+  Operator: "<" @1:6 (kind=64)
+  IdentExpr
+   Name: "d" @1:7 (kind=3)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("comparison_x2", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 1},
+			{Kind: token.Eq, Value: "==", Line: 1, Column: 2},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 3},
+			{Kind: token.Or, Value: "||", Line: 1, Column: 4},
+			{Kind: token.Ident, Value: "c", Line: 1, Column: 5},
+			{Kind: token.Eq, Value: "==", Line: 1, Column: 6},
+			{Kind: token.Ident, Value: "d", Line: 1, Column: 7},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ BinaryExpr
+  IdentExpr
+   Name: "a" @1:1 (kind=3)
+  Operator: "==" @1:2 (kind=62)
+  IdentExpr
+   Name: "b" @1:3 (kind=3)
+ Operator: "||" @1:4 (kind=69)
+ BinaryExpr
+  IdentExpr
+   Name: "c" @1:5 (kind=3)
+  Operator: "==" @1:6 (kind=62)
+  IdentExpr
+   Name: "d" @1:7 (kind=3)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("comparison_chaining_error", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 1},
+			{Kind: token.Lt, Value: "<", Line: 1, Column: 2},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 3},
+			{Kind: token.Lt, Value: "<", Line: 1, Column: 4},
+			{Kind: token.Ident, Value: "c", Line: 1, Column: 5},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		assert.NotNil(ast.Dump(pr))
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("comparison_chaining_ok", func(t *testing.T) {
+		/*
+			This example is:
+			- OK because the we only check the left side (if binary expr) and the operator but NOT the right side
+			- It's the role of the type checker to valid if this expression is right.
+			So a!=b<c is valid but also a!=(b<c)
+		*/
+		input := []token.Token{
+			{Kind: token.Ident, Value: "a", Line: 1, Column: 1},
+			{Kind: token.Neq, Value: "!=", Line: 1, Column: 2},
+			{Kind: token.Ident, Value: "b", Line: 1, Column: 3},
+			{Kind: token.Lt, Value: "<", Line: 1, Column: 4},
+			{Kind: token.Ident, Value: "c", Line: 1, Column: 5},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		result := `BinaryExpr
+ IdentExpr
+  Name: "a" @1:1 (kind=3)
+ Operator: "!=" @1:2 (kind=63)
+ BinaryExpr
+  IdentExpr
+   Name: "b" @1:3 (kind=3)
+  Operator: "<" @1:4 (kind=64)
+  IdentExpr
+   Name: "c" @1:5 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))

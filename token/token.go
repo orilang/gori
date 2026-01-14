@@ -23,3 +23,14 @@ func IsPrefix(k Kind) bool {
 func IsInfix(k Kind) bool {
 	return infix[k]
 }
+
+// IsComparison returns true when the provided kind is found is the list
+func IsComparison(k Kind) bool {
+	return comparison[k]
+}
+
+// IsChainingComparison returns true when the provided kind is found is the list.
+// This must only be used to prevent stuffs like a < b < c
+func IsChainingComparison(k Kind) bool {
+	return chainingComparison[k]
+}
