@@ -24,6 +24,11 @@ func IsInfix(k Kind) bool {
 	return infix[k]
 }
 
+// IsPostfix returns true when the provided kind is found is the list
+func IsPostfix(k Kind) bool {
+	return postfix[k]
+}
+
 // IsComparison returns true when the provided kind is found is the list
 func IsComparison(k Kind) bool {
 	return comparison[k]

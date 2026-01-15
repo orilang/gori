@@ -43,21 +43,23 @@ const (
 	ADDITIVE
 	MULTIPLICATIVE
 	PREFIX
+	POSTFIX
 )
 
 var precedence = map[token.Kind]int{
-	token.Or:     OR,
-	token.And:    AND,
-	token.Eq:     EQUALITY,
-	token.Neq:    EQUALITY,
-	token.Lt:     COMPARE,
-	token.Lte:    COMPARE,
-	token.Gt:     COMPARE,
-	token.Gte:    COMPARE,
-	token.Plus:   ADDITIVE,
-	token.Minus:  ADDITIVE,
-	token.Slash:  MULTIPLICATIVE,
-	token.Star:   MULTIPLICATIVE,
-	token.Modulo: MULTIPLICATIVE,
-	token.Not:    PREFIX,
+	token.Or:       OR,
+	token.And:      AND,
+	token.Eq:       EQUALITY,
+	token.Neq:      EQUALITY,
+	token.Lt:       COMPARE,
+	token.Lte:      COMPARE,
+	token.Gt:       COMPARE,
+	token.Gte:      COMPARE,
+	token.Plus:     ADDITIVE,
+	token.Minus:    ADDITIVE,
+	token.Slash:    MULTIPLICATIVE,
+	token.Star:     MULTIPLICATIVE,
+	token.Modulo:   MULTIPLICATIVE,
+	token.Dot:      POSTFIX,
+	token.LBracket: POSTFIX,
 }

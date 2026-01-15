@@ -127,6 +127,29 @@ type UnaryExpr struct {
 	Right    Expr
 }
 
+// SelectorExpr handles field access expressions like a.b, a.b.c etc
+type SelectorExpr struct {
+	X        Expr
+	Dot      token.Token
+	Selector token.Token
+}
+
+// IndexExpr handles index/slicing like a[b] etc
+type IndexExpr struct {
+	X        Expr
+	LBracket token.Token
+	Index    Expr
+	RBracket token.Token
+}
+
+// CallExpr handles function call
+type CallExpr struct {
+	Callee Expr
+	LParen token.Token
+	Args   []Expr
+	RParen token.Token
+}
+
 type Decl interface{ declNode() }
 type Type interface{ typeNode() }
 type Stmt interface{ stmtNode() }

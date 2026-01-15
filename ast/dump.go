@@ -168,6 +168,34 @@ func (d *dumper) node(n any, indent int) {
 		d.kv(indent+1, "Operator", v.Operator)
 		d.expr(v.Right, indent+1)
 
+	case *SelectorExpr:
+		d.line(indent, "SelectorExpr")
+		d.line(indent+1, "X:")
+		d.expr(v.X, indent+2)
+		d.kv(indent+1, "Dot", v.Dot)
+		d.kv(indent+1, "Selector", v.Selector)
+
+	case *IndexExpr:
+		d.line(indent, "IndexExpr")
+		d.line(indent+1, "X:")
+		d.expr(v.X, indent+1)
+		d.kv(indent+1, "LBracket", v.LBracket)
+		d.expr(v.Index, indent+2)
+		d.kv(indent+1, "RBracket", v.RBracket)
+
+	case *CallExpr:
+		d.line(indent, "CallExpr")
+		d.line(indent+1, "Callee")
+		d.expr(v.Callee, indent+2)
+		d.kv(indent+1, "LParent", v.LParen)
+		if len(v.Args) > 0 {
+			d.line(indent+1, "Args:")
+			for _, v := range v.Args {
+				d.expr(v, indent+2)
+			}
+		}
+		d.kv(indent+1, "RParent", v.RParen)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -269,6 +297,15 @@ func (d *dumper) expr(n Expr, indent int) {
 		d.node(v, indent)
 
 	case *UnaryExpr:
+		d.node(v, indent)
+
+	case *SelectorExpr:
+		d.node(v, indent)
+
+	case *IndexExpr:
+		d.node(v, indent)
+
+	case *CallExpr:
 		d.node(v, indent)
 
 	default:

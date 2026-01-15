@@ -20,4 +20,7 @@ func (*ParenExpr) exprNode()     {}
 func (*BadExpr) exprNode()       {}
 func (*BinaryExpr) exprNode()    {}
 func (*UnaryExpr) exprNode()     {}
+func (*SelectorExpr) exprNode()  {}
+func (*IndexExpr) exprNode()     {}
+func (*CallExpr) exprNode()      {}
 func (*dumpType) exprNode()      {}

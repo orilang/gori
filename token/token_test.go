@@ -69,6 +69,46 @@ func TestToken(t *testing.T) {
 		}
 	})
 
+	t.Run("is_infix", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    Lt,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsInfix(tc.input))
+		}
+	})
+
+	t.Run("is_postfix", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    Dot,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsPostfix(tc.input))
+		}
+	})
+
 	t.Run("is_comparison", func(t *testing.T) {
 		tests := []struct {
 			input    Kind

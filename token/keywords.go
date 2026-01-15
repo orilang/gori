@@ -84,6 +84,12 @@ var infix = map[Kind]bool{
 	Or:     true,
 }
 
+var postfix = map[Kind]bool{
+	Dot:      true,
+	LBracket: true,
+	LParen:   true,
+}
+
 var comparison = map[Kind]bool{
 	Eq:  true,
 	Neq: true,

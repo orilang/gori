@@ -137,7 +137,7 @@ func (p *Parser) parseFuncDecl() *ast.FuncDecl {
 	}
 	for p.kind() != token.RParen && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
-			p.next()
+			_ = p.next()
 			continue
 		}
 		f.Params = append(f.Params, p.parseFuncParam())
@@ -226,7 +226,7 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 	name := p.expect(token.Ident, "expected constant name")
 
 	typeTok := p.peek()
-	p.next()
+	_ = p.next()
 	typ := &ast.NameType{Name: typeTok}
 
 	eq := p.expect(token.Assign, "expected '=")
@@ -247,7 +247,7 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 	name := p.expect(token.Ident, "expected variable name")
 
 	typeTok := p.peek()
-	p.next()
+	_ = p.next()
 	typ := &ast.NameType{Name: typeTok}
 
 	eq := p.expect(token.Assign, "expected '=")
@@ -273,8 +273,14 @@ func (p *Parser) parseExpr(minPrecedence int) ast.Expr {
 	var left ast.Expr
 	left = p.parsePrefix()
 
-	for p.kind() != token.EOF && token.IsInfix(p.kind()) && p.peekPrecedence() >= minPrecedence {
-		left = p.parseInfix(left)
+	for p.kind() != token.EOF && p.peekPrecedence() >= minPrecedence {
+		if token.IsPostfix(p.kind()) {
+			left = p.parsePostfix(left)
+		} else if token.IsInfix(p.kind()) {
+			left = p.parseInfix(left)
+		} else {
+			break
+		}
 	}
 	return left
 }
@@ -315,13 +321,31 @@ func (p *Parser) parseInfix(left ast.Expr) ast.Expr {
 		Operator: p.peek(),
 	}
 
-	precedence := p.peekPrecedence()
-	_ = p.next()
-	expr.Right = p.parseExpr(precedence + 1)
 	l, lok := expr.Left.(*ast.BinaryExpr)
 	if lok && token.IsChainingComparison(l.Operator.Kind) && token.IsChainingComparison(expr.Operator.Kind) {
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected chaining comparison expression, got %v %q", expr.Operator.Line, expr.Operator.Column, expr.Operator.Kind, expr.Operator.Value))
 		return &ast.BadExpr{From: l.Operator, To: expr.Operator, Reason: "unexpected chaining comparison expression, use && (e.g. a < b && b < c)"}
+	}
+
+	precedence := p.peekPrecedence()
+	_ = p.next()
+	expr.Right = p.parseExpr(precedence + 1)
+
+	return expr
+}
+
+// parsePostfix returns expressions for parseExpr func
+func (p *Parser) parsePostfix(left ast.Expr) ast.Expr {
+	var expr ast.Expr
+	switch p.kind() {
+	case token.Dot:
+		expr = p.parseSelectorExpr(left)
+
+	case token.LBracket:
+		expr = p.parseIndexExpr(left)
+
+	case token.LParen:
+		expr = p.parseCallExpr(left)
 	}
 
 	return expr
@@ -335,6 +359,7 @@ func (p *Parser) parseGroupExpr() *ast.ParenExpr {
 	if p.kind() == token.RParen {
 		to := p.expect(token.RParen, "expected ')'")
 		g.Right = to
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected chaining comparison expression, got %v %q", to.Line, to.Column, to.Kind, to.Value))
 		g.Inner = &ast.BadExpr{From: from, To: to, Reason: "expected expression inside parentheses"}
 		return g
 	}
@@ -349,6 +374,49 @@ func (p *Parser) parseGroupExpr() *ast.ParenExpr {
 // parseUnaryExpr parses unary expression like - and !
 func (p *Parser) parseUnaryExpr() *ast.UnaryExpr {
 	u := &ast.UnaryExpr{Operator: p.next()}
-	u.Right = p.parseExpr(PREFIX)
+	u.Right = p.parseExpr(PREFIX + 1)
 	return u
+}
+
+// parseSelector returns expressions for parsePostfix func
+func (p *Parser) parseSelectorExpr(left ast.Expr) ast.Expr {
+	dot := p.expect(token.Dot, "expected '.'")
+	selector := p.expect(token.Ident, "expected 'ident'")
+	return &ast.SelectorExpr{
+		X:        left,
+		Dot:      dot,
+		Selector: selector,
+	}
+}
+
+// parseIndexSelector returns expressions for parsePostfix func
+func (p *Parser) parseIndexExpr(left ast.Expr) ast.Expr {
+	lb := p.expect(token.LBracket, "expected '['")
+	index := p.parseExpr(LOWEST)
+	rb := p.expect(token.RBracket, "expected ']'")
+	return &ast.IndexExpr{
+		X:        left,
+		LBracket: lb,
+		Index:    index,
+		RBracket: rb,
+	}
+}
+
+// parseCallExpr returns expressions for parsePostfix func
+func (p *Parser) parseCallExpr(left ast.Expr) ast.Expr {
+	lb := p.expect(token.LParen, "expected '('")
+	var args []ast.Expr
+	for p.kind() != token.RParen {
+		if p.kind() == token.Comma {
+			_ = p.next()
+		}
+		args = append(args, p.parseExpr(LOWEST))
+	}
+	rb := p.expect(token.RParen, "expected ')'")
+	return &ast.CallExpr{
+		Callee: left,
+		LParen: lb,
+		Args:   args,
+		RParen: rb,
+	}
 }
