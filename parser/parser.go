@@ -233,10 +233,10 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 	kw := p.expect(token.KWConst, "expected 'const'")
 	name := p.expect(token.Ident, "expected constant name")
 
-	typeTok := p.peek()
-	_ = p.next()
-	typ := &ast.NameType{Name: typeTok}
-
+	typ, btyp, bad := p.parseType()
+	if bad {
+		return btyp
+	}
 	eq := p.expect(token.Assign, "expected '=")
 	init := p.parseExpr(LOWEST)
 
@@ -254,10 +254,10 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 	kw := p.expect(token.KWVar, "expected 'var'")
 	name := p.expect(token.Ident, "expected variable name")
 
-	typeTok := p.peek()
-	_ = p.next()
-	typ := &ast.NameType{Name: typeTok}
-
+	typ, btyp, bad := p.parseType()
+	if bad {
+		return btyp
+	}
 	eq := p.expect(token.Assign, "expected '=")
 	init := p.parseExpr(LOWEST)
 
@@ -419,6 +419,10 @@ func (p *Parser) parseCallExpr(left ast.Expr) ast.Expr {
 			_ = p.next()
 		}
 		args = append(args, p.parseExpr(LOWEST))
+		if p.kind() != token.Comma && p.kind() != token.RParen && p.kind() != token.EOF {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			return &ast.BadExpr{From: lb, To: p.peek(), Reason: "expected ','"}
+		}
 	}
 	rb := p.expect(token.RParen, "expected ')'")
 	if rb.Kind != token.RParen {
