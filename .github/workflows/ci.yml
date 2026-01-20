@@ -14,9 +14,9 @@ jobs:
     strategy:
       matrix:
         go:
-          - "1.25.5"
+          - "1.25.6"
     env:
-      GOLANGCI_LINT_VERSION: 2.7.2 # https://github.com/golangci/golangci-lint/releases
+      GOLANGCI_LINT_VERSION: 2.8.0 # https://github.com/golangci/golangci-lint/releases
     steps:
       - uses: actions/checkout@v6 # https://github.com/actions/checkout/releases
 
