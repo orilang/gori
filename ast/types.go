@@ -81,6 +81,12 @@ type BadExpr struct {
 	Reason   string
 }
 
+// BadStmt holds returned bad stmt with reason
+type BadStmt struct {
+	From, To token.Token
+	Reason   string
+}
+
 // dumpType is only used for testing purpose
 type dumpType struct {
 	S string
@@ -148,6 +154,18 @@ type CallExpr struct {
 	LParen token.Token
 	Args   []Expr
 	RParen token.Token
+}
+
+// AssignStmt handles assignement expressions
+type AssignStmt struct {
+	Left     Expr
+	Operator token.Token
+	Right    Expr
+}
+
+// ExprStmt is used by Stmt
+type ExprStmt struct {
+	Expr Expr
 }
 
 type Decl interface{ declNode() }

@@ -24,3 +24,6 @@ func (*SelectorExpr) exprNode()  {}
 func (*IndexExpr) exprNode()     {}
 func (*CallExpr) exprNode()      {}
 func (*dumpType) exprNode()      {}
+func (*AssignStmt) stmtNode()    {}
+func (*ExprStmt) stmtNode()      {}
+func (*BadStmt) stmtNode()       {}

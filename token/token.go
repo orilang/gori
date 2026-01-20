@@ -39,3 +39,8 @@ func IsComparison(k Kind) bool {
 func IsChainingComparison(k Kind) bool {
 	return chainingComparison[k]
 }
+
+// IsAssignment returns true when the provided kind is found is the list
+func IsAssignment(k Kind) bool {
+	return assignment[k]
+}
