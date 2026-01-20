@@ -17,7 +17,6 @@ func (*IntLitExpr) exprNode()    {}
 func (*FloatLitExpr) exprNode()  {}
 func (*BoolLitExpr) exprNode()   {}
 func (*StringLitExpr) exprNode() {}
-func (*BadType) exprNode()       {}
 func (*ParenExpr) exprNode()     {}
 func (*BadExpr) exprNode()       {}
 func (*BinaryExpr) exprNode()    {}
