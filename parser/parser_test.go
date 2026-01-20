@@ -319,6 +319,22 @@ func TestParser_parse_const(t *testing.T) {
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
+
+	t.Run("const_bad_type", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWConst, Value: "const"},
+			{Kind: token.Ident, Value: "a"},
+			{Kind: token.KWFunc, Value: "func"},
+			{Kind: token.Assign, Value: "="},
+			{Kind: token.FloatLit, Value: "3.14"},
+			{Kind: token.EOF, Value: ""},
+		}
+
+		parser := New(input)
+		pr := parser.parseConstDecl()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
 }
 func TestParser_parse_var(t *testing.T) {
 	assert := assert.New(t)
@@ -374,6 +390,22 @@ func TestParser_parse_var(t *testing.T) {
    Value: "3.14" @0:0 (kind=5)
 `
 		assert.Equal(result, ast.Dump(pr))
+	})
+
+	t.Run("var_bad_type", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWVar, Value: "var"},
+			{Kind: token.Ident, Value: "a"},
+			{Kind: token.KWFunc, Value: "func"},
+			{Kind: token.Assign, Value: "="},
+			{Kind: token.FloatLit, Value: "3.14"},
+			{Kind: token.EOF, Value: ""},
+		}
+
+		parser := New(input)
+		pr := parser.parseVarDecl()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bool_lit", func(t *testing.T) {
@@ -1375,6 +1407,36 @@ func TestParser_expr(t *testing.T) {
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("postfix_func_x3", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Ident, Value: "f", Line: 1, Column: 1},
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 3},
+			{Kind: token.IntLit, Value: "2", Line: 1, Column: 5},
+			{Kind: token.RParen, Value: ")", Line: 1, Column: 4},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		assert.NotNil(ast.Dump(pr))
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("postfix_func_x4", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.Ident, Value: "f", Line: 1, Column: 1},
+			{Kind: token.LParen, Value: "(", Line: 1, Column: 2},
+			{Kind: token.IntLit, Value: "1", Line: 1, Column: 3},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.parseExpr(LOWEST)
+		assert.NotNil(ast.Dump(pr))
+		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("postfix_func_selector_x1", func(t *testing.T) {

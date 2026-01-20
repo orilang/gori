@@ -27,3 +27,4 @@ func (*dumpType) exprNode()      {}
 func (*AssignStmt) stmtNode()    {}
 func (*ExprStmt) stmtNode()      {}
 func (*BadStmt) stmtNode()       {}
+func (*BadType) stmtNode()       {}
