@@ -220,10 +220,11 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseStmtExpr(left)
 	}
 
-	u, uok := left.(*ast.UnaryExpr)
-	if uok {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", u.Operator.Line, u.Operator.Column, u.Operator.Kind, u.Operator.Value))
-		return &ast.BadStmt{From: u.Operator, Reason: "unsupported statement"}
+	_, cok := left.(*ast.CallExpr)
+	_, bok := left.(*ast.BadExpr)
+	if !cok && !bok {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", left.Start().Line, left.Start().Column, left.Start().Kind, left.Start().Value))
+		return &ast.BadStmt{From: left.Start(), Reason: "unsupported statement"}
 	}
 	return &ast.ExprStmt{Expr: left}
 }
