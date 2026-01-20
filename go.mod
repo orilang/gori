@@ -1,10 +1,10 @@
 module github.com/orilang/gori
 
-go 1.25.5
+go 1.25.6
 
 require (
 	github.com/stretchr/testify v1.11.1
-	github.com/urfave/cli/v3 v3.6.1
+	github.com/urfave/cli/v3 v3.6.2
 )
 
 require (
