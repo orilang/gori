@@ -107,3 +107,12 @@ var chainingComparison = map[Kind]bool{
 	Gt:  true,
 	Gte: true,
 }
+
+var assignment = map[Kind]bool{
+	Assign:  true,
+	Define:  true,
+	PlusEq:  true,
+	MinusEq: true,
+	StarEq:  true,
+	SlashEq: true,
+}

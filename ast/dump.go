@@ -126,6 +126,9 @@ func (d *dumper) node(n any, indent int) {
 	case *BadExpr:
 		d.line(indent+2, fmtBadExpr(v))
 
+	case *BadStmt:
+		d.line(indent+2, fmtBadStmt(v))
+
 	case *IdentExpr:
 		d.line(indent, "IdentExpr")
 		d.kv(indent+1, "Name", v.Name)
@@ -196,6 +199,17 @@ func (d *dumper) node(n any, indent int) {
 		}
 		d.kv(indent+1, "RParent", v.RParen)
 
+	case *AssignStmt:
+		d.line(indent, "AssignStmt")
+		d.line(indent+1, "Left")
+		d.expr(v.Left, indent+2)
+		d.kv(indent+1, "Operator", v.Operator)
+		d.line(indent+1, "Right")
+		d.expr(v.Right, indent+2)
+
+	case *ExprStmt:
+		d.expr(v.Expr, indent)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -237,6 +251,14 @@ func fmtBadExpr(b *BadExpr) string {
 	return fmt.Sprintf("BadExpr at @%d:%d reason=%s value=%q", b.From.Line, b.From.Column, b.Reason, b.From.Value)
 }
 
+// fmtBadExpr returns bad expr content with line, column etc
+func fmtBadStmt(b *BadStmt) string {
+	if b.From != b.To && b.To != (token.Token{}) {
+		return fmt.Sprintf("BadStmt at @%d:%d to @%d:%d reason=%s from=%q to=%q", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
+	}
+	return fmt.Sprintf("BadStmt at @%d:%d reason=%s value=%q", b.From.Line, b.From.Column, b.Reason, b.From.Value)
+}
+
 func (d *dumper) decl(n Decl, indent int) {
 	switch v := n.(type) {
 	case *FuncDecl:
@@ -270,7 +292,7 @@ func (d *dumper) typ(n Type, indent int) {
 
 func (d *dumper) stmt(n Stmt, indent int) {
 	switch v := n.(type) {
-	case *BlockStmt, *ConstDeclStmt, *VarDeclStmt:
+	case *BlockStmt, *ConstDeclStmt, *VarDeclStmt, *AssignStmt, *ExprStmt, *BadStmt:
 		d.node(v, indent)
 
 	default:
@@ -287,25 +309,10 @@ func (d *dumper) expr(n Expr, indent int) {
 	case *IdentExpr, *IntLitExpr, *FloatLitExpr, *BoolLitExpr, *StringLitExpr:
 		d.node(v, indent)
 
-	case *BadExpr:
+	case *BadExpr, *BinaryExpr, *ParenExpr, *UnaryExpr, *SelectorExpr:
 		d.node(v, indent)
 
-	case *BinaryExpr:
-		d.node(v, indent)
-
-	case *ParenExpr:
-		d.node(v, indent)
-
-	case *UnaryExpr:
-		d.node(v, indent)
-
-	case *SelectorExpr:
-		d.node(v, indent)
-
-	case *IndexExpr:
-		d.node(v, indent)
-
-	case *CallExpr:
+	case *IndexExpr, *CallExpr:
 		d.node(v, indent)
 
 	default:

@@ -148,4 +148,24 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsChainingComparison(tc.input))
 		}
 	})
+
+	t.Run("is_assignment", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    Assign,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsAssignment(tc.input))
+		}
+	})
 }

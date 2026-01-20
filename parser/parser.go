@@ -190,7 +190,7 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 	lb := p.expect(token.LBrace, "expected '{'")
 	var stmts []ast.Stmt
 
-	for p.kind() != token.RBrace {
+	for p.kind() != token.RBrace && p.kind() != token.EOF {
 		stmts = append(stmts, p.parseStmt())
 	}
 	rb := p.expect(token.RBrace, "expected '}'")
@@ -204,20 +204,28 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 
 // parseStmt returns declaration within parseBlock
 func (p *Parser) parseStmt() ast.Stmt {
-	switch p.kind() {
-	case token.KWConst:
+	if p.kind() == token.KWConst {
 		return p.parseConstDecl()
-
-	case token.KWVar:
-		return p.parseVarDecl()
-
-	default:
-		tok := p.peek()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-		_ = p.next()
 	}
 
-	return &ast.BlockStmt{}
+	if p.kind() == token.KWVar {
+		return p.parseVarDecl()
+	}
+
+	left := p.parseExpr(LOWEST)
+	_, iok := left.(*ast.IdentExpr)
+	_, sok := left.(*ast.SelectorExpr)
+	_, xok := left.(*ast.IndexExpr)
+	if (iok || sok || xok) && token.IsAssignment(p.kind()) {
+		return p.parseStmtExpr(left)
+	}
+
+	u, uok := left.(*ast.UnaryExpr)
+	if uok {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", u.Operator.Line, u.Operator.Column, u.Operator.Kind, u.Operator.Value))
+		return &ast.BadStmt{From: u.Operator, Reason: "unsupported statement"}
+	}
+	return &ast.ExprStmt{Expr: left}
 }
 
 // parseConstDecl returns constant declaration
@@ -359,7 +367,7 @@ func (p *Parser) parseGroupExpr() *ast.ParenExpr {
 	if p.kind() == token.RParen {
 		to := p.expect(token.RParen, "expected ')'")
 		g.Right = to
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected chaining comparison expression, got %v %q", to.Line, to.Column, to.Kind, to.Value))
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected expression inside parentheses, got %v %q", to.Line, to.Column, to.Kind, to.Value))
 		g.Inner = &ast.BadExpr{From: from, To: to, Reason: "expected expression inside parentheses"}
 		return g
 	}
@@ -406,17 +414,31 @@ func (p *Parser) parseIndexExpr(left ast.Expr) ast.Expr {
 func (p *Parser) parseCallExpr(left ast.Expr) ast.Expr {
 	lb := p.expect(token.LParen, "expected '('")
 	var args []ast.Expr
-	for p.kind() != token.RParen {
+	for p.kind() != token.RParen && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
 			_ = p.next()
 		}
 		args = append(args, p.parseExpr(LOWEST))
 	}
 	rb := p.expect(token.RParen, "expected ')'")
+	if rb.Kind != token.RParen {
+		return &ast.BadExpr{From: lb, To: rb, Reason: "expected ')'"}
+	}
 	return &ast.CallExpr{
 		Callee: left,
 		LParen: lb,
 		Args:   args,
 		RParen: rb,
+	}
+}
+
+// parseStmtExpr returns expressions for parsePostfix func
+func (p *Parser) parseStmtExpr(left ast.Expr) *ast.AssignStmt {
+	op := p.peek()
+	_ = p.next()
+	return &ast.AssignStmt{
+		Left:     left,
+		Operator: op,
+		Right:    p.parseExpr(LOWEST),
 	}
 }
