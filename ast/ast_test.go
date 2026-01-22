@@ -305,4 +305,28 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(z, x.Start())
 		assert.Equal(token.Token{}, x.End())
 	})
+
+	t.Run("if_stmt_else_nil", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWIf,
+			Value:  "if",
+			Line:   1,
+			Column: 1,
+		}
+		x := &IfStmt{If: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
+
+	t.Run("if_stmt_else_not_nil", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWIf,
+			Value:  "if",
+			Line:   1,
+			Column: 1,
+		}
+		x := &IfStmt{If: z, Else: &IdentExpr{z}}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
 }

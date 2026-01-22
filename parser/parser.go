@@ -216,6 +216,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseReturnStmtExpr()
 	}
 
+	if p.kind() == token.KWIf {
+		return p.parseIfStmtExpr()
+	}
+
 	left := p.parseExpr(LOWEST)
 	_, iok := left.(*ast.IdentExpr)
 	_, sok := left.(*ast.SelectorExpr)
@@ -483,4 +487,39 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 		Return: rn,
 		Values: args,
 	}
+}
+
+// parseIfStmtExpr returns expressions for parseStmt func
+func (p *Parser) parseIfStmtExpr() ast.Stmt {
+	ifs := p.expect(token.KWIf, "expected 'if'")
+	stmt := &ast.IfStmt{
+		If: ifs,
+	}
+
+	if p.peek().Kind == token.LBrace {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: missing condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "missing condition after 'if'"}
+	}
+
+	stmt.Condition = p.parseExpr(LOWEST)
+	if token.IsAssignment(p.kind()) {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: assignement not allowed in if condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "assignement not allowed in if condition; use =="}
+	}
+
+	stmt.Then = p.parseBlock()
+
+	if p.peek().Kind == token.KWElse {
+		_ = p.next()
+		if p.peek().Kind == token.KWIf {
+			stmt.Else = p.parseIfStmtExpr()
+		} else if p.kind() == token.LBrace {
+			stmt.Else = p.parseBlock()
+		} else {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "expected expression '{' or 'if' after 'else'"}
+		}
+	}
+
+	return stmt
 }

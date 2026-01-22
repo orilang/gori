@@ -30,6 +30,7 @@ func (*ExprStmt) stmtNode()      {}
 func (*BadStmt) stmtNode()       {}
 func (*BadType) stmtNode()       {}
 func (*ReturnStmt) stmtNode()    {}
+func (*IfStmt) stmtNode()        {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -101,3 +102,11 @@ func (x *BadStmt) End() token.Token   { return x.To }
 
 func (x *BadType) Start() token.Token { return x.From }
 func (x *BadType) End() token.Token   { return x.To }
+
+func (x *IfStmt) Start() token.Token { return x.If }
+func (x *IfStmt) End() token.Token {
+	if x.Else != nil {
+		return x.Else.End()
+	}
+	return token.Token{}
+}
