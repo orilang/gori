@@ -188,3 +188,10 @@ type ReturnStmt struct {
 	Return token.Token
 	Values []Expr
 }
+
+type IfStmt struct {
+	If        token.Token
+	Condition Expr
+	Then      *BlockStmt
+	Else      Stmt
+}

@@ -219,6 +219,18 @@ func (d *dumper) node(n any, indent int) {
 			}
 		}
 
+	case *IfStmt:
+		d.line(indent, "IfStmt")
+		d.line(indent+1, "Condition")
+		d.expr(v.Condition, indent+2)
+		d.line(indent+1, "Then")
+		d.stmt(v.Then, indent+2)
+
+		if v.Else != nil {
+			d.line(indent+1, "Else")
+			d.stmt(v.Else, indent+2)
+		}
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -304,7 +316,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 	case *BlockStmt, *ConstDeclStmt, *VarDeclStmt, *AssignStmt, *ExprStmt, *BadStmt:
 		d.node(v, indent)
 
-	case *ReturnStmt:
+	case *ReturnStmt, *IfStmt:
 		d.node(v, indent)
 
 	default:
