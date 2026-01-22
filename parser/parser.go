@@ -472,6 +472,12 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 		if p.kind() == token.Comma {
 			_ = p.next()
 		}
+
+		if p.kind() == token.RBrace || p.kind() == token.EOF {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			return &ast.BadStmt{From: rn, To: p.peek(), Reason: "expected expression after ','"}
+		}
+
 		args = append(args, p.parseExpr(LOWEST))
 		if p.kind() == token.EOF || p.kind() == token.RBrace {
 			break
@@ -479,7 +485,7 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 
 		if p.kind() != token.Comma && p.kind() != token.RBrace && p.kind() != token.EOF {
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
-			return &ast.BadStmt{From: rn, To: p.peek(), Reason: "expected expression after ','"}
+			return &ast.BadStmt{From: rn, To: p.peek(), Reason: "expected ',' or '}' after return value"}
 		}
 	}
 
