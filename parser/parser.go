@@ -117,7 +117,7 @@ func (p *Parser) ParseFile() *ast.File {
 
 		default:
 			tok := p.peek()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			_ = p.next()
 		}
 	}
@@ -210,6 +210,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 
 	if p.kind() == token.KWVar {
 		return p.parseVarDecl()
+	}
+
+	if p.kind() == token.KWReturn {
+		return p.parseReturnStmtExpr()
 	}
 
 	left := p.parseExpr(LOWEST)
@@ -437,7 +441,7 @@ func (p *Parser) parseCallExpr(left ast.Expr) ast.Expr {
 	}
 }
 
-// parseStmtExpr returns expressions for parsePostfix func
+// parseStmtExpr returns expressions for parseStmt func
 func (p *Parser) parseStmtExpr(left ast.Expr) *ast.AssignStmt {
 	op := p.peek()
 	_ = p.next()
@@ -445,5 +449,38 @@ func (p *Parser) parseStmtExpr(left ast.Expr) *ast.AssignStmt {
 		Left:     left,
 		Operator: op,
 		Right:    p.parseExpr(LOWEST),
+	}
+}
+
+// parseReturnStmtExpr returns expressions for parseStmt func
+func (p *Parser) parseReturnStmtExpr() ast.Stmt {
+	rn := p.expect(token.KWReturn, "expected 'return'")
+
+	// return has no values
+	if p.kind() == token.EOF || p.kind() == token.RBrace {
+		return &ast.ReturnStmt{
+			Return: rn,
+		}
+	}
+
+	var args []ast.Expr
+	for p.kind() != token.RBrace && p.kind() != token.EOF {
+		if p.kind() == token.Comma {
+			_ = p.next()
+		}
+		args = append(args, p.parseExpr(LOWEST))
+		if p.kind() == token.EOF || p.kind() == token.RBrace {
+			break
+		}
+
+		if p.kind() != token.Comma && p.kind() != token.RBrace && p.kind() != token.EOF {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			return &ast.BadStmt{From: rn, To: p.peek(), Reason: "expected expression after ','"}
+		}
+	}
+
+	return &ast.ReturnStmt{
+		Return: rn,
+		Values: args,
 	}
 }

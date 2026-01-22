@@ -210,6 +210,15 @@ func (d *dumper) node(n any, indent int) {
 	case *ExprStmt:
 		d.expr(v.Expr, indent)
 
+	case *ReturnStmt:
+		d.line(indent, "ReturnStmt")
+		if len(v.Values) > 0 {
+			d.line(indent+1, "Values")
+			for _, v := range v.Values {
+				d.expr(v, indent+2)
+			}
+		}
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -293,6 +302,9 @@ func (d *dumper) typ(n Type, indent int) {
 func (d *dumper) stmt(n Stmt, indent int) {
 	switch v := n.(type) {
 	case *BlockStmt, *ConstDeclStmt, *VarDeclStmt, *AssignStmt, *ExprStmt, *BadStmt:
+		d.node(v, indent)
+
+	case *ReturnStmt:
 		d.node(v, indent)
 
 	default:

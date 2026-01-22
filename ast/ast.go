@@ -29,6 +29,7 @@ func (*AssignStmt) stmtNode()    {}
 func (*ExprStmt) stmtNode()      {}
 func (*BadStmt) stmtNode()       {}
 func (*BadType) stmtNode()       {}
+func (*ReturnStmt) stmtNode()    {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -74,3 +75,29 @@ func (x *BadExpr) End() token.Token   { return x.To }
 
 func (x *dumpType) Start() token.Token { return token.Token{} }
 func (x *dumpType) End() token.Token   { return token.Token{} }
+
+func (x *ReturnStmt) Start() token.Token { return x.Return }
+func (x *ReturnStmt) End() token.Token {
+	if len(x.Values) > 0 {
+		return x.Values[len(x.Values)-1].End()
+	}
+	return token.Token{}
+}
+
+func (x *BlockStmt) Start() token.Token { return x.LBrace }
+func (x *BlockStmt) End() token.Token   { return x.RBrace }
+
+func (x *ConstDeclStmt) Start() token.Token { return x.ConstKW }
+func (x *ConstDeclStmt) End() token.Token   { return x.Init.End() }
+
+func (x *VarDeclStmt) Start() token.Token { return x.VarKW }
+func (x *VarDeclStmt) End() token.Token   { return x.Init.End() }
+
+func (x *AssignStmt) Start() token.Token { return x.Left.Start() }
+func (x *AssignStmt) End() token.Token   { return x.Right.End() }
+
+func (x *BadStmt) Start() token.Token { return x.From }
+func (x *BadStmt) End() token.Token   { return x.To }
+
+func (x *BadType) Start() token.Token { return x.From }
+func (x *BadType) End() token.Token   { return x.To }
