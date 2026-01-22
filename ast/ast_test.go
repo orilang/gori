@@ -9,6 +9,8 @@ import (
 
 func TestAst_position(t *testing.T) {
 	assert := assert.New(t)
+	// The following are mostly dump tests as they are only to validate
+	// the structed but not its values
 
 	t.Run("ident_expr", func(t *testing.T) {
 		z := token.Token{
@@ -181,6 +183,126 @@ func TestAst_position(t *testing.T) {
 	t.Run("dump_type", func(t *testing.T) {
 		x := &dumpType{S: ""}
 		assert.Equal(token.Token{}, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
+
+	t.Run("return_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.Ident,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &ReturnStmt{Return: z, Values: []Expr{&IdentExpr{z}}}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("return_stmt_no_end", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.Ident,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &ReturnStmt{Return: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
+
+	t.Run("block_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.LBrace,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &BlockStmt{LBrace: z, RBrace: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("const_decl_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWConst,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &ConstDeclStmt{ConstKW: z, Init: &IdentExpr{z}}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("var_decl_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWVar,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &VarDeclStmt{VarKW: z, Init: &IdentExpr{z}}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("assign_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWVar,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &AssignStmt{Left: &IdentExpr{z}, Right: &IdentExpr{z}}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("bad_stmt_from_to", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWVar,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &BadStmt{From: z, To: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("bad_stmt_from", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWVar,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &BadStmt{From: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
+
+	t.Run("bad_type_from_to", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWVar,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &BadType{From: z, To: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("bad_type_from", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWVar,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &BadType{From: z}
+		assert.Equal(z, x.Start())
 		assert.Equal(token.Token{}, x.End())
 	})
 }

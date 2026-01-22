@@ -170,12 +170,21 @@ type ExprStmt struct {
 
 type Decl interface{ declNode() }
 type Type interface{ typeNode() }
-type Stmt interface{ stmtNode() }
+type Stmt interface {
+	Position
+	stmtNode()
+}
 type Expr interface {
 	Position
 	exprNode()
 }
+
 type Position interface {
 	Start() token.Token
 	End() token.Token
+}
+
+type ReturnStmt struct {
+	Return token.Token
+	Values []Expr
 }
