@@ -509,8 +509,8 @@ func (p *Parser) parseIfStmtExpr() ast.Stmt {
 
 	stmt.Condition = p.parseExpr(LOWEST)
 	if token.IsAssignment(p.kind()) {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: assignement not allowed in if condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
-		return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "assignement not allowed in if condition; use =="}
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: assignment not allowed in if condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "assignment not allowed in if condition; use =="}
 	}
 
 	stmt.Then = p.parseBlock()
