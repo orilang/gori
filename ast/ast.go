@@ -4,6 +4,7 @@ import "github.com/orilang/gori/token"
 
 func (*FuncDecl) declNode()      {}
 func (*dumpType) declNode()      {}
+func (*BadDecl) declNode()       {}
 func (*BlockStmt) stmtNode()     {}
 func (*ConstDeclStmt) stmtNode() {}
 func (*VarDeclStmt) stmtNode()   {}
@@ -110,3 +111,6 @@ func (x *IfStmt) End() token.Token {
 	}
 	return token.Token{}
 }
+
+func (x *BadDecl) Start() token.Token { return x.From }
+func (x *BadDecl) End() token.Token   { return x.To }

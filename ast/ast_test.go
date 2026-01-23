@@ -329,4 +329,28 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(z, x.Start())
 		assert.Equal(z, x.End())
 	})
+
+	t.Run("bad_decl_from_to", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWVar,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &BadDecl{From: z, To: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("bad_decl_from", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWVar,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		x := &BadDecl{From: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
 }

@@ -129,6 +129,9 @@ func (d *dumper) node(n any, indent int) {
 	case *BadStmt:
 		d.line(indent+2, fmtBadStmt(v))
 
+	case *BadDecl:
+		d.line(indent+2, fmtBadDecl(v))
+
 	case *IdentExpr:
 		d.line(indent, "IdentExpr")
 		d.kv(indent+1, "Name", v.Name)
@@ -272,7 +275,7 @@ func fmtBadExpr(b *BadExpr) string {
 	return fmt.Sprintf("BadExpr at @%d:%d reason=%s value=%q", b.From.Line, b.From.Column, b.Reason, b.From.Value)
 }
 
-// fmtBadExpr returns bad expr content with line, column etc
+// fmtBadStmt returns bad stmt content with line, column etc
 func fmtBadStmt(b *BadStmt) string {
 	if b.From != b.To && b.To != (token.Token{}) {
 		return fmt.Sprintf("BadStmt at @%d:%d to @%d:%d reason=%s from=%q to=%q", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
@@ -280,9 +283,17 @@ func fmtBadStmt(b *BadStmt) string {
 	return fmt.Sprintf("BadStmt at @%d:%d reason=%s value=%q", b.From.Line, b.From.Column, b.Reason, b.From.Value)
 }
 
+// fmtBadDecl returns bad decl content with line, column etc
+func fmtBadDecl(b *BadDecl) string {
+	if b.From != b.To && b.To != (token.Token{}) {
+		return fmt.Sprintf("BadDecl at @%d:%d to @%d:%d reason=%s from=%q to=%q", b.From.Line, b.From.Column, b.To.Line, b.To.Column, b.Reason, b.From.Value, b.To.Value)
+	}
+	return fmt.Sprintf("BadDecl at @%d:%d reason=%s value=%q", b.From.Line, b.From.Column, b.Reason, b.From.Value)
+}
+
 func (d *dumper) decl(n Decl, indent int) {
 	switch v := n.(type) {
-	case *FuncDecl:
+	case *FuncDecl, *BadDecl:
 		d.node(v, indent)
 
 	default:
