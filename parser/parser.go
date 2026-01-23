@@ -429,7 +429,7 @@ func (p *Parser) parseCallExpr(left ast.Expr) ast.Expr {
 		}
 		args = append(args, p.parseExpr(LOWEST))
 		if p.kind() != token.Comma && p.kind() != token.RParen && p.kind() != token.EOF {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
 			return &ast.BadExpr{From: lb, To: p.peek(), Reason: "expected ','"}
 		}
 	}
@@ -474,7 +474,7 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 		}
 
 		if p.kind() == token.RBrace || p.kind() == token.EOF {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
 			return &ast.BadStmt{From: rn, To: p.peek(), Reason: "expected expression after ','"}
 		}
 
@@ -484,7 +484,7 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 		}
 
 		if p.kind() != token.Comma && p.kind() != token.RBrace && p.kind() != token.EOF {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
 			return &ast.BadStmt{From: rn, To: p.peek(), Reason: "expected ',' or '}' after return value"}
 		}
 	}
@@ -502,27 +502,27 @@ func (p *Parser) parseIfStmtExpr() ast.Stmt {
 		If: ifs,
 	}
 
-	if p.peek().Kind == token.LBrace {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: missing condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+	if p.kind() == token.LBrace {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: missing condition, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
 		return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "missing condition after 'if'"}
 	}
 
 	stmt.Condition = p.parseExpr(LOWEST)
 	if token.IsAssignment(p.kind()) {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: assignment not allowed in if condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: assignment not allowed in if condition, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
 		return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "assignment not allowed in if condition; use =="}
 	}
 
 	stmt.Then = p.parseBlock()
 
-	if p.peek().Kind == token.KWElse {
+	if p.kind() == token.KWElse {
 		_ = p.next()
-		if p.peek().Kind == token.KWIf {
+		if p.kind() == token.KWIf {
 			stmt.Else = p.parseIfStmtExpr()
 		} else if p.kind() == token.LBrace {
 			stmt.Else = p.parseBlock()
 		} else {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
 			return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "expected expression '{' or 'if' after 'else'"}
 		}
 	}
