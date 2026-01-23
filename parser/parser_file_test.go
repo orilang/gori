@@ -200,4 +200,112 @@ func TestParser_parse_file(t *testing.T) {
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
+
+	t.Run("bad_x1", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "dummy", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+
+			{Kind: token.Comma, Value: ",", Line: 3, Column: 8},
+			{Kind: token.Ident, Value: "a", Line: 3, Column: 9},
+			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
+
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
+
+			{Kind: token.RBrace, Value: "}", Line: 3, Column: 30},
+			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("bad_x2", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "dummy", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+
+			{Kind: token.Ident, Value: "a", Line: 3, Column: 8},
+			{Kind: token.KWInt, Value: "int", Line: 3, Column: 9},
+			{Kind: token.Comma, Value: ",", Line: 3, Column: 10},
+
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
+
+			{Kind: token.RBrace, Value: "}", Line: 3, Column: 30},
+			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("bad_x3", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "dummy", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+
+			{Kind: token.Ident, Value: "a", Line: 3, Column: 8},
+			{Kind: token.KWInt, Value: "int", Line: 3, Column: 9},
+			{Kind: token.Comma, Value: ",", Line: 3, Column: 10},
+			{Kind: token.Comma, Value: ",", Line: 3, Column: 11},
+			{Kind: token.Comma, Value: ",", Line: 3, Column: 12},
+			{Kind: token.Ident, Value: "a", Line: 3, Column: 13},
+			{Kind: token.KWInt, Value: "int", Line: 3, Column: 14},
+
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 15},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 16},
+
+			{Kind: token.RBrace, Value: "}", Line: 3, Column: 30},
+			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("bad_x3", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "dummy", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+
+			{Kind: token.Ident, Value: "a", Line: 3, Column: 8},
+			{Kind: token.KWInt, Value: "int", Line: 3, Column: 9},
+			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
+
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
+
+			{Kind: token.RBrace, Value: "}", Line: 3, Column: 30},
+			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
 }

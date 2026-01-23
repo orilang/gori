@@ -186,4 +186,25 @@ func TestAst_dump(t *testing.T) {
 		assert.NotNil(result)
 		assert.Contains(result, "BadStmt")
 	})
+
+	t.Run("bad_decl_from", func(t *testing.T) {
+		f := &BadDecl{
+			From:   token.Token{Kind: token.Not, Value: "!", Line: 1, Column: 1},
+			Reason: "unexpected statement",
+		}
+		result := Dump(f)
+		assert.NotNil(result)
+		assert.Contains(result, "BadDecl")
+	})
+
+	t.Run("bad_decl_from_to", func(t *testing.T) {
+		f := &BadDecl{
+			From:   token.Token{Kind: token.Not, Value: "!", Line: 1, Column: 1},
+			To:     token.Token{Kind: token.Assign, Value: "=", Line: 1, Column: 5},
+			Reason: "unexpected statement",
+		}
+		result := Dump(f)
+		assert.NotNil(result)
+		assert.Contains(result, "BadDecl")
+	})
 }

@@ -87,6 +87,12 @@ type BadStmt struct {
 	Reason   string
 }
 
+// BadDecl holds returned bad declaration with reason
+type BadDecl struct {
+	From, To token.Token
+	Reason   string
+}
+
 // dumpType is only used for testing purpose
 type dumpType struct {
 	S string
