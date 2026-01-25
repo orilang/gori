@@ -234,6 +234,39 @@ func (d *dumper) node(n any, indent int) {
 			d.stmt(v.Else, indent+2)
 		}
 
+	case *ForStmt:
+		d.line(indent, "ForStmt")
+		d.kv(indent+1, "For", v.For)
+		if v.Init != nil {
+			d.line(indent+1, "Init")
+			d.stmt(v.Init, indent+2)
+		}
+		if v.Condition != nil {
+			d.line(indent+1, "Condition")
+			d.expr(v.Condition, indent+2)
+		}
+		if v.Post != nil {
+			d.line(indent+1, "Post")
+			d.stmt(v.Post, indent+2)
+		}
+		d.stmt(v.Body, indent+2)
+
+	case *RangeStmt:
+		d.line(indent, "RangeStmt")
+		d.kv(indent+1, "For", v.For)
+		if v.Key != nil {
+			d.line(indent+1, "Key")
+			d.expr(v.Key, indent+2)
+		}
+		if v.Value != nil {
+			d.line(indent+1, "Condition")
+			d.expr(v.Value, indent+2)
+		}
+		d.kv(indent+1, "Op", v.Op)
+		d.kv(indent+1, "Range", v.Range)
+		d.expr(v.X, indent+2)
+		d.stmt(v.Body, indent+2)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -327,7 +360,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 	case *BlockStmt, *ConstDeclStmt, *VarDeclStmt, *AssignStmt, *ExprStmt, *BadStmt:
 		d.node(v, indent)
 
-	case *ReturnStmt, *IfStmt:
+	case *ReturnStmt, *IfStmt, *ForStmt, *RangeStmt:
 		d.node(v, indent)
 
 	default:

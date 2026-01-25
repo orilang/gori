@@ -98,6 +98,23 @@ func (p *Parser) expect(k token.Kind, msg string) token.Token {
 	return p.next()
 }
 
+// lookForInForHeader loops against for statements to find
+// provided token Kind and returns true when found
+func (p *Parser) lookForInForHeader(k token.Kind) bool {
+	pos := p.position
+	if pos >= len(p.Tokens) {
+		return false
+	}
+	for p.Tokens[pos].Kind != token.LBrace && p.Tokens[pos].Kind != token.EOF {
+		if p.Tokens[pos].Kind == k {
+			return true
+		}
+		pos++
+	}
+
+	return false
+}
+
 // ParseFile returns the content of the file being parsed
 func (p *Parser) ParseFile() *ast.File {
 	kw := p.expect(token.KWPackage, "expected 'package'")
@@ -151,7 +168,7 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 		if p.kind() == token.Comma {
 			_ = p.next()
 			if p.kind() == token.RParen || p.kind() == token.EOF {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadDecl{From: kw, To: p.peek(), Reason: "expected expression after ','"}
 			}
 		}
@@ -232,6 +249,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 
 	if p.kind() == token.KWIf {
 		return p.parseIfStmtExpr()
+	}
+
+	if p.kind() == token.KWFor {
+		return p.parseForStmtExpr()
 	}
 
 	left := p.parseExpr(LOWEST)
@@ -463,7 +484,7 @@ func (p *Parser) parseCallExpr(left ast.Expr) ast.Expr {
 		if p.kind() == token.Comma {
 			_ = p.next()
 			if p.kind() == token.RParen || p.kind() == token.EOF {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadExpr{From: lb, To: p.peek(), Reason: "expected expression after ','"}
 			}
 		}
@@ -518,7 +539,7 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 		if p.kind() == token.Comma {
 			_ = p.next()
 			if p.kind() == token.RBrace || p.kind() == token.EOF {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadStmt{From: rn, To: p.peek(), Reason: "expected expression after ','"}
 			}
 		}
@@ -538,7 +559,7 @@ func (p *Parser) parseIfStmtExpr() ast.Stmt {
 	}
 
 	if p.kind() == token.LBrace {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: missing condition, got %v %q", p.peek().Line, p.peek().Column, p.kind(), p.peek().Value))
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: missing condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "missing condition after 'if'"}
 	}
 
@@ -565,4 +586,153 @@ func (p *Parser) parseIfStmtExpr() ast.Stmt {
 	}
 
 	return stmt
+}
+
+// parseForStmtExpr returns expressions for parseStmt func
+func (p *Parser) parseForStmtExpr() ast.Stmt {
+	ftok := p.expect(token.KWFor, "expected 'for'")
+	fstmt := &ast.ForStmt{
+		For: ftok,
+	}
+	rstmt := &ast.RangeStmt{
+		For: ftok,
+	}
+
+	// infinite loop
+	if p.kind() == token.LBrace {
+		fstmt.Body = p.parseBlock()
+		return fstmt
+	}
+
+	if p.lookForInForHeader(token.KWRange) {
+		// for range x {}
+		if p.kind() == token.KWRange {
+			rg := p.expect(token.KWRange, "expected 'range'")
+			rstmt.Range = rg
+			if p.kind() == token.LBrace {
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected expression before '{'"}
+			}
+			rstmt.X = p.parseExpr(LOWEST)
+
+			if p.kind() != token.LBrace {
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '{' after expression"}
+			}
+
+			rstmt.Body = p.parseBlock()
+			return rstmt
+		}
+
+		// var k1, k2 ast.Expr
+		if p.kind() == token.Comma {
+			tok := p.next()
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			return &ast.BadStmt{From: ftok, To: tok, Reason: "expected expression not ','"}
+		}
+
+		k1 := p.expect(token.Ident, "expected 'identifier'")
+		if k1.Kind != token.Ident {
+			return &ast.BadStmt{From: ftok, To: k1, Reason: "expected identifier"}
+		}
+		xk1 := &ast.IdentExpr{Name: k1}
+
+		// for k,v := range x {}
+		if p.kind() == token.Comma {
+			_ = p.next()
+			rstmt.Key = xk1
+			k2 := p.expect(token.Ident, "expected 'identifier'")
+			if k2.Kind != token.Ident {
+				return &ast.BadStmt{From: ftok, To: k2, Reason: "expected identifier"}
+			}
+
+			rstmt.Value = &ast.IdentExpr{Name: k2}
+			if !token.IsRangeForAssignment(p.kind()) {
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '=' or ':=' after expression"}
+			}
+			op := p.next()
+			rstmt.Op = op
+			rg := p.expect(token.KWRange, "expected 'range'")
+			rstmt.Range = rg
+			if p.kind() == token.LBrace {
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected expression before '{'"}
+			}
+			rstmt.X = p.parseExpr(LOWEST)
+
+			if p.kind() != token.LBrace {
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '{' after expression"}
+			}
+
+			rstmt.Body = p.parseBlock()
+			return rstmt
+		}
+
+		// for v := range x {}
+		if !token.IsRangeForAssignment(p.kind()) {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '=' or ':=' after expression"}
+		}
+
+		rstmt.Value = xk1
+		op := p.next()
+		rstmt.Op = op
+		rg := p.expect(token.KWRange, "expected 'range'")
+		rstmt.Range = rg
+		if p.kind() == token.LBrace {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected expression before '{'"}
+		}
+		rstmt.X = p.parseExpr(LOWEST)
+
+		if p.kind() != token.LBrace {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '{' after expression"}
+		}
+
+		rstmt.Body = p.parseBlock()
+		return rstmt
+	}
+
+	// for condition {}
+	if !p.lookForInForHeader(token.SemiComma) {
+		fstmt.Condition = p.parseExpr(LOWEST)
+		if p.kind() != token.LBrace {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '{' after condition"}
+		}
+
+		fstmt.Body = p.parseBlock()
+		return fstmt
+	}
+
+	// for init; condition; post {}
+	fstmt.Init = p.parseStmt()
+	sm1 := p.expect(token.SemiComma, "expected ';'")
+	if sm1.Kind != token.SemiComma {
+		return &ast.BadStmt{From: ftok, To: sm1, Reason: "expected ';'"}
+	}
+
+	fstmt.Condition = p.parseExpr(LOWEST)
+	sm2 := p.expect(token.SemiComma, "expected ';'")
+	if sm2.Kind != token.SemiComma {
+		return &ast.BadStmt{From: ftok, To: sm2, Reason: "expected ';'"}
+	}
+
+	if p.kind() == token.LBrace {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected expression before '{'"}
+	}
+
+	fstmt.Post = p.parseStmt()
+	if p.kind() != token.LBrace {
+		tok := p.next()
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		return &ast.BadStmt{From: ftok, To: tok, Reason: "expected '{'"}
+	}
+
+	fstmt.Body = p.parseBlock()
+	return fstmt
 }

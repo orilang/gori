@@ -353,4 +353,76 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(z, x.Start())
 		assert.Equal(token.Token{}, x.End())
 	})
+
+	t.Run("for_stmt_from", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWFor,
+			Value:  "for",
+			Line:   1,
+			Column: 1,
+		}
+		x := &ForStmt{For: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
+
+	t.Run("for_stmt_from_to", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWFor,
+			Value:  "for",
+			Line:   1,
+			Column: 1,
+		}
+		l := token.Token{
+			Kind:   token.LBrace,
+			Value:  "for",
+			Line:   1,
+			Column: 1,
+		}
+		r := token.Token{
+			Kind:   token.RBrace,
+			Value:  "for",
+			Line:   1,
+			Column: 1,
+		}
+		x := &ForStmt{For: z, Body: &BlockStmt{LBrace: l, RBrace: r}}
+		assert.Equal(z, x.Start())
+		assert.Equal(r, x.End())
+	})
+
+	t.Run("for_range_stmt_from", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWFor,
+			Value:  "for",
+			Line:   1,
+			Column: 1,
+		}
+		x := &RangeStmt{For: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
+
+	t.Run("for_range_stmt_from_to", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWFor,
+			Value:  "for",
+			Line:   1,
+			Column: 1,
+		}
+		l := token.Token{
+			Kind:   token.LBrace,
+			Value:  "for",
+			Line:   1,
+			Column: 1,
+		}
+		r := token.Token{
+			Kind:   token.RBrace,
+			Value:  "for",
+			Line:   1,
+			Column: 1,
+		}
+		x := &RangeStmt{For: z, Body: &BlockStmt{LBrace: l, RBrace: r}}
+		assert.Equal(z, x.Start())
+		assert.Equal(r, x.End())
+	})
 }

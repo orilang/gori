@@ -34,6 +34,7 @@ var keywords = map[string]Kind{
 	"bool":        KWBool,
 	"true":        BoolLit,
 	"false":       BoolLit,
+	"range":       KWRange,
 }
 
 var builtinTypes = map[Kind]bool{
@@ -115,4 +116,9 @@ var assignment = map[Kind]bool{
 	MinusEq: true,
 	StarEq:  true,
 	SlashEq: true,
+}
+
+var rangeForAssigment = map[Kind]bool{
+	Assign: true,
+	Define: true,
 }

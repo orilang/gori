@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -329,11 +328,6 @@ func TestParser_if_stmt(t *testing.T) {
 		parser := New(input)
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		fmt.Printf("%#v\n", pr)
-		fmt.Printf("%s\n", ast.Dump(pr))
-		for _, v := range parser.errors {
-			fmt.Println(v.Error())
-		}
 		assert.Greater(len(parser.errors), 0)
 	})
 
