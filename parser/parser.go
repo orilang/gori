@@ -282,6 +282,35 @@ func (p *Parser) parseStmt() ast.Stmt {
 	return &ast.ExprStmt{Expr: left}
 }
 
+// parseSimpleStmt returns declaration within parseBlock
+func (p *Parser) parseSimpleStmt() ast.Stmt {
+	left := p.parseExpr(LOWEST)
+	_, iok := left.(*ast.IdentExpr)
+	_, sok := left.(*ast.SelectorExpr)
+	_, xok := left.(*ast.IndexExpr)
+	if iok || sok || xok {
+		if token.IsAssignment(p.kind()) {
+			return p.parseStmtExpr(left)
+		}
+		if token.IsIncDec(p.kind()) {
+			return p.parseIncDecStmtExpr(left)
+		}
+	}
+	if token.IsIncDec(p.kind()) {
+		tok := p.next()
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected statement starting with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		return &ast.BadStmt{From: left.Start(), To: tok, Reason: "unexpected ++ or -- statement here"}
+	}
+
+	_, cok := left.(*ast.CallExpr)
+	_, bok := left.(*ast.BadExpr)
+	if !cok && !bok {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", left.Start().Line, left.Start().Column, left.Start().Kind, left.Start().Value))
+		return &ast.BadStmt{From: left.Start(), Reason: "unsupported statement"}
+	}
+	return &ast.ExprStmt{Expr: left}
+}
+
 // parseConstDecl returns constant declaration
 func (p *Parser) parseConstDecl() ast.Stmt {
 	kw := p.expect(token.KWConst, "expected 'const'")
@@ -696,7 +725,7 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 			return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '=' or ':=' after expression"}
 		}
 
-		rstmt.Value = xk1
+		rstmt.Key = xk1
 		op := p.next()
 		rstmt.Op = op
 		rg := p.expect(token.KWRange, "expected 'range'")
@@ -729,7 +758,11 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 	}
 
 	// for init; condition; post {}
-	fstmt.Init = p.parseStmt()
+	fstmt.Init = p.parseSimpleStmt()
+	if !isValidForInit(fstmt.Init) {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected init statement in for header, got %v %q", fstmt.Init.Start().Line, fstmt.Init.Start().Column, fstmt.Init.Start().Kind, fstmt.Init.Start().Value))
+		return &ast.BadStmt{From: fstmt.Init.Start(), To: fstmt.Init.End(), Reason: "invalid init statement in for header"}
+	}
 	sm1 := p.expect(token.SemiComma, "expected ';'")
 	if sm1.Kind != token.SemiComma {
 		return &ast.BadStmt{From: ftok, To: sm1, Reason: "expected ';'"}
@@ -746,13 +779,43 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 		return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected expression before '{'"}
 	}
 
-	fstmt.Post = p.parseStmt()
+	fstmt.Post = p.parseSimpleStmt()
+	if !isValidForPost(fstmt.Post) {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected post statement in for header, got %v %q", fstmt.Post.Start().Line, fstmt.Post.Start().Column, fstmt.Post.Start().Kind, fstmt.Post.Start().Value))
+		return &ast.BadStmt{From: fstmt.Post.Start(), To: fstmt.Post.End(), Reason: "invalid post statement in for header"}
+	}
 	if p.kind() != token.LBrace {
 		tok := p.next()
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-		return &ast.BadStmt{From: ftok, To: tok, Reason: "expected '{'"}
+		return &ast.BadStmt{From: fstmt.Post.Start(), To: tok, Reason: "expected '{'"}
 	}
 
 	fstmt.Body = p.parseBlock()
 	return fstmt
+}
+
+// isValidForInit is only used in for init statement
+func isValidForInit(s ast.Stmt) bool {
+	switch st := s.(type) {
+	case *ast.AssignStmt:
+		return true
+	case *ast.ExprStmt:
+		_, ok := st.Expr.(*ast.CallExpr)
+		return ok
+	default:
+		return false
+	}
+}
+
+// isValidForPost is only used in for post statement
+func isValidForPost(s ast.Stmt) bool {
+	switch st := s.(type) {
+	case *ast.AssignStmt, *ast.IncDecStmt:
+		return true
+	case *ast.ExprStmt:
+		_, ok := st.Expr.(*ast.CallExpr)
+		return ok
+	default:
+		return false
+	}
 }
