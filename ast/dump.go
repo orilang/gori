@@ -267,6 +267,12 @@ func (d *dumper) node(n any, indent int) {
 		d.expr(v.X, indent+2)
 		d.stmt(v.Body, indent+2)
 
+	case *IncDecStmt:
+		d.line(indent, "IncDecStmt")
+		d.line(indent+1, "X:")
+		d.expr(v.X, indent+2)
+		d.kv(indent+1, "Operator", v.Operator)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -360,7 +366,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 	case *BlockStmt, *ConstDeclStmt, *VarDeclStmt, *AssignStmt, *ExprStmt, *BadStmt:
 		d.node(v, indent)
 
-	case *ReturnStmt, *IfStmt, *ForStmt, *RangeStmt:
+	case *ReturnStmt, *IfStmt, *ForStmt, *RangeStmt, *IncDecStmt:
 		d.node(v, indent)
 
 	default:

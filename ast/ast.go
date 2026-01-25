@@ -34,6 +34,7 @@ func (*ReturnStmt) stmtNode()    {}
 func (*IfStmt) stmtNode()        {}
 func (*ForStmt) stmtNode()       {}
 func (*RangeStmt) stmtNode()     {}
+func (*IncDecStmt) stmtNode()    {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -132,3 +133,6 @@ func (x *RangeStmt) End() token.Token {
 	}
 	return token.Token{}
 }
+
+func (x *IncDecStmt) Start() token.Token { return x.X.Start() }
+func (x *IncDecStmt) End() token.Token   { return x.Operator }

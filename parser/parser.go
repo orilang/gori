@@ -259,8 +259,18 @@ func (p *Parser) parseStmt() ast.Stmt {
 	_, iok := left.(*ast.IdentExpr)
 	_, sok := left.(*ast.SelectorExpr)
 	_, xok := left.(*ast.IndexExpr)
-	if (iok || sok || xok) && token.IsAssignment(p.kind()) {
-		return p.parseStmtExpr(left)
+	if iok || sok || xok {
+		if token.IsAssignment(p.kind()) {
+			return p.parseStmtExpr(left)
+		}
+		if token.IsIncDec(p.kind()) {
+			return p.parseIncDecStmtExpr(left)
+		}
+	}
+	if token.IsIncDec(p.kind()) {
+		tok := p.next()
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected statement starting with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		return &ast.BadStmt{From: left.Start(), To: tok, Reason: "unexpected ++ or -- statement here"}
 	}
 
 	_, cok := left.(*ast.CallExpr)
@@ -507,6 +517,16 @@ func (p *Parser) parseStmtExpr(left ast.Expr) *ast.AssignStmt {
 		Left:     left,
 		Operator: op,
 		Right:    p.parseExpr(LOWEST),
+	}
+}
+
+// parseIncDecStmtExpr returns expressions for parseStmt func
+func (p *Parser) parseIncDecStmtExpr(left ast.Expr) *ast.IncDecStmt {
+	op := p.peek()
+	_ = p.next()
+	return &ast.IncDecStmt{
+		X:        left,
+		Operator: op,
 	}
 }
 
