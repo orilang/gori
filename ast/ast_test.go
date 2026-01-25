@@ -425,4 +425,22 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(z, x.Start())
 		assert.Equal(r, x.End())
 	})
+
+	t.Run("for_range_stmt_from_to", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.Ident,
+			Value:  "i",
+			Line:   1,
+			Column: 1,
+		}
+		op := token.Token{
+			Kind:   token.PPlus,
+			Value:  "++",
+			Line:   1,
+			Column: 3,
+		}
+		x := &IncDecStmt{X: &IdentExpr{z}, Operator: op}
+		assert.Equal(z, x.Start())
+		assert.Equal(op, x.End())
+	})
 }

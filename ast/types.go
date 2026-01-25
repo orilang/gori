@@ -219,3 +219,8 @@ type RangeStmt struct {
 	X     Expr
 	Body  *BlockStmt
 }
+
+type IncDecStmt struct {
+	X        Expr        // must be assignable: Ident/Selector/Index
+	Operator token.Token // ++ or --
+}

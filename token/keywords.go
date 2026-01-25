@@ -122,3 +122,8 @@ var rangeForAssigment = map[Kind]bool{
 	Assign: true,
 	Define: true,
 }
+
+var incDec = map[Kind]bool{
+	PPlus:  true,
+	MMinus: true,
+}

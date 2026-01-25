@@ -188,4 +188,24 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsRangeForAssignment(tc.input))
 		}
 	})
+
+	t.Run("is_inc_dec", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    PPlus,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsIncDec(tc.input))
+		}
+	})
 }

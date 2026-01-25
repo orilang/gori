@@ -49,3 +49,8 @@ func IsAssignment(k Kind) bool {
 func IsRangeForAssignment(k Kind) bool {
 	return rangeForAssigment[k]
 }
+
+// IsRangeForAssignment returns true when the provided kind is found is the list
+func IsIncDec(k Kind) bool {
+	return incDec[k]
+}
