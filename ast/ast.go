@@ -32,6 +32,8 @@ func (*BadStmt) stmtNode()       {}
 func (*BadType) stmtNode()       {}
 func (*ReturnStmt) stmtNode()    {}
 func (*IfStmt) stmtNode()        {}
+func (*ForStmt) stmtNode()       {}
+func (*RangeStmt) stmtNode()     {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -114,3 +116,19 @@ func (x *IfStmt) End() token.Token {
 
 func (x *BadDecl) Start() token.Token { return x.From }
 func (x *BadDecl) End() token.Token   { return x.To }
+
+func (x *ForStmt) Start() token.Token { return x.For }
+func (x *ForStmt) End() token.Token {
+	if x.Body != nil {
+		return x.Body.End()
+	}
+	return token.Token{}
+}
+
+func (x *RangeStmt) Start() token.Token { return x.For }
+func (x *RangeStmt) End() token.Token {
+	if x.Body != nil {
+		return x.Body.End()
+	}
+	return token.Token{}
+}

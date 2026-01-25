@@ -44,3 +44,8 @@ func IsChainingComparison(k Kind) bool {
 func IsAssignment(k Kind) bool {
 	return assignment[k]
 }
+
+// IsRangeForAssignment returns true when the provided kind is found is the list
+func IsRangeForAssignment(k Kind) bool {
+	return rangeForAssigment[k]
+}

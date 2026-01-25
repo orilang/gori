@@ -88,4 +88,6 @@ const (
 	And // &&
 	Or  // ||
 	Not // !
+
+	KWRange
 )

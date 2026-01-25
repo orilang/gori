@@ -94,4 +94,32 @@ func TestParser_parse_common(t *testing.T) {
 		parse := New(lex.Tokens)
 		assert.Equal(MULTIPLICATIVE, parse.peekPrecedence())
 	})
+
+	t.Run("look_for_x1", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(false, parse.lookForInForHeader(token.Comma))
+	})
+
+	t.Run("look_for_x2", func(t *testing.T) {
+		input := "a 1"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(true, parse.lookForInForHeader(token.IntLit))
+	})
+
+	t.Run("look_for_x3", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		parse.position = len(lex.Tokens)
+		assert.Equal(false, parse.lookForInForHeader(token.Comma))
+	})
 }

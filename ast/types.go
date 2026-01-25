@@ -201,3 +201,21 @@ type IfStmt struct {
 	Then      *BlockStmt
 	Else      Stmt
 }
+
+type ForStmt struct {
+	For       token.Token
+	Init      Stmt
+	Condition Expr
+	Post      Stmt
+	Body      *BlockStmt
+}
+
+type RangeStmt struct {
+	For   token.Token
+	Key   *IdentExpr
+	Value *IdentExpr
+	Op    token.Token
+	Range token.Token
+	X     Expr
+	Body  *BlockStmt
+}

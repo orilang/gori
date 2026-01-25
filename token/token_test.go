@@ -168,4 +168,24 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsAssignment(tc.input))
 		}
 	})
+
+	t.Run("is_range_for_assignment", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    Assign,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsRangeForAssignment(tc.input))
+		}
+	})
 }
