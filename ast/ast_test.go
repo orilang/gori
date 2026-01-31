@@ -443,4 +443,28 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(z, x.Start())
 		assert.Equal(op, x.End())
 	})
+
+	t.Run("break_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWBreak,
+			Value:  "break",
+			Line:   1,
+			Column: 1,
+		}
+		x := &BreakStmt{Break: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
+
+	t.Run("continue_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWContinue,
+			Value:  "continue",
+			Line:   1,
+			Column: 1,
+		}
+		x := &ContinueStmt{Continue: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
 }

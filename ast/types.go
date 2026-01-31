@@ -224,3 +224,11 @@ type IncDecStmt struct {
 	X        Expr        // must be assignable: Ident/Selector/Index
 	Operator token.Token // ++ or --
 }
+
+type BreakStmt struct {
+	Break token.Token
+}
+
+type ContinueStmt struct {
+	Continue token.Token
+}
