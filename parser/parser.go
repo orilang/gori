@@ -255,6 +255,14 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseForStmtExpr()
 	}
 
+	if p.kind() == token.KWBreak {
+		return p.parseBreakStmt()
+	}
+
+	if p.kind() == token.KWContinue {
+		return p.parseContinueStmt()
+	}
+
 	left := p.parseExpr(LOWEST)
 	_, iok := left.(*ast.IdentExpr)
 	_, sok := left.(*ast.SelectorExpr)
@@ -649,7 +657,7 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 
 	// infinite loop
 	if p.kind() == token.LBrace {
-		fstmt.Body = p.parseBlock()
+		fstmt.Body = p.parseForBlockStmt()
 		return fstmt
 	}
 
@@ -669,7 +677,7 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '{' after expression"}
 			}
 
-			rstmt.Body = p.parseBlock()
+			rstmt.Body = p.parseForBlockStmt()
 			return rstmt
 		}
 
@@ -715,7 +723,7 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '{' after expression"}
 			}
 
-			rstmt.Body = p.parseBlock()
+			rstmt.Body = p.parseForBlockStmt()
 			return rstmt
 		}
 
@@ -741,7 +749,7 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 			return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '{' after expression"}
 		}
 
-		rstmt.Body = p.parseBlock()
+		rstmt.Body = p.parseForBlockStmt()
 		return rstmt
 	}
 
@@ -753,7 +761,7 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 			return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected '{' after condition"}
 		}
 
-		fstmt.Body = p.parseBlock()
+		fstmt.Body = p.parseForBlockStmt()
 		return fstmt
 	}
 
@@ -790,7 +798,7 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 		return &ast.BadStmt{From: fstmt.Post.Start(), To: tok, Reason: "expected '{'"}
 	}
 
-	fstmt.Body = p.parseBlock()
+	fstmt.Body = p.parseForBlockStmt()
 	return fstmt
 }
 
@@ -818,4 +826,67 @@ func isValidForPost(s ast.Stmt) bool {
 	default:
 		return false
 	}
+}
+
+// parseForBlockStmt is an helper to make sure we inc/dec
+// loopDepth counter
+func (p *Parser) parseForBlockStmt() *ast.BlockStmt {
+	p.loopDepth++
+	defer func() {
+		p.loopDepth--
+	}()
+	return p.parseBlock()
+}
+
+// parseBreakStmt returns expressions for parseStmt func
+func (p *Parser) parseBreakStmt() ast.Stmt {
+	if p.loopDepth == 0 {
+		tok := p.next()
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected break expression outside for loop, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		return &ast.BadStmt{From: tok, Reason: "expected 'break' inside 'for' loop"}
+	}
+
+	kw := p.expect(token.KWBreak, "expected 'break'")
+	if p.kind() == token.Comment {
+		_ = p.next()
+	}
+	// we do not accept labels for now so anything unauthorized is rejected
+	// maybe labels will be supported later
+	if p.kind() == token.RBrace || p.kind() == token.EOF || p.kind() == token.SemiComma || p.peek().Line > kw.Line {
+		if p.kind() == token.SemiComma {
+			_ = p.next()
+		}
+		return &ast.BreakStmt{
+			Break: kw,
+		}
+	}
+
+	p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected statement after 'break', got %v %q", kw.Line, kw.Column, p.peek().Kind, p.peek().Value))
+	return &ast.BadStmt{From: p.peek(), Reason: "expected '}' or 'EOF' or new line"}
+}
+
+// parseContinueStmt returns expressions for parseStmt func
+func (p *Parser) parseContinueStmt() ast.Stmt {
+	if p.loopDepth == 0 {
+		tok := p.next()
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected continue expression outside for loop, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		return &ast.BadStmt{From: tok, Reason: "expected 'continue' inside 'for' loop"}
+	}
+
+	kw := p.expect(token.KWContinue, "expected 'continue'")
+	if p.kind() == token.Comment {
+		_ = p.next()
+	}
+	// any unauthorized statement is rejected after 'continue'
+	if p.kind() == token.RBrace || p.kind() == token.EOF || p.kind() == token.SemiComma || p.peek().Line > kw.Line {
+		if p.kind() == token.SemiComma {
+			_ = p.next()
+		}
+		return &ast.ContinueStmt{
+			Continue: kw,
+		}
+	}
+
+	p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected statement after 'continue', got %v %q", kw.Line, kw.Column, p.peek().Kind, p.peek().Value))
+	return &ast.BadStmt{From: p.peek(), Reason: "expected '}' or 'EOF' or new line"}
 }
