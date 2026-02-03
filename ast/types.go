@@ -232,3 +232,23 @@ type BreakStmt struct {
 type ContinueStmt struct {
 	Continue token.Token
 }
+
+type SwitchStmt struct {
+	Switch token.Token
+	Init   Stmt
+	Tag    Expr
+	LBrace token.Token
+	Cases  []CaseClause
+	RBrace token.Token
+}
+
+type CaseClause struct {
+	Case   token.Token
+	Values []Expr
+	Colon  token.Token
+	Body   []Stmt
+}
+
+type FallThroughStmt struct {
+	FallThroughStmt token.Token
+}
