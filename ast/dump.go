@@ -279,6 +279,41 @@ func (d *dumper) node(n any, indent int) {
 	case *ContinueStmt:
 		d.kv(indent, "Continue", v.Continue)
 
+	case *SwitchStmt:
+		d.line(indent, "SwitchStmt")
+		d.kv(indent+1, "Switch", v.Switch)
+		if v.Init != nil {
+			d.line(indent+1, "Init:")
+			d.stmt(v.Init, indent+2)
+		}
+
+		if v.Tag != nil {
+			d.line(indent+1, "Init:")
+			d.expr(v.Tag, indent+2)
+		}
+
+		d.kv(indent+1, "LBrace", v.LBrace)
+		for _, vc := range v.Cases {
+			d.kv(indent+1, "Case", vc.Case)
+			if len(vc.Values) > 0 {
+				d.line(indent+2, "Values:")
+				for _, e := range vc.Values {
+					d.expr(e, indent+3)
+				}
+			}
+			d.kv(indent+1, "Colon", vc.Colon)
+			if len(vc.Body) > 0 {
+				d.line(indent+2, "Body:")
+				for _, b := range vc.Body {
+					d.stmt(b, indent+3)
+				}
+			}
+		}
+		d.kv(indent+1, "RBrace", v.RBrace)
+
+	case *FallThroughStmt:
+		d.kv(indent, "FallThrough", v.FallThroughStmt)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -375,7 +410,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 	case *ReturnStmt, *IfStmt, *ForStmt, *RangeStmt, *IncDecStmt:
 		d.node(v, indent)
 
-	case *BreakStmt, *ContinueStmt:
+	case *BreakStmt, *ContinueStmt, *SwitchStmt, *FallThroughStmt:
 		d.node(v, indent)
 
 	default:

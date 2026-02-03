@@ -122,4 +122,60 @@ func TestParser_parse_common(t *testing.T) {
 		parse.position = len(lex.Tokens)
 		assert.Equal(false, parse.lookForInForHeader(token.Comma))
 	})
+
+	t.Run("look_for_in_switch_header_x1", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(false, parse.lookForInSwitchHeader(token.SemiComma))
+	})
+
+	t.Run("look_for_in_switch_header_x2", func(t *testing.T) {
+		input := "switch x:=f();x"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(true, parse.lookForInSwitchHeader(token.SemiComma))
+	})
+
+	t.Run("look_for_in_switch_header_x3", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		parse.position = len(lex.Tokens)
+		assert.Equal(false, parse.lookForInSwitchHeader(token.SemiComma))
+	})
+
+	t.Run("look_for_in_switch_case_header_x1", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(false, parse.lookForInSwitchCaseHeader(token.Comma))
+	})
+
+	t.Run("look_for_in_switch_case_header_x2", func(t *testing.T) {
+		input := "case 1,2"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(true, parse.lookForInSwitchCaseHeader(token.Comma))
+	})
+
+	t.Run("look_for_in_switch_case_header_x3", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		parse.position = len(lex.Tokens)
+		assert.Equal(false, parse.lookForInSwitchCaseHeader(token.Comma))
+	})
 }

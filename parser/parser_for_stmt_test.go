@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -965,11 +964,6 @@ func TestParser_for_stmt(t *testing.T) {
          RBrace: "}" @6:3 (kind=42)
      RBrace: "}" @7:1 (kind=42)
 `
-		fmt.Printf("%#v\n", pr)
-		fmt.Printf("%s\n", ast.Dump(pr))
-		for _, v := range parser.errors {
-			fmt.Println(v.Error())
-		}
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
@@ -1134,11 +1128,6 @@ func TestParser_for_stmt(t *testing.T) {
          RBrace: "}" @6:3 (kind=42)
      RBrace: "}" @7:1 (kind=42)
 `
-		fmt.Printf("%#v\n", pr)
-		fmt.Printf("%s\n", ast.Dump(pr))
-		for _, v := range parser.errors {
-			fmt.Println(v.Error())
-		}
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})

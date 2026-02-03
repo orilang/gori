@@ -467,4 +467,74 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(z, x.Start())
 		assert.Equal(z, x.End())
 	})
+
+	t.Run("switch_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWSwitch,
+			Value:  "switch",
+			Line:   1,
+			Column: 1,
+		}
+		r := token.Token{
+			Kind:   token.RBrace,
+			Value:  "}",
+			Line:   1,
+			Column: 3,
+		}
+		x := &SwitchStmt{Switch: z, RBrace: r}
+		assert.Equal(z, x.Start())
+		assert.Equal(r, x.End())
+	})
+
+	t.Run("case_clause_stmt_x1", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWCase,
+			Value:  "case",
+			Line:   1,
+			Column: 1,
+		}
+		x := &CaseClause{Case: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
+
+	t.Run("case_clause_stmt_x2", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWCase,
+			Value:  "case",
+			Line:   1,
+			Column: 1,
+		}
+		rt := token.Token{
+			Kind:   token.KWReturn,
+			Value:  "return",
+			Line:   2,
+			Column: 1,
+		}
+
+		rtv := token.Token{
+			Kind:   token.Ident,
+			Value:  "a",
+			Line:   2,
+			Column: 8,
+		}
+		x := &CaseClause{Case: z}
+		rtstmt := &ReturnStmt{Return: rt}
+		rtstmt.Values = append(rtstmt.Values, &IdentExpr{rtv})
+		x.Body = append(x.Body, rtstmt)
+		assert.Equal(z, x.Start())
+		assert.Equal(rtv, x.End())
+	})
+
+	t.Run("fallthrough_stmt", func(t *testing.T) {
+		z := token.Token{
+			Kind:   token.KWFallThrough,
+			Value:  "continue",
+			Line:   1,
+			Column: 1,
+		}
+		x := &FallThroughStmt{FallThroughStmt: z}
+		assert.Equal(z, x.Start())
+		assert.Equal(z, x.End())
+	})
 }

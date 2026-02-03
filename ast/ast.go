@@ -2,41 +2,44 @@ package ast
 
 import "github.com/orilang/gori/token"
 
-func (*FuncDecl) declNode()      {}
-func (*dumpType) declNode()      {}
-func (*BadDecl) declNode()       {}
-func (*BlockStmt) stmtNode()     {}
-func (*ConstDeclStmt) stmtNode() {}
-func (*VarDeclStmt) stmtNode()   {}
-func (*IdentExpr) stmtNode()     {}
-func (*dumpType) stmtNode()      {}
-func (*NameType) typeNode()      {}
-func (*BadType) typeNode()       {}
-func (*dumpType) typeNode()      {}
-func (*IdentExpr) exprNode()     {}
-func (*IntLitExpr) exprNode()    {}
-func (*FloatLitExpr) exprNode()  {}
-func (*BoolLitExpr) exprNode()   {}
-func (*StringLitExpr) exprNode() {}
-func (*ParenExpr) exprNode()     {}
-func (*BadExpr) exprNode()       {}
-func (*BinaryExpr) exprNode()    {}
-func (*UnaryExpr) exprNode()     {}
-func (*SelectorExpr) exprNode()  {}
-func (*IndexExpr) exprNode()     {}
-func (*CallExpr) exprNode()      {}
-func (*dumpType) exprNode()      {}
-func (*AssignStmt) stmtNode()    {}
-func (*ExprStmt) stmtNode()      {}
-func (*BadStmt) stmtNode()       {}
-func (*BadType) stmtNode()       {}
-func (*ReturnStmt) stmtNode()    {}
-func (*IfStmt) stmtNode()        {}
-func (*ForStmt) stmtNode()       {}
-func (*RangeStmt) stmtNode()     {}
-func (*IncDecStmt) stmtNode()    {}
-func (*BreakStmt) stmtNode()     {}
-func (*ContinueStmt) stmtNode()  {}
+func (*FuncDecl) declNode()        {}
+func (*dumpType) declNode()        {}
+func (*BadDecl) declNode()         {}
+func (*BlockStmt) stmtNode()       {}
+func (*ConstDeclStmt) stmtNode()   {}
+func (*VarDeclStmt) stmtNode()     {}
+func (*IdentExpr) stmtNode()       {}
+func (*dumpType) stmtNode()        {}
+func (*NameType) typeNode()        {}
+func (*BadType) typeNode()         {}
+func (*dumpType) typeNode()        {}
+func (*IdentExpr) exprNode()       {}
+func (*IntLitExpr) exprNode()      {}
+func (*FloatLitExpr) exprNode()    {}
+func (*BoolLitExpr) exprNode()     {}
+func (*StringLitExpr) exprNode()   {}
+func (*ParenExpr) exprNode()       {}
+func (*BadExpr) exprNode()         {}
+func (*BinaryExpr) exprNode()      {}
+func (*UnaryExpr) exprNode()       {}
+func (*SelectorExpr) exprNode()    {}
+func (*IndexExpr) exprNode()       {}
+func (*CallExpr) exprNode()        {}
+func (*dumpType) exprNode()        {}
+func (*AssignStmt) stmtNode()      {}
+func (*ExprStmt) stmtNode()        {}
+func (*BadStmt) stmtNode()         {}
+func (*BadType) stmtNode()         {}
+func (*ReturnStmt) stmtNode()      {}
+func (*IfStmt) stmtNode()          {}
+func (*ForStmt) stmtNode()         {}
+func (*RangeStmt) stmtNode()       {}
+func (*IncDecStmt) stmtNode()      {}
+func (*BreakStmt) stmtNode()       {}
+func (*ContinueStmt) stmtNode()    {}
+func (*SwitchStmt) stmtNode()      {}
+func (*CaseClause) stmtNode()      {}
+func (*FallThroughStmt) stmtNode() {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -144,3 +147,17 @@ func (x *BreakStmt) End() token.Token   { return x.Break }
 
 func (x *ContinueStmt) Start() token.Token { return x.Continue }
 func (x *ContinueStmt) End() token.Token   { return x.Continue }
+
+func (x *SwitchStmt) Start() token.Token { return x.Switch }
+func (x *SwitchStmt) End() token.Token   { return x.RBrace }
+
+func (x *CaseClause) Start() token.Token { return x.Case }
+func (x *CaseClause) End() token.Token {
+	if len(x.Body) > 0 {
+		return x.Body[len(x.Body)-1].End()
+	}
+	return token.Token{}
+}
+
+func (x *FallThroughStmt) Start() token.Token { return x.FallThroughStmt }
+func (x *FallThroughStmt) End() token.Token   { return x.FallThroughStmt }
