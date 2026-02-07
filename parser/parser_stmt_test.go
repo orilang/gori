@@ -89,7 +89,7 @@ func TestParser_stmt(t *testing.T) {
    Name: "x" @3:6 (kind=3)
    Params
     Param
-     Function: "a" @3:8 (kind=3)
+     Ident: "a" @3:8 (kind=3)
      Type
       NameType
        Name: "z" @3:10 (kind=3)
@@ -148,7 +148,7 @@ func TestParser_stmt(t *testing.T) {
    Name: "x" @3:6 (kind=3)
    Params
     Param
-     Function: "a" @3:8 (kind=3)
+     Ident: "a" @3:8 (kind=3)
      Type
       NameType
        Name: "z" @3:10 (kind=3)

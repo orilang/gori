@@ -181,17 +181,17 @@ func TestParser_parse_file(t *testing.T) {
    Name: "x" @3:6 (kind=3)
    Params
     Param
-     Function: "a" @3:8 (kind=3)
+     Ident: "a" @3:8 (kind=3)
      Type
       NameType
        Name: "int" @3:10 (kind=12)
     Param
-     Function: "b" @3:15 (kind=3)
+     Ident: "b" @3:15 (kind=3)
      Type
       NameType
        Name: "string" @3:17 (kind=24)
     Param
-     Function: "c" @3:25 (kind=3)
+     Ident: "c" @3:25 (kind=3)
      Type
       NameType
        Name: "string" @3:27 (kind=3)
@@ -283,7 +283,7 @@ func TestParser_parse_file(t *testing.T) {
 		assert.Greater(len(parser.errors), 0)
 	})
 
-	t.Run("bad_x3", func(t *testing.T) {
+	t.Run("bad_x4", func(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
 			{Kind: token.Ident, Value: "dummy", Line: 1, Column: 9},
