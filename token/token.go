@@ -54,3 +54,13 @@ func IsRangeForAssignment(k Kind) bool {
 func IsIncDec(k Kind) bool {
 	return incDec[k]
 }
+
+// IsVarConstTypes returns true when the provided kind is found is the list
+func IsVarConstTypes(k Kind) bool {
+	return varConstTypes[k]
+}
+
+// IsFuncParamTypes returns true when the provided kind is found is the list
+func IsFuncParamTypes(k Kind) bool {
+	return funcParamTypes[k]
+}

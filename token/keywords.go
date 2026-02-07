@@ -127,3 +127,40 @@ var incDec = map[Kind]bool{
 	PPlus:  true,
 	MMinus: true,
 }
+
+var varConstTypes = map[Kind]bool{
+	Ident:       true,
+	KWInt:       true,
+	KWInt8:      true,
+	KWInt32:     true,
+	KWInt64:     true,
+	KWUint:      true,
+	KWUint8:     true,
+	KWUint32:    true,
+	KWUint64:    true,
+	KWFloat:     true,
+	KWFloat32:   true,
+	KWFloat64:   true,
+	KWString:    true,
+	KWBool:      true,
+	KWInterface: true,
+}
+
+var funcParamTypes = map[Kind]bool{
+	Ident:       true,
+	KWInt:       true,
+	KWInt8:      true,
+	KWInt32:     true,
+	KWInt64:     true,
+	KWUint:      true,
+	KWUint8:     true,
+	KWUint32:    true,
+	KWUint64:    true,
+	KWFloat:     true,
+	KWFloat32:   true,
+	KWFloat64:   true,
+	KWString:    true,
+	KWBool:      true,
+	KWInterface: true,
+	KWFunc:      true,
+}

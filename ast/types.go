@@ -22,16 +22,23 @@ type File struct {
 
 // FuncDecl holds function parsed content
 type FuncDecl struct {
-	FuncKW token.Token
-	Name   token.Token
-	Params []Param
-	Body   *BlockStmt
+	FuncKW  token.Token
+	Name    token.Token
+	Params  []Param
+	Results ReturnTypes
+	Body    *BlockStmt
 }
 
 // Params holds func parameter
 type Param struct {
 	Name token.Token
 	Type Type
+}
+
+type ReturnTypes struct {
+	LParen token.Token
+	List   []Param
+	RParen token.Token
 }
 
 // BlockStmt holds content between curly braces

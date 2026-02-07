@@ -79,6 +79,20 @@ func (p *Parser) next() token.Token {
 	return tok
 }
 
+// kindNext returns only the next token kind
+func (p *Parser) kindNext(pos int) token.Kind {
+	return p.peekNext(pos).Kind
+}
+
+// peekNext returns only the next token without
+// advancing its position. Used as lookahead.
+func (p *Parser) peekNext(pos int) token.Token {
+	if pos >= len(p.Tokens) {
+		return token.Token{Kind: token.EOF}
+	}
+	return p.Tokens[pos]
+}
+
 // match compares the current token with the provided token Kind
 func (p *Parser) match(k token.Kind) (token.Token, bool) {
 	if p.kind() == k {
@@ -210,6 +224,7 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 
 	_ = p.expect(token.RParen, "expected ')' after function name")
 
+	f.Results = p.parseFuncReturnTypes()
 	body := p.parseBlock()
 	f.Body = body
 
@@ -219,27 +234,23 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 // parseFuncParam returns function parameter
 func (p *Parser) parseFuncParam() ast.Param {
 	name := p.expect(token.Ident, "expected parameter identifier")
-	typ, btyp, bad := p.parseType()
+	typ, btyp, bad := p.parseFuncParamType()
 	if bad {
 		return ast.Param{Name: name, Type: btyp}
 	}
 	return ast.Param{Name: name, Type: typ}
 }
 
-// parseType returns parameter type
-func (p *Parser) parseType() (*ast.NameType, *ast.BadType, bool) {
+// parseFuncParamType returns func parameter type
+func (p *Parser) parseFuncParamType() (*ast.NameType, *ast.BadType, bool) {
 	typ := &ast.NameType{}
 	btyp := &ast.BadType{}
 	var bad bool
 	tok := p.peek()
-	switch {
-	case token.IsBuiltinType(tok.Kind):
-		typ.Name = tok
 
-	case tok.Kind == token.Ident:
+	if token.IsFuncParamTypes(tok.Kind) {
 		typ.Name = tok
-
-	default:
+	} else {
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		btyp.From = tok
 		btyp.Reason = "unexpected type name"
@@ -248,6 +259,149 @@ func (p *Parser) parseType() (*ast.NameType, *ast.BadType, bool) {
 
 	_ = p.next()
 	return typ, btyp, bad
+}
+
+func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
+	if p.kind() == token.LBrace {
+		return ast.ReturnTypes{}
+	}
+
+	var result ast.ReturnTypes
+	if p.kind() == token.LParen {
+		lp := p.expect(token.LParen, "expected '('")
+		if p.kind() == token.RParen {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			btyp := &ast.BadType{
+				From:   lp,
+				To:     p.peek(),
+				Reason: "expected parameter(s) before ')'",
+			}
+			result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
+			return result
+		}
+
+		if p.kind() == token.Comma {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			btyp := &ast.BadType{
+				From:   lp,
+				To:     p.peek(),
+				Reason: "expected expression before ','",
+			}
+
+			result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
+			return result
+		}
+
+		result.LParen = lp
+		// entering into kind: (indentA indentB, indentC indentD)
+		if p.kindNext(p.position+2) == token.Comma {
+			for p.kind() != token.RParen && p.kind() != token.LBrace && p.kind() != token.EOF {
+				param := p.parseFuncParam()
+				_, bad := param.Type.(*ast.BadType)
+				if bad {
+					result.List = append(result.List, param)
+					return result
+				}
+				result.List = append(result.List, param)
+
+				if p.kind() != token.Comma && p.kind() != token.RParen {
+					p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+					btyp := &ast.BadType{
+						From:   lp,
+						To:     p.peek(),
+						Reason: "expected ',' after parameter(s)",
+					}
+					result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
+					return result
+				}
+
+				if p.kind() == token.Comma {
+					comma := p.expect(token.Comma, "expected ','")
+					if p.kind() == token.RParen {
+						p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+						btyp := &ast.BadType{
+							From:   comma,
+							To:     p.peek(),
+							Reason: "expected parameter(s) after ','",
+						}
+						result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
+						return result
+					}
+				}
+			}
+		} else {
+			// entering into kind: (type, type)
+			for p.kind() != token.RParen && p.kind() != token.LBrace && p.kind() != token.EOF {
+				typ, btyp, bad := p.parseFuncParamType()
+				if bad {
+					result.List = append(result.List, ast.Param{Type: btyp})
+					return result
+				}
+				result.List = append(result.List, ast.Param{Type: typ})
+
+				if p.kind() != token.Comma && p.kind() != token.RParen {
+					p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+					btyp := &ast.BadType{
+						From:   lp,
+						To:     p.peek(),
+						Reason: "expected ',' after parameter(s)",
+					}
+					result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
+					return result
+				}
+
+				if p.kind() == token.Comma {
+					comma := p.expect(token.Comma, "expected ','")
+					if p.kind() == token.RParen {
+						p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+						btyp := &ast.BadType{
+							From:   comma,
+							To:     p.peek(),
+							Reason: "expected parameter(s) after ','",
+						}
+						result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
+						return result
+					}
+				}
+			}
+		}
+
+		rp := p.expect(token.RParen, "expected ')'")
+		result.RParen = rp
+		return result
+	}
+
+	if p.kind() == token.Comma {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		btyp := &ast.BadType{
+			From:   p.peek(),
+			Reason: "expected builtin type or ident",
+		}
+		result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
+		return result
+	}
+
+	next := p.peek()
+	typ, btyp, bad := p.parseFuncParamType()
+	if bad {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", btyp.From.Line, btyp.From.Column, btyp.From.Kind, btyp.From.Value))
+		result.List = append(result.List, ast.Param{Type: btyp})
+		return result
+	}
+	result.List = append(result.List, ast.Param{Type: typ})
+
+	if p.kind() != token.LBrace {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		btyp := &ast.BadType{
+			From:   next,
+			To:     p.peek(),
+			Reason: "expected '{' after type",
+		}
+		result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
+		return result
+	}
+
+	return result
 }
 
 // parseBlock returns declaration within curly braces
@@ -366,8 +520,9 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 	kw := p.expect(token.KWConst, "expected 'const'")
 	name := p.expect(token.Ident, "expected constant name")
 
-	typ, btyp, bad := p.parseType()
+	typ, btyp, bad := p.parseVarConstType()
 	if bad {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", btyp.From.Line, btyp.From.Column, btyp.From.Kind, btyp.From.Value))
 		return btyp
 	}
 	eq := p.expect(token.Assign, "expected '=")
@@ -387,7 +542,7 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 	kw := p.expect(token.KWVar, "expected 'var'")
 	name := p.expect(token.Ident, "expected variable name")
 
-	typ, btyp, bad := p.parseType()
+	typ, btyp, bad := p.parseVarConstType()
 	if bad {
 		return btyp
 	}
@@ -401,6 +556,26 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 		Eq:    eq,
 		Init:  init,
 	}
+}
+
+// parseVarConstType returns const/vars types
+func (p *Parser) parseVarConstType() (*ast.NameType, *ast.BadType, bool) {
+	typ := &ast.NameType{}
+	btyp := &ast.BadType{}
+	var bad bool
+	tok := p.peek()
+
+	if token.IsVarConstTypes(tok.Kind) {
+		typ.Name = tok
+	} else {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		btyp.From = tok
+		btyp.Reason = "unexpected type name"
+		bad = true
+	}
+
+	_ = p.next()
+	return typ, btyp, bad
 }
 
 // parseExpr returns the type of declaration being parsed

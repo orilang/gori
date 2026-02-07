@@ -178,4 +178,15 @@ func TestParser_parse_common(t *testing.T) {
 		parse.position = len(lex.Tokens)
 		assert.Equal(false, parse.lookForInSwitchCaseHeader(token.Comma))
 	})
+
+	t.Run("peek_next_eof", func(t *testing.T) {
+		input := "main"
+
+		lex := lexer.New([]byte(input))
+		parse := New(lex.Tokens)
+		parse.position = len(input)
+		result := parse.peekNext(parse.position + 1)
+
+		assert.Equal(token.EOF, result.Kind)
+	})
 }

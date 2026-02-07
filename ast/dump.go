@@ -54,9 +54,29 @@ func (d *dumper) node(n any, indent int) {
 		} else {
 			for _, p := range v.Params {
 				d.line(indent+2, "Param")
-				d.kv(indent+3, "Function", p.Name)
+				d.kv(indent+3, "Ident", p.Name)
 				d.line(indent+3, "Type")
 				d.typ(p.Type, indent+4)
+			}
+		}
+
+		if len(v.Results.List) > 0 {
+			d.line(indent+1, "Results")
+			if v.Results.LParen != (token.Token{}) {
+				d.kv(indent+2, "LParent", v.Results.LParen)
+			}
+
+			for _, p := range v.Results.List {
+				d.line(indent+3, "Param")
+				if p.Name != (token.Token{}) {
+					d.kv(indent+4, "Ident", p.Name)
+				}
+				d.line(indent+4, "Type")
+				d.typ(p.Type, indent+5)
+			}
+
+			if v.Results.RParen != (token.Token{}) {
+				d.kv(indent+2, "RParent", v.Results.RParen)
 			}
 		}
 
