@@ -34,13 +34,18 @@ func (d *dumper) node(n any, indent int) {
 			}
 		}
 
-		d.line(indent+1, "Decls")
-		if len(v.Decls) == 0 {
-			d.line(indent+2, "(none)")
-			return
+		if len(v.Decls) > 0 {
+			d.line(indent+1, "Decls")
+			for _, decl := range v.Decls {
+				d.decl(decl, indent+2)
+			}
 		}
-		for _, decl := range v.Decls {
-			d.decl(decl, indent+2)
+
+		if len(v.Structs) > 0 {
+			d.line(indent+1, "Structs")
+			for _, v := range v.Structs {
+				d.stmt(v, indent+2)
+			}
 		}
 
 	case *FuncDecl:
@@ -334,6 +339,31 @@ func (d *dumper) node(n any, indent int) {
 	case *FallThroughStmt:
 		d.kv(indent, "FallThrough", v.FallThroughStmt)
 
+	case *StructType:
+		d.kv(indent, "Type", v.TypeDecl)
+		d.kv(indent, "Name", v.Name)
+		d.kv(indent, "Struct", v.Struct)
+		if v.Public {
+			d.line(indent, "Public: true")
+		}
+		d.kv(indent, "LBrace", v.LBrace)
+		if len(v.Fields) > 0 {
+			for _, f := range v.Fields {
+				d.kv(indent+1, "Name", f.Name)
+				if f.Public {
+					d.line(indent+1, "Public: true")
+				}
+				d.line(indent+1, "Type:")
+				d.typ(f.Type, indent+2)
+				if f.Eq != nil {
+					d.kv(indent+1, "Eq", *f.Eq)
+					d.expr(f.Default, indent+1)
+				}
+			}
+
+		}
+		d.kv(indent, "RBrace", v.RBrace)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -431,6 +461,9 @@ func (d *dumper) stmt(n Stmt, indent int) {
 		d.node(v, indent)
 
 	case *BreakStmt, *ContinueStmt, *SwitchStmt, *FallThroughStmt:
+		d.node(v, indent)
+
+	case *StructType:
 		d.node(v, indent)
 
 	default:

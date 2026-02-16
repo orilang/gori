@@ -537,4 +537,24 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(z, x.Start())
 		assert.Equal(z, x.End())
 	})
+
+	t.Run("struct_type", func(t *testing.T) {
+		st := &StructType{
+			TypeDecl: token.Token{
+				Kind:   token.KWType,
+				Value:  "type",
+				Line:   1,
+				Column: 1,
+			},
+			RBrace: token.Token{
+				Kind:   token.RBrace,
+				Value:  "}",
+				Line:   2,
+				Column: 1,
+			},
+		}
+
+		assert.Equal(st.TypeDecl, st.Start())
+		assert.Equal(st.RBrace, st.End())
+	})
 }

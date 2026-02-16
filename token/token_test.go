@@ -248,4 +248,44 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsFuncParamTypes(tc.input))
 		}
 	})
+
+	t.Run("is_struct_types", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWFunc,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsStructFieldTypes(tc.input))
+		}
+	})
+
+	t.Run("is_valid_type_decl", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWStruct,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsValidTypeDecl(tc.input))
+		}
+	})
 }

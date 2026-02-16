@@ -134,8 +134,6 @@ func TestParser_parse_file(t *testing.T) {
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Decls
-  (none)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
