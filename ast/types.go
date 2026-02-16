@@ -18,6 +18,7 @@ type File struct {
 	Name      token.Token
 	Const     []Stmt
 	Decls     []Decl
+	Structs   []*StructType
 }
 
 // FuncDecl holds function parsed content
@@ -258,4 +259,22 @@ type CaseClause struct {
 
 type FallThroughStmt struct {
 	FallThroughStmt token.Token
+}
+
+type StructType struct {
+	TypeDecl token.Token
+	Name     token.Token
+	Struct   token.Token
+	Public   bool
+	LBrace   token.Token
+	Fields   []*FieldDecl
+	RBrace   token.Token
+}
+
+type FieldDecl struct {
+	Name    token.Token
+	Public  bool
+	Type    Type
+	Eq      *token.Token // nil if no default
+	Default Expr         // nil if no default
 }

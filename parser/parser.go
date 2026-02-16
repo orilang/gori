@@ -112,6 +112,22 @@ func (p *Parser) expect(k token.Kind, msg string) token.Token {
 	return p.next()
 }
 
+// consumeTo consumes all tokens until reaching
+// the one passed or EOF
+func (p *Parser) consumeTo(k token.Kind) {
+	for p.kind() != k && p.kind() != token.EOF {
+		_ = p.next()
+	}
+}
+
+// newlineSincePrev is a boolean validating if we change line
+func (p *Parser) newlineSincePrev() bool {
+	if p.peek().Line == 0 {
+		return false
+	}
+	return p.peek().Line > p.Tokens[p.position-1].Line
+}
+
 // lookForInForHeader loops against for statements to find
 // provided token Kind and returns true when found
 func (p *Parser) lookForInForHeader(k token.Kind) bool {
@@ -179,6 +195,15 @@ func (p *Parser) ParseFile() *ast.File {
 
 		case token.KWFunc:
 			f.Decls = append(f.Decls, p.parseFuncDecl())
+
+		case token.KWType:
+			if token.IsValidTypeDecl(p.peekNext(p.position + 2).Kind) {
+				f.Structs = append(f.Structs, p.parseStructType())
+			} else {
+				tok := p.peek()
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+				p.consumeTo(token.RBrace)
+			}
 
 		default:
 			tok := p.peek()
@@ -457,6 +482,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 
 	if p.kind() == token.KWFallThrough {
 		return p.parseFallThroughStmt()
+	}
+
+	if p.kind() == token.KWType && token.IsValidTypeDecl(p.peekNext(p.position+2).Kind) {
+		return p.parseStructType()
 	}
 
 	left := p.parseExpr(LOWEST)
@@ -1256,4 +1285,81 @@ func (p *Parser) parseFallThroughStmt() ast.Stmt {
 
 	p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected statement after 'fallthrough', got %v %q", kw.Line, kw.Column, p.peek().Kind, p.peek().Value))
 	return &ast.BadStmt{From: p.peek(), Reason: "expected '}' or 'EOF' or new line"}
+}
+
+// parseStructType returns parsed struct
+func (p *Parser) parseStructType() *ast.StructType {
+	kwt := p.expect(token.KWType, "expected 'type'")
+	kwi := p.expect(token.Ident, "expected 'ident'")
+	kws := p.expect(token.KWStruct, "expected 'struct'")
+	lbrace := p.expect(token.LBrace, "expected '{'")
+
+	st := &ast.StructType{
+		TypeDecl: kwt,
+		Name:     kwi,
+		Public:   isPublic(kwi),
+		Struct:   kws,
+		LBrace:   lbrace,
+	}
+
+	for p.kind() != token.RBrace && p.kind() != token.EOF {
+		st.Fields = append(st.Fields, p.parseStructTypeField())
+
+		if p.kind() == token.Comment {
+			_ = p.next()
+		}
+
+		if p.kind() == token.SemiComma {
+			_ = p.next()
+			continue
+		}
+
+		if p.kind() == token.RBrace {
+			break
+		}
+
+		if p.newlineSincePrev() {
+			continue
+		}
+
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ';' or newline after struct field, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+
+		p.consumeTo(token.RBrace)
+	}
+	rbrace := p.expect(token.RBrace, "expected '}'")
+	st.RBrace = rbrace
+
+	return st
+}
+
+// parseStructTypeField is in charge of parsing struct field
+func (p *Parser) parseStructTypeField() *ast.FieldDecl {
+	kw := p.expect(token.Ident, "expected 'ident'")
+	fd := &ast.FieldDecl{
+		Name:   kw,
+		Public: isPublic(kw),
+	}
+	tok := p.peek()
+
+	if !token.IsStructFieldTypes(tok.Kind) {
+		fd.Type = &ast.BadType{From: tok, Reason: "unexpected type name"}
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.consumeTo(token.EOF)
+		return fd
+	}
+	fd.Type = &ast.NameType{Name: tok}
+	_ = p.next()
+
+	if p.kind() == token.Assign {
+		kwa := p.expect(token.Assign, "expected '='")
+		fd.Eq = &kwa
+		fd.Default = p.parseExpr(LOWEST)
+	}
+	return fd
+}
+
+// isPublic returns if the field is public or not
+func isPublic(z token.Token) bool {
+	ch := z.Value[0]
+	return ch >= 'A' && ch <= 'Z'
 }

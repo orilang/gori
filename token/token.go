@@ -64,3 +64,13 @@ func IsVarConstTypes(k Kind) bool {
 func IsFuncParamTypes(k Kind) bool {
 	return funcParamTypes[k]
 }
+
+// IsStructFieldTypes returns true when the provided kind is found is the list
+func IsStructFieldTypes(k Kind) bool {
+	return structTypes[k]
+}
+
+// IsValidTypeDecl returns true when the provided kind found is the a struct or interface
+func IsValidTypeDecl(k Kind) bool {
+	return validTypeDecl[k]
+}

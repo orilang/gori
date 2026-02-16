@@ -189,4 +189,39 @@ func TestParser_parse_common(t *testing.T) {
 
 		assert.Equal(token.EOF, result.Kind)
 	})
+
+	t.Run("is_public_true", func(t *testing.T) {
+		input := token.Token{Kind: token.Ident, Value: "A"}
+		assert.Equal(true, isPublic(input))
+	})
+
+	t.Run("is_public_false", func(t *testing.T) {
+		input := token.Token{Kind: token.Ident, Value: "a"}
+		assert.Equal(false, isPublic(input))
+	})
+
+	t.Run("new_line_since_prev_true", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWType, Value: "type", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "test", Line: 3, Column: 6},
+			{Kind: token.KWStruct, Value: "struct", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 18},
+			{Kind: token.Ident, Value: "x", Line: 4, Column: 18},
+			{Kind: token.KWInt, Value: "int", Line: 4, Column: 18},
+			{Kind: token.RBrace, Value: "}", Line: 5, Column: 19},
+			{Kind: token.EOF, Value: "", Line: 6, Column: 1},
+		}
+		p := New(input)
+		p.position = 6
+		assert.Equal(true, p.newlineSincePrev())
+	})
+
+	t.Run("new_line_since_prev_false", func(t *testing.T) {
+		input := []token.Token{}
+		p := New(input)
+		assert.Equal(false, p.newlineSincePrev())
+	})
 }
