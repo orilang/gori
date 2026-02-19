@@ -367,6 +367,54 @@ func TestParser_func_decl(t *testing.T) {
 		assert.Equal(0, len(parser.errors))
 	})
 
+	t.Run("enum_x1", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 9},
+			{Kind: token.KWType, Value: "type", Line: 4, Column: 1},
+			{Kind: token.Ident, Value: "Color", Line: 4, Column: 6},
+			{Kind: token.KWEnum, Value: "enum", Line: 4, Column: 11},
+			{Kind: token.Assign, Value: "=", Line: 4, Column: 17},
+			{Kind: token.Pipe, Value: "|", Line: 5, Column: 3},
+			{Kind: token.Ident, Value: "Red", Line: 5, Column: 5},
+			{Kind: token.RBrace, Value: "}", Line: 5, Column: 9},
+			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      Type: "type" @4:1 (kind=26)
+       Name: "Color" @4:6 (kind=3)
+       Public: true
+       Enum: "enum" @4:11 (kind=74)
+       Eq: "=" @4:17 (kind=49)
+       Enums
+        Ident: "Red" @5:5 (kind=3)
+     RBrace: "}" @5:9 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
 	t.Run("bad_return_types_x1", func(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},

@@ -42,6 +42,7 @@ func (*CaseClause) stmtNode()      {}
 func (*FallThroughStmt) stmtNode() {}
 func (*StructType) stmtNode()      {}
 func (*InterfaceType) stmtNode()   {}
+func (*EnumType) stmtNode()        {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -169,3 +170,11 @@ func (x *StructType) End() token.Token   { return x.RBrace }
 
 func (x *InterfaceType) Start() token.Token { return x.TypeDecl }
 func (x *InterfaceType) End() token.Token   { return x.RBrace }
+
+func (x *EnumType) Start() token.Token { return x.TypeDecl }
+func (x *EnumType) End() token.Token {
+	if len(x.Enums) > 0 {
+		return x.Enums[len(x.Enums)-1]
+	}
+	return token.Token{}
+}
