@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParser_interface_type(t *testing.T) {
+func TestParser_type_interface(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("empty_x1", func(t *testing.T) {
