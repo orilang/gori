@@ -62,6 +62,13 @@ func (d *dumper) node(n any, indent int) {
 			}
 		}
 
+		if len(v.Enums) > 0 {
+			d.line(indent+1, "Enums")
+			for _, v := range v.Enums {
+				d.node(v, indent+2)
+			}
+		}
+
 	case *FuncDecl:
 		d.line(indent, "FuncDecl")
 		d.kv(indent+1, "Function", v.FuncKW)
@@ -447,6 +454,19 @@ func (d *dumper) node(n any, indent int) {
 			}
 		}
 
+	case *EnumType:
+		d.kv(indent, "Type", v.TypeDecl)
+		d.kv(indent+1, "Name", v.Name)
+		if v.Public {
+			d.line(indent+1, "Public: true")
+		}
+		d.kv(indent+1, "Enum", v.Enum)
+		d.kv(indent+1, "Eq", v.Eq)
+		d.line(indent+1, "Enums")
+		for _, p := range v.Enums {
+			d.kv(indent+2, "Ident", p)
+		}
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -546,7 +566,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 	case *BreakStmt, *ContinueStmt, *SwitchStmt, *FallThroughStmt:
 		d.node(v, indent)
 
-	case *StructType, *InterfaceType:
+	case *StructType, *InterfaceType, *EnumType:
 		d.node(v, indent)
 
 	default:

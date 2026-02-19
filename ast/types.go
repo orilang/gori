@@ -21,6 +21,7 @@ type File struct {
 	Structs    []*StructType
 	Interfaces []*InterfaceType
 	Implements []*ImplementsDecl
+	Enums      []*EnumType
 }
 
 // FuncDecl holds function parsed content
@@ -307,4 +308,13 @@ type ImplementsDecl struct {
 	Type       token.Token
 	Implements token.Token
 	Interface  TypeRef
+}
+
+type EnumType struct {
+	TypeDecl token.Token
+	Name     token.Token
+	Public   bool
+	Enum     token.Token
+	Eq       token.Token
+	Enums    []token.Token
 }

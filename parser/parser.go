@@ -200,8 +200,10 @@ func (p *Parser) ParseFile() *ast.File {
 			if token.IsValidTypeDecl(p.kindNext(p.position + 2)) {
 				if p.kindNext(p.position+2) == token.KWStruct {
 					f.Structs = append(f.Structs, p.parseStructType())
-				} else {
+				} else if p.kindNext(p.position+2) == token.KWInterface {
 					f.Interfaces = append(f.Interfaces, p.parseInterfaceType())
+				} else {
+					f.Enums = append(f.Enums, p.parseEnumDecl())
 				}
 			} else {
 				tok := p.peek()
@@ -497,8 +499,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 		{
 			if p.kindNext(p.position+2) == token.KWStruct {
 				return p.parseStructType()
-			} else {
+			} else if p.kindNext(p.position+2) == token.KWInterface {
 				return p.parseInterfaceType()
+			} else {
+				return p.parseEnumDecl()
 			}
 		}
 	}
@@ -1599,4 +1603,49 @@ func (p *Parser) parseImplementsDecl() *ast.ImplementsDecl {
 		_ = p.next()
 	}
 	return id
+}
+
+// parseEnumDecl is in charge of parsing enum type
+func (p *Parser) parseEnumDecl() *ast.EnumType {
+	kwp := p.expect(token.KWType, "expected 'type'")
+	kwi := p.expect(token.Ident, "expected 'ident'")
+	kwe := p.expect(token.KWEnum, "expected 'enum'")
+	kweq := p.expect(token.Assign, "expected '='")
+
+	ed := &ast.EnumType{
+		TypeDecl: kwp,
+		Name:     kwi,
+		Public:   isPublic(kwi),
+		Eq:       kweq,
+		Enum:     kwe,
+	}
+
+	if p.kind() != token.Pipe {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected '| after '=', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.consumeTo(token.EOF)
+		return ed
+	}
+
+	for p.kind() != token.EOF {
+		if p.kind() == token.Pipe {
+			_ = p.next()
+		}
+
+		if p.kind() != token.Ident {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ident after '|', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.consumeTo(token.EOF)
+		}
+
+		ed.Enums = append(ed.Enums, p.next())
+
+		if p.kind() == token.Comment {
+			_ = p.next()
+		}
+
+		if p.kind() != token.Pipe {
+			break
+		}
+	}
+
+	return ed
 }

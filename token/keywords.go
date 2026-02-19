@@ -187,4 +187,5 @@ var structTypes = map[Kind]bool{
 var validTypeDecl = map[Kind]bool{
 	KWInterface: true,
 	KWStruct:    true,
+	KWEnum:      true,
 }

@@ -91,4 +91,7 @@ const (
 
 	KWRange
 	KWImplements
+
+	Pipe // |
+	KWEnum
 )
