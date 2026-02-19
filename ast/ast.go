@@ -173,8 +173,8 @@ func (x *InterfaceType) End() token.Token   { return x.RBrace }
 
 func (x *EnumType) Start() token.Token { return x.TypeDecl }
 func (x *EnumType) End() token.Token {
-	if len(x.Enums) > 0 {
-		return x.Enums[len(x.Enums)-1]
+	if len(x.Variants) > 0 {
+		return x.Variants[len(x.Variants)-1]
 	}
 	return token.Token{}
 }

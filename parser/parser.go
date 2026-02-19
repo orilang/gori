@@ -1636,7 +1636,7 @@ func (p *Parser) parseEnumDecl() *ast.EnumType {
 			p.consumeTo(token.EOF)
 		}
 
-		ed.Enums = append(ed.Enums, p.next())
+		ed.Variants = append(ed.Variants, p.next())
 
 		if p.kind() == token.Comment {
 			_ = p.next()

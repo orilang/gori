@@ -43,7 +43,7 @@ func TestParser_type_enum(t *testing.T) {
    Public: true
    Enum: "enum" @3:11 (kind=74)
    Eq: "=" @3:17 (kind=49)
-   Enums
+   Variants
     Ident: "Red" @3:5 (kind=3)
     Ident: "Blue" @3:5 (kind=3)
     Ident: "Green" @3:5 (kind=3)
@@ -85,7 +85,7 @@ func TestParser_type_enum(t *testing.T) {
    Public: true
    Enum: "enum" @3:11 (kind=74)
    Eq: "=" @3:17 (kind=49)
-   Enums
+   Variants
     Ident: "Red" @4:21 (kind=3)
     Ident: "Blue" @5:27 (kind=3)
     Ident: "Green" @6:34 (kind=3)
