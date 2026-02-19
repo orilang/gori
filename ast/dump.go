@@ -48,6 +48,20 @@ func (d *dumper) node(n any, indent int) {
 			}
 		}
 
+		if len(v.Interfaces) > 0 {
+			d.line(indent+1, "Interfaces")
+			for _, v := range v.Interfaces {
+				d.stmt(v, indent+2)
+			}
+		}
+
+		if len(v.Implements) > 0 {
+			d.line(indent+1, "Implements")
+			for _, v := range v.Implements {
+				d.node(v, indent+2)
+			}
+		}
+
 	case *FuncDecl:
 		d.line(indent, "FuncDecl")
 		d.kv(indent+1, "Function", v.FuncKW)
@@ -360,9 +374,78 @@ func (d *dumper) node(n any, indent int) {
 					d.expr(f.Default, indent+1)
 				}
 			}
-
 		}
 		d.kv(indent, "RBrace", v.RBrace)
+
+	case *InterfaceType:
+		d.kv(indent, "Type", v.TypeDecl)
+		d.kv(indent, "Name", v.Name)
+		d.kv(indent, "Interface", v.Interface)
+		if v.Public {
+			d.line(indent, "Public: true")
+		}
+		d.kv(indent, "LBrace", v.LBrace)
+		if len(v.Embeds) > 0 {
+			d.line(indent+2, "Embeds")
+			for _, e := range v.Embeds {
+				for _, p := range e.Parts {
+					if p.Kind == token.Ident {
+						d.kv(indent+3, "Ident", p)
+					} else {
+						d.kv(indent+3, "Dot", p)
+					}
+				}
+			}
+		}
+		if len(v.Methods) > 0 {
+			for _, f := range v.Methods {
+				d.kv(indent+1, "Name", f.Name)
+				d.line(indent+1, "Params")
+				if len(f.Params) == 0 {
+					d.line(indent+2, "(none)")
+				} else {
+					for _, p := range f.Params {
+						d.line(indent+2, "Param")
+						d.kv(indent+3, "Ident", p.Name)
+						d.line(indent+3, "Type")
+						d.typ(p.Type, indent+4)
+					}
+				}
+
+				if len(f.Results.List) > 0 {
+					d.line(indent+1, "Results")
+					if f.Results.LParen != (token.Token{}) {
+						d.kv(indent+2, "LParent", f.Results.LParen)
+					}
+
+					for _, p := range f.Results.List {
+						d.line(indent+3, "Param")
+						if p.Name != (token.Token{}) {
+							d.kv(indent+4, "Ident", p.Name)
+						}
+						d.line(indent+4, "Type")
+						d.typ(p.Type, indent+5)
+					}
+
+					if f.Results.RParen != (token.Token{}) {
+						d.kv(indent+2, "RParent", f.Results.RParen)
+					}
+				}
+			}
+		}
+		d.kv(indent, "RBrace", v.RBrace)
+
+	case *ImplementsDecl:
+		d.kv(indent, "Type", v.Type)
+		d.kv(indent+1, "Implements", v.Implements)
+		d.line(indent+1, "Interface")
+		for _, p := range v.Interface.Parts {
+			if p.Kind == token.Ident {
+				d.kv(indent+2, "Ident", p)
+			} else {
+				d.kv(indent+2, "Dot", p)
+			}
+		}
 
 	default:
 		if n == nil {
@@ -463,7 +546,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 	case *BreakStmt, *ContinueStmt, *SwitchStmt, *FallThroughStmt:
 		d.node(v, indent)
 
-	case *StructType:
+	case *StructType, *InterfaceType:
 		d.node(v, indent)
 
 	default:

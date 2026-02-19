@@ -90,4 +90,5 @@ const (
 	Not // !
 
 	KWRange
+	KWImplements
 )

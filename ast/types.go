@@ -14,11 +14,13 @@ type dumper struct {
 
 // File holds requirements from parsed file
 type File struct {
-	PackageKW token.Token
-	Name      token.Token
-	Const     []Stmt
-	Decls     []Decl
-	Structs   []*StructType
+	PackageKW  token.Token
+	Name       token.Token
+	Const      []Stmt
+	Decls      []Decl
+	Structs    []*StructType
+	Interfaces []*InterfaceType
+	Implements []*ImplementsDecl
 }
 
 // FuncDecl holds function parsed content
@@ -277,4 +279,32 @@ type FieldDecl struct {
 	Type    Type
 	Eq      *token.Token // nil if no default
 	Default Expr         // nil if no default
+}
+
+type InterfaceType struct {
+	TypeDecl  token.Token
+	Name      token.Token
+	Public    bool
+	Interface token.Token
+	LBrace    token.Token
+	Embeds    []TypeRef
+	Methods   []InterfaceMethods
+	RBrace    token.Token
+}
+
+type TypeRef struct {
+	// e.g "pkg.Type" or "Type"
+	Parts []token.Token // identifiers around dots
+}
+
+type InterfaceMethods struct {
+	Name    token.Token
+	Params  []Param
+	Results ReturnTypes
+}
+
+type ImplementsDecl struct {
+	Type       token.Token
+	Implements token.Token
+	Interface  TypeRef
 }
