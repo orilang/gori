@@ -191,7 +191,7 @@ func (l *Lexer) Tokenize() {
 				l.advance(2, false)
 			} else {
 				tok = append(tok, v)
-				l.newToken(token.Illegal, tok, line, column)
+				l.newToken(token.Pipe, tok, line, column)
 				l.advance(1, false)
 			}
 
