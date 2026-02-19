@@ -557,4 +557,24 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(st.TypeDecl, st.Start())
 		assert.Equal(st.RBrace, st.End())
 	})
+
+	t.Run("interface_type", func(t *testing.T) {
+		it := &InterfaceType{
+			TypeDecl: token.Token{
+				Kind:   token.KWType,
+				Value:  "type",
+				Line:   1,
+				Column: 1,
+			},
+			RBrace: token.Token{
+				Kind:   token.RBrace,
+				Value:  "}",
+				Line:   2,
+				Column: 1,
+			},
+		}
+
+		assert.Equal(it.TypeDecl, it.Start())
+		assert.Equal(it.RBrace, it.End())
+	})
 }

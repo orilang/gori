@@ -228,6 +228,49 @@ func TestParser_func_decl(t *testing.T) {
 		assert.Equal(0, len(parser.errors))
 	})
 
+	t.Run("return_types_x6", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
+			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
+			{Kind: token.Ident, Value: "z", Line: 3, Column: 12},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 13},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 14},
+			{Kind: token.RBrace, Value: "}", Line: 3, Column: 15},
+			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Results
+    LParent: "(" @3:9 (kind=39)
+     Param
+      Ident: "a" @3:10 (kind=3)
+      Type
+       NameType
+        Name: "z" @3:12 (kind=3)
+    RParent: ")" @3:13 (kind=40)
+   Body
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
 	t.Run("struct_x1", func(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
@@ -246,7 +289,7 @@ func TestParser_func_decl(t *testing.T) {
 			{Kind: token.KWInt, Value: "int", Line: 4, Column: 22},
 			{Kind: token.RBrace, Value: "}", Line: 4, Column: 19},
 			{Kind: token.RBrace, Value: "}", Line: 5, Column: 9},
-			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
+			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
 		}
 
 		parser := New(input)
@@ -273,6 +316,51 @@ func TestParser_func_decl(t *testing.T) {
         NameType
          Name: "int" @4:22 (kind=12)
       RBrace: "}" @4:19 (kind=42)
+     RBrace: "}" @5:9 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
+	t.Run("interface_x1", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 9},
+			{Kind: token.KWType, Value: "type", Line: 4, Column: 1},
+			{Kind: token.Ident, Value: "test", Line: 4, Column: 6},
+			{Kind: token.KWInterface, Value: "interface", Line: 4, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 4, Column: 22},
+			{Kind: token.RBrace, Value: "}", Line: 4, Column: 23},
+			{Kind: token.RBrace, Value: "}", Line: 5, Column: 9},
+			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      Type: "type" @4:1 (kind=26)
+      Name: "test" @4:6 (kind=3)
+      Interface: "interface" @4:11 (kind=28)
+      LBrace: "{" @4:22 (kind=41)
+      RBrace: "}" @4:23 (kind=42)
      RBrace: "}" @5:9 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))

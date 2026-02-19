@@ -41,6 +41,7 @@ func (*SwitchStmt) stmtNode()      {}
 func (*CaseClause) stmtNode()      {}
 func (*FallThroughStmt) stmtNode() {}
 func (*StructType) stmtNode()      {}
+func (*InterfaceType) stmtNode()   {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -165,3 +166,6 @@ func (x *FallThroughStmt) End() token.Token   { return x.FallThroughStmt }
 
 func (x *StructType) Start() token.Token { return x.TypeDecl }
 func (x *StructType) End() token.Token   { return x.RBrace }
+
+func (x *InterfaceType) Start() token.Token { return x.TypeDecl }
+func (x *InterfaceType) End() token.Token   { return x.RBrace }
