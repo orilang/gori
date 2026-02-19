@@ -599,7 +599,7 @@ func TestAst_position(t *testing.T) {
 			Line:   2,
 			Column: 1,
 		}
-		it.Enums = append(it.Enums, x)
+		it.Variants = append(it.Variants, x)
 
 		assert.Equal(it.TypeDecl, it.Start())
 		assert.Equal(x, it.End())

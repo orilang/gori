@@ -316,5 +316,5 @@ type EnumType struct {
 	Public   bool
 	Enum     token.Token
 	Eq       token.Token
-	Enums    []token.Token
+	Variants []token.Token
 }

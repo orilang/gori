@@ -407,7 +407,7 @@ func TestParser_func_decl(t *testing.T) {
        Public: true
        Enum: "enum" @4:11 (kind=74)
        Eq: "=" @4:17 (kind=49)
-       Enums
+       Variants
         Ident: "Red" @5:5 (kind=3)
      RBrace: "}" @5:9 (kind=42)
 `

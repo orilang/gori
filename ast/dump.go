@@ -462,8 +462,8 @@ func (d *dumper) node(n any, indent int) {
 		}
 		d.kv(indent+1, "Enum", v.Enum)
 		d.kv(indent+1, "Eq", v.Eq)
-		d.line(indent+1, "Enums")
-		for _, p := range v.Enums {
+		d.line(indent+1, "Variants")
+		for _, p := range v.Variants {
 			d.kv(indent+2, "Ident", p)
 		}
 
