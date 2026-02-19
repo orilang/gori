@@ -404,9 +404,6 @@ func TestParser_struct_type(t *testing.T) {
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
 			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
 
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
-
 			{Kind: token.KWType, Value: "type", Line: 3, Column: 1},
 			{Kind: token.Ident, Value: "test", Line: 3, Column: 6},
 			{Kind: token.Ident, Value: "structt", Line: 3, Column: 11},
@@ -423,9 +420,6 @@ func TestParser_struct_type(t *testing.T) {
 
 	t.Run("bad_x1", func(t *testing.T) {
 		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
-
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
 			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
 
@@ -446,9 +440,6 @@ func TestParser_struct_type(t *testing.T) {
 
 	t.Run("bad_x2", func(t *testing.T) {
 		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
-
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
 			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
 
@@ -474,9 +465,6 @@ func TestParser_struct_type(t *testing.T) {
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
 			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
 
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
-
 			{Kind: token.KWType, Value: "type", Line: 3, Column: 1},
 			{Kind: token.Ident, Value: "test", Line: 3, Column: 6},
 			{Kind: token.KWStruct, Value: "struct", Line: 3, Column: 11},
@@ -497,9 +485,6 @@ func TestParser_struct_type(t *testing.T) {
 
 	t.Run("bad_x4", func(t *testing.T) {
 		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
-
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
 			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
 
