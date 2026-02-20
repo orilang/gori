@@ -380,11 +380,11 @@ func TestParser_func_decl(t *testing.T) {
 			{Kind: token.KWType, Value: "type", Line: 4, Column: 1},
 			{Kind: token.Ident, Value: "Color", Line: 4, Column: 6},
 			{Kind: token.KWEnum, Value: "enum", Line: 4, Column: 11},
-			{Kind: token.Assign, Value: "=", Line: 4, Column: 17},
-			{Kind: token.Pipe, Value: "|", Line: 5, Column: 3},
+			{Kind: token.LBrace, Value: "{", Line: 4, Column: 17},
 			{Kind: token.Ident, Value: "Red", Line: 5, Column: 5},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 9},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
+			{Kind: token.RBrace, Value: "}", Line: 6, Column: 1},
+			{Kind: token.RBrace, Value: "}", Line: 7, Column: 1},
+			{Kind: token.EOF, Value: "", Line: 9, Column: 1},
 		}
 
 		parser := New(input)
@@ -406,10 +406,11 @@ func TestParser_func_decl(t *testing.T) {
        Name: "Color" @4:6 (kind=3)
        Public: true
        Enum: "enum" @4:11 (kind=74)
-       Eq: "=" @4:17 (kind=49)
+       LBrace: "{" @4:17 (kind=41)
        Variants
         Ident: "Red" @5:5 (kind=3)
-     RBrace: "}" @5:9 (kind=42)
+       RBrace: "}" @6:1 (kind=42)
+     RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))

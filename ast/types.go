@@ -315,6 +315,7 @@ type EnumType struct {
 	Name     token.Token
 	Public   bool
 	Enum     token.Token
-	Eq       token.Token
+	LBrace   token.Token
 	Variants []token.Token
+	RBrace   token.Token
 }
