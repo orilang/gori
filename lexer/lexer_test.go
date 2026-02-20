@@ -673,7 +673,7 @@ func main() {
 			{Kind: token.KWInt, Value: "int"},
 			{Kind: token.Assign, Value: "="},
 			{Kind: token.IntLit, Value: "1"},
-			{Kind: token.Pipe, Value: "|"},
+			{Kind: token.Illegal, Value: "|"},
 			{Kind: token.IntLit, Value: "1"},
 
 			// _ here is only temporary
