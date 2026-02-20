@@ -461,11 +461,12 @@ func (d *dumper) node(n any, indent int) {
 			d.line(indent+1, "Public: true")
 		}
 		d.kv(indent+1, "Enum", v.Enum)
-		d.kv(indent+1, "Eq", v.Eq)
+		d.kv(indent+1, "LBrace", v.LBrace)
 		d.line(indent+1, "Variants")
 		for _, p := range v.Variants {
 			d.kv(indent+2, "Ident", p)
 		}
+		d.kv(indent+1, "RBrace", v.RBrace)
 
 	default:
 		if n == nil {

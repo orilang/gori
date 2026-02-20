@@ -578,50 +578,23 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(it.RBrace, it.End())
 	})
 
-	t.Run("enum_type_full", func(t *testing.T) {
-		it := &EnumType{
+	t.Run("enum_type", func(t *testing.T) {
+		et := &EnumType{
 			TypeDecl: token.Token{
 				Kind:   token.KWType,
 				Value:  "type",
 				Line:   1,
 				Column: 1,
 			},
-			Enum: token.Token{
-				Kind:   token.KWEnum,
-				Value:  "}",
-				Line:   2,
-				Column: 1,
-			},
-		}
-		x := token.Token{
-			Kind:   token.Ident,
-			Value:  "Red",
-			Line:   2,
-			Column: 1,
-		}
-		it.Variants = append(it.Variants, x)
-
-		assert.Equal(it.TypeDecl, it.Start())
-		assert.Equal(x, it.End())
-	})
-
-	t.Run("enum_type_empty", func(t *testing.T) {
-		it := &EnumType{
-			TypeDecl: token.Token{
-				Kind:   token.KWType,
-				Value:  "type",
-				Line:   1,
-				Column: 1,
-			},
-			Enum: token.Token{
-				Kind:   token.KWEnum,
+			RBrace: token.Token{
+				Kind:   token.RBrace,
 				Value:  "}",
 				Line:   2,
 				Column: 1,
 			},
 		}
 
-		assert.Equal(it.TypeDecl, it.Start())
-		assert.Equal(token.Token{}, it.End())
+		assert.Equal(et.TypeDecl, et.Start())
+		assert.Equal(et.RBrace, et.End())
 	})
 }
