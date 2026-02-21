@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParser_expr(t *testing.T) {
+func TestParser_main_expr(t *testing.T) {
 	assert := assert.New(t)
 	t.Run("grouping", func(t *testing.T) {
 		input := []token.Token{
