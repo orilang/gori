@@ -22,6 +22,7 @@ type File struct {
 	Interfaces []*InterfaceType
 	Implements []*ImplementsDecl
 	Enums      []*EnumType
+	Sums       []*SumType
 }
 
 // FuncDecl holds function parsed content
@@ -318,4 +319,20 @@ type EnumType struct {
 	LBrace   token.Token
 	Variants []token.Token
 	RBrace   token.Token
+}
+
+type SumType struct {
+	TypeDecl token.Token
+	Name     token.Token
+	Public   bool
+	Sum      token.Token
+	LBrace   token.Token
+	Variants []token.Token
+	Methods  []VariantsMethods
+	RBrace   token.Token
+}
+
+type VariantsMethods struct {
+	Name   token.Token
+	Params []Param
 }

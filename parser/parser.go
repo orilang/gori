@@ -202,8 +202,10 @@ func (p *Parser) ParseFile() *ast.File {
 					f.Structs = append(f.Structs, p.parseStructType())
 				} else if p.kindNext(p.position+2) == token.KWInterface {
 					f.Interfaces = append(f.Interfaces, p.parseInterfaceType())
-				} else {
+				} else if p.kindNext(p.position+2) == token.KWEnum {
 					f.Enums = append(f.Enums, p.parseEnumDecl())
+				} else {
+					f.Sums = append(f.Sums, p.parseSumDecl())
 				}
 			} else {
 				tok := p.peek()
@@ -286,8 +288,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 				return p.parseStructType()
 			} else if p.kindNext(p.position+2) == token.KWInterface {
 				return p.parseInterfaceType()
-			} else {
+			} else if p.kindNext(p.position+2) == token.KWEnum {
 				return p.parseEnumDecl()
+			} else {
+				return p.parseSumDecl()
 			}
 		}
 	}

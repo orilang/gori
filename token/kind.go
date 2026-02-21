@@ -94,4 +94,5 @@ const (
 
 	Pipe // |
 	KWEnum
+	KWSum
 )
