@@ -416,6 +416,65 @@ func TestParser_func_decl(t *testing.T) {
 		assert.Equal(0, len(parser.errors))
 	})
 
+	t.Run("sum_x1", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 9},
+			{Kind: token.KWType, Value: "type", Line: 4, Column: 1},
+			{Kind: token.Ident, Value: "Share", Line: 4, Column: 6},
+			{Kind: token.KWSum, Value: "sum", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 16},
+			{Kind: token.Ident, Value: "Circle", Line: 4, Column: 3},
+			{Kind: token.LParen, Value: "(", Line: 4, Column: 9},
+			{Kind: token.Ident, Value: "radius", Line: 4, Column: 10},
+			{Kind: token.KWInt, Value: "float", Line: 4, Column: 17},
+			{Kind: token.RParen, Value: ")", Line: 4, Column: 22},
+			{Kind: token.RBrace, Value: "}", Line: 5, Column: 1},
+			{Kind: token.RBrace, Value: "}", Line: 6, Column: 1},
+			{Kind: token.EOF, Value: "", Line: 7, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      Type: "type" @4:1 (kind=26)
+       Name: "Share" @4:6 (kind=3)
+       Sum: "sum" @3:11 (kind=75)
+      Public: true
+       LBrace: "{" @3:16 (kind=41)
+        VariantMethods
+         Methods: "Circle" @4:3 (kind=3)
+          Params
+           Param
+            Ident: "radius" @4:10 (kind=3)
+            Type
+             NameType
+              Name: "float" @4:17 (kind=12)
+       RBrace: "}" @5:1 (kind=42)
+     RBrace: "}" @6:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
 	t.Run("bad_return_types_x1", func(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},

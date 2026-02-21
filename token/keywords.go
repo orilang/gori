@@ -188,4 +188,5 @@ var validTypeDecl = map[Kind]bool{
 	KWInterface: true,
 	KWStruct:    true,
 	KWEnum:      true,
+	KWSum:       true,
 }

@@ -69,6 +69,13 @@ func (d *dumper) node(n any, indent int) {
 			}
 		}
 
+		if len(v.Sums) > 0 {
+			d.line(indent+1, "Sums")
+			for _, v := range v.Sums {
+				d.node(v, indent+2)
+			}
+		}
+
 	case *FuncDecl:
 		d.line(indent, "FuncDecl")
 		d.kv(indent+1, "Function", v.FuncKW)
@@ -468,6 +475,35 @@ func (d *dumper) node(n any, indent int) {
 		}
 		d.kv(indent+1, "RBrace", v.RBrace)
 
+	case *SumType:
+		d.kv(indent, "Type", v.TypeDecl)
+		d.kv(indent+1, "Name", v.Name)
+		d.kv(indent+1, "Sum", v.Sum)
+		if v.Public {
+			d.line(indent, "Public: true")
+		}
+		d.kv(indent+1, "LBrace", v.LBrace)
+		if len(v.Variants) > 0 {
+			d.line(indent+2, "Variants")
+			for _, p := range v.Variants {
+				d.kv(indent+3, "Ident", p)
+			}
+		}
+		if len(v.Methods) > 0 {
+			d.line(indent+2, "VariantMethods")
+			for _, f := range v.Methods {
+				d.kv(indent+3, "Methods", f.Name)
+				d.line(indent+4, "Params")
+				for _, p := range f.Params {
+					d.line(indent+5, "Param")
+					d.kv(indent+6, "Ident", p.Name)
+					d.line(indent+6, "Type")
+					d.typ(p.Type, indent+7)
+				}
+			}
+		}
+		d.kv(indent+1, "RBrace", v.RBrace)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -567,7 +603,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 	case *BreakStmt, *ContinueStmt, *SwitchStmt, *FallThroughStmt:
 		d.node(v, indent)
 
-	case *StructType, *InterfaceType, *EnumType:
+	case *StructType, *InterfaceType, *EnumType, *SumType:
 		d.node(v, indent)
 
 	default:

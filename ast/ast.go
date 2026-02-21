@@ -43,6 +43,7 @@ func (*FallThroughStmt) stmtNode() {}
 func (*StructType) stmtNode()      {}
 func (*InterfaceType) stmtNode()   {}
 func (*EnumType) stmtNode()        {}
+func (*SumType) stmtNode()         {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -173,3 +174,6 @@ func (x *InterfaceType) End() token.Token   { return x.RBrace }
 
 func (x *EnumType) Start() token.Token { return x.TypeDecl }
 func (x *EnumType) End() token.Token   { return x.RBrace }
+
+func (x *SumType) Start() token.Token { return x.TypeDecl }
+func (x *SumType) End() token.Token   { return x.RBrace }

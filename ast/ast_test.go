@@ -597,4 +597,24 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(et.TypeDecl, et.Start())
 		assert.Equal(et.RBrace, et.End())
 	})
+
+	t.Run("sum_type", func(t *testing.T) {
+		st := &SumType{
+			TypeDecl: token.Token{
+				Kind:   token.KWType,
+				Value:  "type",
+				Line:   1,
+				Column: 1,
+			},
+			RBrace: token.Token{
+				Kind:   token.RBrace,
+				Value:  "}",
+				Line:   2,
+				Column: 1,
+			},
+		}
+
+		assert.Equal(st.TypeDecl, st.Start())
+		assert.Equal(st.RBrace, st.End())
+	})
 }
