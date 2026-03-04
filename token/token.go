@@ -74,3 +74,8 @@ func IsStructFieldTypes(k Kind) bool {
 func IsValidTypeDecl(k Kind) bool {
 	return validTypeDecl[k]
 }
+
+// IsSliceType returns true when the provided kind found
+func IsSliceType(k Kind) bool {
+	return sliceTypes[k]
+}

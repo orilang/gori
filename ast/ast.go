@@ -44,6 +44,9 @@ func (*StructType) stmtNode()      {}
 func (*InterfaceType) stmtNode()   {}
 func (*EnumType) stmtNode()        {}
 func (*SumType) stmtNode()         {}
+func (*SliceType) stmtNode()       {}
+func (*SliceExpr) exprNode()       {}
+func (*SliceViewType) stmtNode()   {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -177,3 +180,22 @@ func (x *EnumType) End() token.Token   { return x.RBrace }
 
 func (x *SumType) Start() token.Token { return x.TypeDecl }
 func (x *SumType) End() token.Token   { return x.RBrace }
+
+func (x *SliceType) Start() token.Token { return x.VarConstKW }
+func (x *SliceType) End() token.Token {
+	if len(x.Elements.Elements) > 0 {
+		return x.Elements.RBrace
+	}
+	return token.Token{}
+}
+
+func (x *SliceExpr) Start() token.Token { return x.X.Start() }
+func (x *SliceExpr) End() token.Token   { return x.RBracket }
+
+func (x *SliceViewType) Start() token.Token { return x.VarKW }
+func (x *SliceViewType) End() token.Token {
+	if x.Elements != nil {
+		return x.Elements.RBracket
+	}
+	return token.Token{}
+}

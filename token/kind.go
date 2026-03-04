@@ -95,4 +95,6 @@ const (
 	Pipe // |
 	KWEnum
 	KWSum
+	KWView
+	KWShared
 )

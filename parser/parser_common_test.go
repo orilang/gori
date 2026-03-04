@@ -224,4 +224,32 @@ func TestParser_parse_common(t *testing.T) {
 		p := New(input)
 		assert.Equal(false, p.newlineSincePrev())
 	})
+
+	t.Run("look_for_in_slice_view_colon_header_x1", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(false, parse.lookForInSliceViewColonHeader(token.Comma))
+	})
+
+	t.Run("look_for_in_slice_view_colon_header_x2", func(t *testing.T) {
+		input := "[:]"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		assert.Equal(true, parse.lookForInSliceViewColonHeader(token.Colon))
+	})
+
+	t.Run("look_for_in_slice_view_colon_header_x3", func(t *testing.T) {
+		input := "*"
+
+		lex := lexer.New([]byte(input))
+		lex.Tokenize()
+		parse := New(lex.Tokens)
+		parse.position = len(lex.Tokens)
+		assert.Equal(false, parse.lookForInSliceViewColonHeader(token.Colon))
+	})
 }

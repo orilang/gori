@@ -190,3 +190,22 @@ var validTypeDecl = map[Kind]bool{
 	KWEnum:      true,
 	KWSum:       true,
 }
+
+var sliceTypes = map[Kind]bool{
+	Ident:     true,
+	KWInt:     true,
+	KWInt8:    true,
+	KWInt32:   true,
+	KWInt64:   true,
+	KWUint:    true,
+	KWUint8:   true,
+	KWUint32:  true,
+	KWUint64:  true,
+	KWFloat:   true,
+	KWFloat32: true,
+	KWFloat64: true,
+	KWString:  true,
+	KWBool:    true,
+	KWFunc:    true,
+	Dot:       true,
+}

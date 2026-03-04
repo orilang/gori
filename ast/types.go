@@ -336,3 +336,42 @@ type VariantsMethods struct {
 	Name   token.Token
 	Params []Param
 }
+
+type SliceType struct {
+	VarConstKW token.Token
+	Name       token.Token
+	Type       TypeRef
+	Eq         token.Token
+	Elements   SliceElements
+}
+
+type SliceElements struct {
+	Type     TypeRef
+	LBrace   token.Token
+	Elements []Expr
+	RBrace   token.Token
+}
+
+type ViewType struct {
+	Name     token.Token
+	Element  Type
+	Elements []token.Token
+}
+
+type SliceViewType struct {
+	VarKW    token.Token
+	Name     token.Token
+	View     token.Token
+	Type     TypeRef
+	Eq       token.Token
+	Elements *SliceExpr
+}
+
+type SliceExpr struct {
+	X        Expr
+	LBracket token.Token
+	Low      Expr
+	Colon    token.Token
+	High     Expr
+	RBracket token.Token
+}
