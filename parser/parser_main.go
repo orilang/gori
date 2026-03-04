@@ -179,6 +179,23 @@ func (p *Parser) lookForInSwitchCaseHeader(k token.Kind) bool {
 	return false
 }
 
+// lookForInSliceViewColonHeader loops against for statements to find
+// provided token Kind and returns true when found
+func (p *Parser) lookForInSliceViewColonHeader(k token.Kind) bool {
+	pos := p.position
+	if pos >= len(p.Tokens) {
+		return false
+	}
+	for p.Tokens[pos].Kind != token.RBracket && p.Tokens[pos].Kind != token.EOF {
+		if p.Tokens[pos].Kind == k {
+			return true
+		}
+		pos++
+	}
+
+	return false
+}
+
 // ParseFile returns the content of the file being parsed
 func (p *Parser) ParseFile() *ast.File {
 	kw := p.expect(token.KWPackage, "expected 'package'")
@@ -191,7 +208,13 @@ func (p *Parser) ParseFile() *ast.File {
 	for p.kind() != token.EOF {
 		switch p.kind() {
 		case token.KWConst:
-			f.Const = append(f.Const, p.parseConstDecl())
+			if p.kind() == token.KWConst {
+				if p.kindNext(p.position+2) == token.LBracket {
+					f.Const = append(f.Const, p.parseSliceDecl())
+				} else {
+					f.Const = append(f.Const, p.parseConstDecl())
+				}
+			}
 
 		case token.KWFunc:
 			f.Decls = append(f.Decls, p.parseFuncDecl())
@@ -247,10 +270,19 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 // parseStmt returns declaration within parseBlock
 func (p *Parser) parseStmt() ast.Stmt {
 	if p.kind() == token.KWConst {
+		if p.kindNext(p.position+2) == token.LBracket {
+			return p.parseSliceDecl()
+		}
+
 		return p.parseConstDecl()
 	}
 
 	if p.kind() == token.KWVar {
+		if p.kindNext(p.position+2) == token.KWView && p.kindNext(p.position+3) == token.LBracket {
+			return p.parseSliceViewDecl()
+		} else if p.kindNext(p.position+2) == token.LBracket {
+			return p.parseSliceDecl()
+		}
 		return p.parseVarDecl()
 	}
 
