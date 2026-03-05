@@ -122,7 +122,7 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 
 		result.LParen = lp
 		// entering into kind: (indentA indentB, indentC indentD) or (indentA indentB)
-		if p.kindNext(p.position+2) == token.Comma || p.kindNext(p.position+2) == token.RParen {
+		if p.kindNext(p.position+1) == token.LBracket || p.kindNext(p.position+2) == token.Comma || p.kindNext(p.position+2) == token.RParen {
 			for p.kind() != token.RParen && p.kind() != token.LBrace && p.kind() != token.EOF {
 				param := p.parseFuncParam()
 				_, bad := param.Type.(*ast.BadType)
@@ -160,19 +160,24 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 		} else {
 			// entering into kind: (type, type)
 			for p.kind() != token.RParen && p.kind() != token.LBrace && p.kind() != token.EOF {
-				typ, btyp, bad := p.parseFuncParamType()
-				if bad {
-					result.List = append(result.List, ast.Param{Type: btyp})
-					return result
+				if p.kind() == token.LBracket {
+					x := p.parseSliceOrArrayType()
+					result.List = append(result.List, ast.Param{Type: &x})
+				} else {
+					typ, btyp, bad := p.parseFuncParamType()
+					if bad {
+						result.List = append(result.List, ast.Param{Type: btyp})
+						return result
+					}
+					result.List = append(result.List, ast.Param{Type: typ})
 				}
-				result.List = append(result.List, ast.Param{Type: typ})
 
 				if p.kind() != token.Comma && p.kind() != token.RParen {
 					p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 					btyp := &ast.BadType{
 						From:   lp,
 						To:     p.peek(),
-						Reason: "expected ',' after parameter(s)",
+						Reason: "EEEEexpected ',' after parameter(s)",
 					}
 					result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
 					return result
@@ -209,15 +214,20 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 		return result
 	}
 
-	next := p.peek()
-	typ, btyp, bad := p.parseFuncParamType()
-	if bad {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", btyp.From.Line, btyp.From.Column, btyp.From.Kind, btyp.From.Value))
-		result.List = append(result.List, ast.Param{Type: btyp})
-		return result
+	if p.kind() == token.LBracket {
+		x := p.parseSliceOrArrayType()
+		result.List = append(result.List, ast.Param{Type: &x})
+	} else {
+		typ, btyp, bad := p.parseFuncParamType()
+		if bad {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", btyp.From.Line, btyp.From.Column, btyp.From.Kind, btyp.From.Value))
+			result.List = append(result.List, ast.Param{Type: btyp})
+			return result
+		}
+		result.List = append(result.List, ast.Param{Type: typ})
 	}
-	result.List = append(result.List, ast.Param{Type: typ})
 
+	next := p.peek()
 	if p.kind() != token.LBrace {
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		btyp := &ast.BadType{
