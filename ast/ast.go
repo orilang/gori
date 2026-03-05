@@ -47,6 +47,8 @@ func (*SumType) stmtNode()         {}
 func (*SliceType) stmtNode()       {}
 func (*SliceExpr) exprNode()       {}
 func (*SliceViewType) stmtNode()   {}
+func (*ArrayType) stmtNode()       {}
+func (*ArrayViewType) stmtNode()   {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -194,6 +196,22 @@ func (x *SliceExpr) End() token.Token   { return x.RBracket }
 
 func (x *SliceViewType) Start() token.Token { return x.VarKW }
 func (x *SliceViewType) End() token.Token {
+	if x.Elements != nil {
+		return x.Elements.RBracket
+	}
+	return token.Token{}
+}
+
+func (x *ArrayType) Start() token.Token { return x.VarConstKW }
+func (x *ArrayType) End() token.Token {
+	if len(x.Elements.Elements) > 0 {
+		return x.Elements.RBrace
+	}
+	return token.Token{}
+}
+
+func (x *ArrayViewType) Start() token.Token { return x.VarKW }
+func (x *ArrayViewType) End() token.Token {
 	if x.Elements != nil {
 		return x.Elements.RBracket
 	}

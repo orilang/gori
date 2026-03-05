@@ -208,4 +208,5 @@ var sliceTypes = map[Kind]bool{
 	KWBool:    true,
 	KWFunc:    true,
 	Dot:       true,
+	IntLit:    true,
 }
