@@ -49,6 +49,7 @@ func (*SliceExpr) exprNode()       {}
 func (*SliceViewType) stmtNode()   {}
 func (*ArrayType) stmtNode()       {}
 func (*ArrayViewType) stmtNode()   {}
+func (*TypeRef) typeNode()         {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -214,6 +215,19 @@ func (x *ArrayViewType) Start() token.Token { return x.VarKW }
 func (x *ArrayViewType) End() token.Token {
 	if x.Elements != nil {
 		return x.Elements.RBracket
+	}
+	return token.Token{}
+}
+
+func (x *TypeRef) Start() token.Token {
+	if len(x.Parts) > 0 {
+		return x.Parts[0]
+	}
+	return token.Token{}
+}
+func (x *TypeRef) End() token.Token {
+	if len(x.Parts) > 0 {
+		return x.Parts[len(x.Parts)-1]
 	}
 	return token.Token{}
 }
