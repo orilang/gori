@@ -352,12 +352,6 @@ type SliceElements struct {
 	RBrace   token.Token
 }
 
-type ViewType struct {
-	Name     token.Token
-	Element  Type
-	Elements []token.Token
-}
-
 type SliceViewType struct {
 	VarKW    token.Token
 	Name     token.Token
@@ -374,4 +368,21 @@ type SliceExpr struct {
 	Colon    token.Token
 	High     Expr
 	RBracket token.Token
+}
+
+type ArrayType struct {
+	VarConstKW token.Token
+	Name       token.Token
+	Type       TypeRef
+	Eq         token.Token
+	Elements   SliceElements
+}
+
+type ArrayViewType struct {
+	VarKW    token.Token
+	Name     token.Token
+	View     token.Token
+	Type     TypeRef
+	Eq       token.Token
+	Elements *SliceExpr
 }

@@ -716,4 +716,82 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(x, st.Start())
 		assert.Equal(st.RBracket, st.End())
 	})
+
+	t.Run("array_type_x1", func(t *testing.T) {
+		st := &ArrayType{
+			VarConstKW: token.Token{
+				Kind:   token.KWConst,
+				Value:  "const",
+				Line:   1,
+				Column: 1,
+			},
+			Elements: SliceElements{
+				Elements: []Expr{
+					&IntLitExpr{Name: token.Token{
+						Kind:  token.IntLit,
+						Value: "1",
+					}},
+				},
+				RBrace: token.Token{
+					Kind:   token.RBrace,
+					Value:  "}",
+					Line:   5,
+					Column: 1,
+				},
+			},
+		}
+
+		assert.Equal(st.VarConstKW, st.Start())
+		assert.Equal(st.Elements.RBrace, st.End())
+	})
+
+	t.Run("array_type_x2", func(t *testing.T) {
+		st := &ArrayType{
+			VarConstKW: token.Token{
+				Kind:   token.KWConst,
+				Value:  "const",
+				Line:   1,
+				Column: 1,
+			},
+		}
+
+		assert.Equal(st.VarConstKW, st.Start())
+		assert.Equal(token.Token{}, st.End())
+	})
+
+	t.Run("array_view_type_x1", func(t *testing.T) {
+		st := &ArrayViewType{
+			VarKW: token.Token{
+				Kind:   token.KWVar,
+				Value:  "var",
+				Line:   1,
+				Column: 1,
+			},
+			Elements: &SliceExpr{
+				RBracket: token.Token{
+					Kind:   token.RBracket,
+					Value:  "}",
+					Line:   5,
+					Column: 1,
+				},
+			},
+		}
+
+		assert.Equal(st.VarKW, st.Start())
+		assert.Equal(st.Elements.RBracket, st.End())
+	})
+
+	t.Run("array_view_type_x2", func(t *testing.T) {
+		st := &ArrayViewType{
+			VarKW: token.Token{
+				Kind:   token.KWVar,
+				Value:  "var",
+				Line:   1,
+				Column: 1,
+			},
+		}
+
+		assert.Equal(st.VarKW, st.Start())
+		assert.Equal(token.Token{}, st.End())
+	})
 }
