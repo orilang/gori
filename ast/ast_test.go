@@ -794,4 +794,26 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(st.VarKW, st.Start())
 		assert.Equal(token.Token{}, st.End())
 	})
+
+	t.Run("type_ref_x1", func(t *testing.T) {
+		x := token.Token{
+			Kind:   token.Ident,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+		st := &TypeRef{
+			Parts: []token.Token{x},
+		}
+
+		assert.Equal(x, st.Start())
+		assert.Equal(x, st.End())
+	})
+
+	t.Run("type_ref_x2", func(t *testing.T) {
+		st := &TypeRef{}
+
+		assert.Equal(token.Token{}, st.Start())
+		assert.Equal(token.Token{}, st.End())
+	})
 }

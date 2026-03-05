@@ -51,6 +51,16 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 // parseFuncParam returns function parameter
 func (p *Parser) parseFuncParam() ast.Param {
 	name := p.expect(token.Ident, "expected parameter identifier")
+	if p.kind() == token.LBracket && p.kindNext(p.position+1) == token.RBracket {
+		x := p.parseSliceOrArrayType()
+		return ast.Param{Name: name, Type: &x}
+	}
+
+	if p.kind() == token.LBracket && p.kindNext(p.position+1) == token.IntLit && p.kindNext(p.position+2) == token.RBracket {
+		x := p.parseSliceOrArrayType()
+		return ast.Param{Name: name, Type: &x}
+	}
+
 	typ, btyp, bad := p.parseFuncParamType()
 	if bad {
 		return ast.Param{Name: name, Type: btyp}

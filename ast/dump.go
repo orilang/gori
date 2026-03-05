@@ -513,11 +513,11 @@ func (d *dumper) node(n any, indent int) {
 			d.kv(indent+1, "Var", v.VarConstKW)
 		}
 		d.kv(indent+1, "Name", v.Name)
-		d.sliceOrArrayType(indent+1, v.Type.Parts)
+		d.sliceOrArrayType(indent+1, true, v.Type.Parts)
 
 		if v.Eq != (token.Token{}) {
 			d.kv(indent+1, "Eq", v.Eq)
-			d.sliceOrArrayType(indent+2, v.Elements.Type.Parts)
+			d.sliceOrArrayType(indent+2, true, v.Elements.Type.Parts)
 			d.kv(indent+2, "LBrace", v.Elements.LBrace)
 			if len(v.Elements.Elements) > 0 {
 				d.line(indent+3, "Elements")
@@ -533,7 +533,7 @@ func (d *dumper) node(n any, indent int) {
 		d.kv(indent+1, "Var", v.VarKW)
 		d.kv(indent+1, "Name", v.Name)
 		d.kv(indent+1, "View", v.View)
-		d.sliceOrArrayType(indent+1, v.Type.Parts)
+		d.sliceOrArrayType(indent+1, true, v.Type.Parts)
 		d.kv(indent+1, "Eq", v.Eq)
 		d.expr(v.Elements, indent+1)
 
@@ -560,11 +560,11 @@ func (d *dumper) node(n any, indent int) {
 			d.kv(indent+1, "Var", v.VarConstKW)
 		}
 		d.kv(indent+1, "Name", v.Name)
-		d.sliceOrArrayType(indent+1, v.Type.Parts)
+		d.sliceOrArrayType(indent+1, true, v.Type.Parts)
 
 		if v.Eq != (token.Token{}) {
 			d.kv(indent+1, "Eq", v.Eq)
-			d.sliceOrArrayType(indent+2, v.Elements.Type.Parts)
+			d.sliceOrArrayType(indent+2, true, v.Elements.Type.Parts)
 			d.kv(indent+2, "LBrace", v.Elements.LBrace)
 			if len(v.Elements.Elements) > 0 {
 				d.line(indent+3, "Elements")
@@ -580,9 +580,12 @@ func (d *dumper) node(n any, indent int) {
 		d.kv(indent+1, "Var", v.VarKW)
 		d.kv(indent+1, "Name", v.Name)
 		d.kv(indent+1, "View", v.View)
-		d.sliceOrArrayType(indent+1, v.Type.Parts)
+		d.sliceOrArrayType(indent+1, true, v.Type.Parts)
 		d.kv(indent+1, "Eq", v.Eq)
 		d.expr(v.Elements, indent+1)
+
+	case *TypeRef:
+		d.sliceOrArrayType(indent+1, false, v.Parts)
 
 	default:
 		if n == nil {
@@ -663,6 +666,9 @@ func (d *dumper) typ(n Type, indent int) {
 	case *BadType:
 		d.node(v, indent)
 
+	case *TypeRef:
+		d.node(v, indent)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil type)")
@@ -718,8 +724,10 @@ func (d *dumper) expr(n Expr, indent int) {
 }
 
 // sliceType returns slice type
-func (d *dumper) sliceOrArrayType(indent int, t []token.Token) {
-	d.line(indent, "Type:")
+func (d *dumper) sliceOrArrayType(indent int, printType bool, t []token.Token) {
+	if printType {
+		d.line(indent, "Type:")
+	}
 	x := indent + 1
 	for _, v := range t {
 		switch {
