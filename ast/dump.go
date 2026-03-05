@@ -730,14 +730,14 @@ func (d *dumper) sliceOrArrayType(indent int, printType bool, t []token.Token) {
 	}
 	x := indent + 1
 	for _, v := range t {
-		switch {
-		case v.Kind == token.LBracket:
+		switch v.Kind {
+		case token.LBracket:
 			d.kv(x, "LBracket", v)
-		case v.Kind == token.IntLit:
+		case token.IntLit:
 			d.kv(x, "Size", v)
-		case v.Kind == token.RBracket:
+		case token.RBracket:
 			d.kv(x, "RBracket", v)
-		case v.Kind == token.Dot:
+		case token.Dot:
 			d.kv(x, "Dot", v)
 		default:
 			d.kv(x, "Ident", v)
