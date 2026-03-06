@@ -50,6 +50,7 @@ func (*SliceViewType) stmtNode()   {}
 func (*ArrayType) stmtNode()       {}
 func (*ArrayViewType) stmtNode()   {}
 func (*TypeRef) typeNode()         {}
+func (*ComptimeType) stmtNode()    {}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
@@ -231,3 +232,6 @@ func (x *TypeRef) End() token.Token {
 	}
 	return token.Token{}
 }
+
+func (x *ComptimeType) Start() token.Token { return x.Comptime }
+func (x *ComptimeType) End() token.Token   { return x.Comptime }

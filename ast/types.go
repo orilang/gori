@@ -23,6 +23,7 @@ type File struct {
 	Implements []*ImplementsDecl
 	Enums      []*EnumType
 	Sums       []*SumType
+	Comptime   []Stmt
 }
 
 // FuncDecl holds function parsed content
@@ -385,4 +386,10 @@ type ArrayViewType struct {
 	Type     TypeRef
 	Eq       token.Token
 	Elements *SliceExpr
+}
+
+type ComptimeType struct {
+	Comptime token.Token
+	Const    Stmt
+	Func     Decl
 }
