@@ -76,6 +76,13 @@ func (d *dumper) node(n any, indent int) {
 			}
 		}
 
+		if len(v.Comptime) > 0 {
+			d.line(indent+1, "ComptimeStmt")
+			for _, v := range v.Comptime {
+				d.node(v, indent+2)
+			}
+		}
+
 	case *FuncDecl:
 		d.line(indent, "FuncDecl")
 		d.kv(indent+1, "Function", v.FuncKW)
@@ -587,6 +594,15 @@ func (d *dumper) node(n any, indent int) {
 	case *TypeRef:
 		d.sliceOrArrayType(indent+1, false, v.Parts)
 
+	case *ComptimeType:
+		d.kv(indent, "Comptime", v.Comptime)
+		if v.Const != nil {
+			d.node(v.Const, indent)
+		}
+		if v.Func != nil {
+			d.node(v.Func, indent)
+		}
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -691,7 +707,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 
 	case *StructType, *InterfaceType, *EnumType, *SumType, *SliceType, *SliceViewType:
 		d.node(v, indent)
-	case *ArrayType, *ArrayViewType:
+	case *ArrayType, *ArrayViewType, *ComptimeType:
 		d.node(v, indent)
 
 	default:

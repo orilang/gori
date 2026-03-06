@@ -816,4 +816,11 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(token.Token{}, st.Start())
 		assert.Equal(token.Token{}, st.End())
 	})
+
+	t.Run("comptime_x1", func(t *testing.T) {
+		st := &ComptimeType{}
+
+		assert.Equal(token.Token{}, st.Start())
+		assert.Equal(token.Token{}, st.End())
+	})
 }

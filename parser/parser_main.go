@@ -241,6 +241,9 @@ func (p *Parser) ParseFile() *ast.File {
 				p.consumeTo(token.RBrace)
 			}
 
+		case token.KWComptime:
+			f.Comptime = append(f.Comptime, p.parseComptimeStmt())
+
 		default:
 			if p.kindNext(p.position+1) == token.KWImplements {
 				f.Implements = append(f.Implements, p.parseImplementsDecl())

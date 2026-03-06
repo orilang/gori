@@ -97,4 +97,5 @@ const (
 	KWSum
 	KWView
 	KWShared
+	KWComptime
 )
