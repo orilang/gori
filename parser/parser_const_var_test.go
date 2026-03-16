@@ -52,7 +52,40 @@ func TestParser_parse_const(t *testing.T) {
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
+
+	t.Run("const_bad_type_blank_identifier_x1", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWConst, Value: "const"},
+			{Kind: token.Ident, Value: "_"},
+			{Kind: token.KWFunc, Value: "func"},
+			{Kind: token.Assign, Value: "="},
+			{Kind: token.FloatLit, Value: "3.14"},
+			{Kind: token.EOF, Value: ""},
+		}
+
+		parser := New(input)
+		pr := parser.parseConstDecl()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("const_bad_type_blank_identifier_x2", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWConst, Value: "const"},
+			{Kind: token.Ident, Value: "a@"},
+			{Kind: token.KWFunc, Value: "string"},
+			{Kind: token.Assign, Value: "="},
+			{Kind: token.StringLit, Value: "YES"},
+			{Kind: token.EOF, Value: ""},
+		}
+
+		parser := New(input)
+		pr := parser.parseConstDecl()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
 }
+
 func TestParser_parse_var(t *testing.T) {
 	assert := assert.New(t)
 
@@ -113,6 +146,22 @@ func TestParser_parse_var(t *testing.T) {
 		input := []token.Token{
 			{Kind: token.KWVar, Value: "var"},
 			{Kind: token.Ident, Value: "a"},
+			{Kind: token.KWFunc, Value: "func"},
+			{Kind: token.Assign, Value: "="},
+			{Kind: token.FloatLit, Value: "3.14"},
+			{Kind: token.EOF, Value: ""},
+		}
+
+		parser := New(input)
+		pr := parser.parseVarDecl()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("var_bad_type_blank_identifier", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWVar, Value: "var"},
+			{Kind: token.Ident, Value: "_"},
 			{Kind: token.KWFunc, Value: "func"},
 			{Kind: token.Assign, Value: "="},
 			{Kind: token.FloatLit, Value: "3.14"},

@@ -13,7 +13,7 @@ func (p *Parser) parseSliceDecl() *ast.SliceType {
 	st := &ast.SliceType{}
 	if p.kind() == token.KWVar {
 		kwt := p.expect(token.KWVar, "expected 'var'")
-		kwi := p.expect(token.Ident, "expected 'ident'")
+		kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 
 		st.VarConstKW = kwt
 		st.Name = kwi
@@ -25,7 +25,7 @@ func (p *Parser) parseSliceDecl() *ast.SliceType {
 		}
 	} else if p.kind() == token.KWConst {
 		kwt := p.expect(token.KWConst, "expected 'const'")
-		kwi := p.expect(token.Ident, "expected 'ident'")
+		kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 
 		st.VarConstKW = kwt
 		st.Name = kwi
@@ -117,7 +117,7 @@ func (p *Parser) parseSliceElements() ast.SliceElements {
 // parseSliceViewDecl returns parsed slice view
 func (p *Parser) parseSliceViewDecl() *ast.SliceViewType {
 	kwt := p.expect(token.KWVar, "expected 'var'")
-	kwi := p.expect(token.Ident, "expected 'ident'")
+	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kwv := p.expect(token.KWView, "expected 'view'")
 
 	st := &ast.SliceViewType{
@@ -173,7 +173,7 @@ func (p *Parser) parseArrayDecl() *ast.ArrayType {
 	st := &ast.ArrayType{}
 	if p.kind() == token.KWVar {
 		kwt := p.expect(token.KWVar, "expected 'var'")
-		kwi := p.expect(token.Ident, "expected 'ident'")
+		kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 
 		st.VarConstKW = kwt
 		st.Name = kwi
@@ -185,7 +185,7 @@ func (p *Parser) parseArrayDecl() *ast.ArrayType {
 		}
 	} else if p.kind() == token.KWConst {
 		kwt := p.expect(token.KWConst, "expected 'const'")
-		kwi := p.expect(token.Ident, "expected 'ident'")
+		kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 
 		st.VarConstKW = kwt
 		st.Name = kwi
@@ -210,7 +210,7 @@ func (p *Parser) parseArrayDecl() *ast.ArrayType {
 // parseArrayViewDecl returns parsed array view
 func (p *Parser) parseArrayViewDecl() *ast.ArrayViewType {
 	kwt := p.expect(token.KWVar, "expected 'var'")
-	kwi := p.expect(token.Ident, "expected 'ident'")
+	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kwv := p.expect(token.KWView, "expected 'view'")
 
 	st := &ast.ArrayViewType{

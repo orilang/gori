@@ -898,6 +898,77 @@ func TestParser_for_stmt(t *testing.T) {
 		assert.Equal(0, len(parser.errors))
 	})
 
+	t.Run("function_range_x9", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 10},
+			{Kind: token.KWFor, Value: "for", Line: 4, Column: 3},
+			{Kind: token.Ident, Value: "_", Line: 4, Column: 7},
+			{Kind: token.Comma, Value: ",", Line: 4, Column: 8},
+			{Kind: token.Ident, Value: "v", Line: 4, Column: 9},
+			{Kind: token.Define, Value: ":=", Line: 4, Column: 10},
+			{Kind: token.KWRange, Value: "range", Line: 4, Column: 13},
+			{Kind: token.IntLit, Value: "5", Line: 4, Column: 19},
+			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
+			{Kind: token.Ident, Value: "z", Line: 5, Column: 4},
+			{Kind: token.Assign, Value: "=", Line: 5, Column: 6},
+			{Kind: token.Ident, Value: "i", Line: 5, Column: 8},
+			{Kind: token.RBrace, Value: "}", Line: 6, Column: 3},
+			{Kind: token.RBrace, Value: "}", Line: 7, Column: 1},
+			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:10 (kind=41)
+     Stmts
+      RangeStmt
+       For: "for" @4:3 (kind=31)
+       Key
+        IdentExpr
+         Name: "_" @4:7 (kind=3)
+       Condition
+        IdentExpr
+         Name: "v" @4:9 (kind=3)
+       Op: ":=" @4:10 (kind=50)
+       Range: "range" @4:13 (kind=71)
+        IntLitExpr
+         Value: "5" @4:19 (kind=4)
+        BlockStmt
+         LBrace: "{" @4:21 (kind=41)
+         Stmts
+          AssignStmt
+           Left
+            IdentExpr
+             Name: "z" @5:4 (kind=3)
+           Operator: "=" @5:6 (kind=49)
+           Right
+            IdentExpr
+             Name: "i" @5:8 (kind=3)
+         RBrace: "}" @6:3 (kind=42)
+     RBrace: "}" @7:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.errors))
+	})
+
 	t.Run("bad_infinite_x1", func(t *testing.T) {
 		// infinity loop
 		input := []token.Token{

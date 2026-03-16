@@ -926,4 +926,33 @@ func TestParser_type_interface(t *testing.T) {
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
+
+	t.Run("bad_x16", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWType, Value: "type", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "test", Line: 3, Column: 6},
+			{Kind: token.KWInterface, Value: "interface", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 21},
+			{Kind: token.Ident, Value: "_", Line: 4, Column: 3},
+			{Kind: token.LParen, Value: "(", Line: 4, Column: 4},
+			{Kind: token.RParen, Value: ")", Line: 4, Column: 5},
+			{Kind: token.Ident, Value: "error", Line: 4, Column: 6},
+			{Kind: token.Ident, Value: "Y", Line: 5, Column: 3},
+			{Kind: token.LParen, Value: "(", Line: 5, Column: 4},
+			{Kind: token.Ident, Value: "a", Line: 5, Column: 5},
+			{Kind: token.KWInt, Value: "int", Line: 5, Column: 7},
+			{Kind: token.RParen, Value: ")", Line: 5, Column: 10},
+			{Kind: token.Ident, Value: "error", Line: 5, Column: 12},
+			{Kind: token.Comment, Value: "// comment", Line: 5, Column: 19},
+			{Kind: token.RBrace, Value: "}", Line: 6, Column: 1},
+			{Kind: token.EOF, Value: "", Line: 7, Column: 1},
+		}
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
 }

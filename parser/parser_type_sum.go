@@ -10,7 +10,7 @@ import (
 // parseSumDecl returns parsed sum
 func (p *Parser) parseSumDecl() *ast.SumType {
 	kwt := p.expect(token.KWType, "expected 'type'")
-	kwi := p.expect(token.Ident, "expected 'ident'")
+	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kws := p.expect(token.KWSum, "expected 'sum'")
 	lbrace := p.expect(token.LBrace, "expected '{'")
 
@@ -73,7 +73,7 @@ func (p *Parser) parseSumDecl() *ast.SumType {
 
 // parseFuncSignature returns function signature for interface
 func (p *Parser) parseSumFuncSignature() ast.VariantsMethods {
-	name := p.expect(token.Ident, "expected function name")
+	name := p.expectValidIdent(token.Ident, true, "expected function name")
 	_ = p.expect(token.LParen, "expected '(' after function name")
 
 	f := ast.VariantsMethods{
@@ -116,18 +116,22 @@ func (p *Parser) parseSumFuncSignature() ast.VariantsMethods {
 
 // parseFuncSignatureParam returns function parameter
 func (p *Parser) parseSumFuncSignatureParam() ast.Param {
-	name := p.expect(token.Ident, "expected parameter identifier")
+	name := p.expectValidIdent(token.Ident, true, "expected parameter identifier")
 	return ast.Param{Name: name, Type: p.parseSumFuncSignatureParamType()}
 }
 
 // parseFuncSignatureParamType returns func parameter type
 func (p *Parser) parseSumFuncSignatureParamType() *ast.NameType {
 	typ := &ast.NameType{}
-	tok := p.next()
 
-	if token.IsFuncParamTypes(tok.Kind) {
-		typ.Name = tok
+	if token.IsFuncParamTypes(p.kind()) {
+		if p.kind() == token.Ident {
+			typ.Name = p.expectValidIdent(p.kind(), true, "expected valid ident")
+		} else {
+			typ.Name = p.next()
+		}
 	} else {
+		tok := p.next()
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		p.consumeTo(token.RParen)
 	}

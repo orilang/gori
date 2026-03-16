@@ -9,7 +9,7 @@ import (
 
 // parseImplementsDecl is in charge of parsing interface "implements" requirements
 func (p *Parser) parseImplementsDecl() *ast.ImplementsDecl {
-	kw := p.expect(token.Ident, "expected 'ident'")
+	kw := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kwi := p.expect(token.KWImplements, "expected 'implements'")
 	id := &ast.ImplementsDecl{
 		Type:       kw,

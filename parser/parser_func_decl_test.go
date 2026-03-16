@@ -1044,4 +1044,52 @@ func TestParser_func_decl(t *testing.T) {
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
+
+	t.Run("bad_return_types_x18", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
+			{Kind: token.Ident, Value: "_", Line: 3, Column: 10},
+			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
+			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
+			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
+			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("bad_return_types_x19", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
+			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
+			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
+			{Kind: token.Ident, Value: "_", Line: 3, Column: 17},
+			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
+			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
+			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
+			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
 }

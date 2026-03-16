@@ -43,14 +43,14 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 			return rstmt
 		}
 
-		// var k1, k2 ast.Expr
+		// for k1, k2 ast.Expr
 		if p.kind() == token.Comma {
 			tok := p.next()
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadStmt{From: ftok, To: tok, Reason: "expected expression not ','"}
 		}
 
-		k1 := p.expect(token.Ident, "expected 'identifier'")
+		k1 := p.expectValidIdent(token.Ident, false, "expected 'identifier'")
 		if k1.Kind != token.Ident {
 			return &ast.BadStmt{From: ftok, To: k1, Reason: "expected identifier"}
 		}
@@ -60,7 +60,7 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 		if p.kind() == token.Comma {
 			_ = p.next()
 			rstmt.Key = xk1
-			k2 := p.expect(token.Ident, "expected 'identifier'")
+			k2 := p.expectValidIdent(token.Ident, false, "expected 'identifier'")
 			if k2.Kind != token.Ident {
 				return &ast.BadStmt{From: ftok, To: k2, Reason: "expected identifier"}
 			}
