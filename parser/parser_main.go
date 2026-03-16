@@ -125,20 +125,20 @@ func (p *Parser) expectValidIdent(k token.Kind, forbidBlankIdentifier bool, msg 
 
 	if tok.Kind == token.Ident {
 		if forbidBlankIdentifier && tok.Value == "_" {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format oo", tok.Kind, tok.Value))
+			p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
 		} else {
 			ch := tok.Value[0]
 			// checking if ident starts with _123 or 123abcd
 			if len(tok.Value) > 1 && (ch == '_' || ch >= '0' && ch <= '9') {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format ppp", tok.Kind, tok.Value))
+				p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
 			}
 
 			// check if we find non ascii characters
 			for i := range tok.Value {
 				v := tok.Value[i]
-				if !(v >= '0' && v <= '9') && !(v >= 'a' && v <= 'z') && !(v >= 'A' && v <= 'Z') && v != '_' {
-					p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format vvv", tok.Kind, tok.Value))
-					break
+				x := v == '_' || (v >= '0' && v <= '9') || (v >= 'a' && v <= 'z') || (v >= 'A' && v <= 'Z')
+				if !x {
+					p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
 				}
 			}
 		}
