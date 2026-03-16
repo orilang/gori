@@ -10,7 +10,7 @@ import (
 // parseEnumDecl is in charge of parsing enum type
 func (p *Parser) parseEnumDecl() *ast.EnumType {
 	kwp := p.expect(token.KWType, "expected 'type'")
-	kwi := p.expect(token.Ident, "expected 'ident'")
+	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kwe := p.expect(token.KWEnum, "expected 'enum'")
 	lbrace := p.expect(token.LBrace, "expected '{'")
 

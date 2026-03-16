@@ -10,7 +10,7 @@ import (
 // parseConstDecl returns constant declaration
 func (p *Parser) parseConstDecl() ast.Stmt {
 	kw := p.expect(token.KWConst, "expected 'const'")
-	name := p.expect(token.Ident, "expected constant name")
+	name := p.expectValidIdent(token.Ident, true, "expected constant name")
 
 	typ, btyp, bad := p.parseVarConstType()
 	if bad {
@@ -32,7 +32,7 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 // parseVarDecl returns variable declaration
 func (p *Parser) parseVarDecl() ast.Stmt {
 	kw := p.expect(token.KWVar, "expected 'var'")
-	name := p.expect(token.Ident, "expected variable name")
+	name := p.expectValidIdent(token.Ident, true, "expected variable name")
 
 	typ, btyp, bad := p.parseVarConstType()
 	if bad {

@@ -504,4 +504,23 @@ func TestParser_type_struct(t *testing.T) {
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
+
+	t.Run("bad_x5", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWType, Value: "type", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "_test", Line: 3, Column: 6},
+			{Kind: token.KWStruct, Value: "struct", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 18},
+			{Kind: token.RBrace, Value: "}", Line: 3, Column: 19},
+			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
 }

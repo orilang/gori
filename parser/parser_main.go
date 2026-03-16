@@ -112,6 +112,40 @@ func (p *Parser) expect(k token.Kind, msg string) token.Token {
 	return p.next()
 }
 
+// expect compares the current token with the provided token Kind.
+// If not found, and error will be append to errors list.
+// It will validate ident matching ^(a-zA-Z)?(0-9)?_ .
+// If forbidBlankIdentifier is set and the ident value is an underscore,
+// an error will be raised
+func (p *Parser) expectValidIdent(k token.Kind, forbidBlankIdentifier bool, msg string) token.Token {
+	tok := p.peek()
+	if tok.Kind != k {
+		p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, msg, tok.Kind, tok.Value))
+	}
+
+	if tok.Kind == token.Ident {
+		if forbidBlankIdentifier && tok.Value == "_" {
+			p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format oo", tok.Kind, tok.Value))
+		} else {
+			ch := tok.Value[0]
+			// checking if ident starts with _123 or 123abcd
+			if len(tok.Value) > 1 && (ch == '_' || ch >= '0' && ch <= '9') {
+				p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format ppp", tok.Kind, tok.Value))
+			}
+
+			// check if we find non ascii characters
+			for i := range tok.Value {
+				v := tok.Value[i]
+				if !(v >= '0' && v <= '9') && !(v >= 'a' && v <= 'z') && !(v >= 'A' && v <= 'Z') && v != '_' {
+					p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format vvv", tok.Kind, tok.Value))
+					break
+				}
+			}
+		}
+	}
+	return p.next()
+}
+
 // consumeTo consumes all tokens until reaching
 // the one passed or EOF
 func (p *Parser) consumeTo(k token.Kind) {
@@ -199,7 +233,7 @@ func (p *Parser) lookForInSliceViewColonHeader(k token.Kind) bool {
 // ParseFile returns the content of the file being parsed
 func (p *Parser) ParseFile() *ast.File {
 	kw := p.expect(token.KWPackage, "expected 'package'")
-	name := p.expect(token.Ident, "expected package name")
+	name := p.expectValidIdent(token.Ident, true, "expected package name")
 	f := &ast.File{
 		PackageKW: kw,
 		Name:      name,
@@ -453,7 +487,7 @@ func (p *Parser) parsePrefix() ast.Expr {
 		expr = &ast.StringLitExpr{Name: p.next()}
 
 	case token.Ident:
-		expr = &ast.IdentExpr{Name: p.next()}
+		expr = &ast.IdentExpr{Name: p.expectValidIdent(p.kind(), true, "expected valid ident")}
 
 	case token.LParen:
 		expr = p.parseGroupExpr()
@@ -532,7 +566,7 @@ func (p *Parser) parseUnaryExpr() *ast.UnaryExpr {
 // parseSelector returns expressions for parsePostfix func
 func (p *Parser) parseSelectorExpr(left ast.Expr) ast.Expr {
 	dot := p.expect(token.Dot, "expected '.'")
-	selector := p.expect(token.Ident, "expected 'ident'")
+	selector := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	return &ast.SelectorExpr{
 		X:        left,
 		Dot:      dot,

@@ -10,7 +10,7 @@ import (
 // parseFuncDecl returns function declaration
 func (p *Parser) parseFuncDecl() ast.Decl {
 	kw := p.expect(token.KWFunc, "expected 'func'")
-	name := p.expect(token.Ident, "expected function name")
+	name := p.expectValidIdent(token.Ident, false, "expected function name")
 	_ = p.expect(token.LParen, "expected '(' after function name")
 
 	f := &ast.FuncDecl{
@@ -23,7 +23,7 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadDecl{From: kw, To: tok, Reason: "expected expression not ','"}
 		}
-		f.Params = append(f.Params, p.parseFuncParam())
+		f.Params = append(f.Params, p.parseFuncParam(false))
 		if p.kind() != token.Comma && p.kind() != token.RParen && p.kind() != token.EOF {
 			tok := p.next()
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
@@ -49,8 +49,8 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 }
 
 // parseFuncParam returns function parameter
-func (p *Parser) parseFuncParam() ast.Param {
-	name := p.expect(token.Ident, "expected parameter identifier")
+func (p *Parser) parseFuncParam(forbidBlankIdentifier bool) ast.Param {
+	name := p.expectValidIdent(token.Ident, forbidBlankIdentifier, "expected parameter identifier")
 	if p.kind() == token.LBracket && p.kindNext(p.position+1) == token.RBracket {
 		x := p.parseSliceOrArrayType()
 		return ast.Param{Name: name, Type: &x}
@@ -61,7 +61,7 @@ func (p *Parser) parseFuncParam() ast.Param {
 		return ast.Param{Name: name, Type: &x}
 	}
 
-	typ, btyp, bad := p.parseFuncParamType()
+	typ, btyp, bad := p.parseFuncParamType(true)
 	if bad {
 		return ast.Param{Name: name, Type: btyp}
 	}
@@ -69,22 +69,25 @@ func (p *Parser) parseFuncParam() ast.Param {
 }
 
 // parseFuncParamType returns func parameter type
-func (p *Parser) parseFuncParamType() (*ast.NameType, *ast.BadType, bool) {
+func (p *Parser) parseFuncParamType(forbidBlankIdentifier bool) (*ast.NameType, *ast.BadType, bool) {
 	typ := &ast.NameType{}
 	btyp := &ast.BadType{}
 	var bad bool
-	tok := p.peek()
 
-	if token.IsFuncParamTypes(tok.Kind) {
-		typ.Name = tok
+	if token.IsFuncParamTypes(p.kind()) {
+		if p.kind() == token.Ident {
+			typ.Name = p.expectValidIdent(p.kind(), forbidBlankIdentifier, "expected valid ident")
+		} else {
+			typ.Name = p.next()
+		}
 	} else {
+		tok := p.next()
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		btyp.From = tok
 		btyp.Reason = "unexpected type name"
 		bad = true
 	}
 
-	_ = p.next()
 	return typ, btyp, bad
 }
 
@@ -124,7 +127,7 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 		// entering into kind: (indentA indentB, indentC indentD) or (indentA indentB)
 		if p.kindNext(p.position+1) == token.LBracket || p.kindNext(p.position+2) == token.Comma || p.kindNext(p.position+2) == token.RParen {
 			for p.kind() != token.RParen && p.kind() != token.LBrace && p.kind() != token.EOF {
-				param := p.parseFuncParam()
+				param := p.parseFuncParam(true)
 				_, bad := param.Type.(*ast.BadType)
 				if bad {
 					result.List = append(result.List, param)
@@ -164,7 +167,7 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 					x := p.parseSliceOrArrayType()
 					result.List = append(result.List, ast.Param{Type: &x})
 				} else {
-					typ, btyp, bad := p.parseFuncParamType()
+					typ, btyp, bad := p.parseFuncParamType(true)
 					if bad {
 						result.List = append(result.List, ast.Param{Type: btyp})
 						return result
@@ -218,7 +221,7 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 		x := p.parseSliceOrArrayType()
 		result.List = append(result.List, ast.Param{Type: &x})
 	} else {
-		typ, btyp, bad := p.parseFuncParamType()
+		typ, btyp, bad := p.parseFuncParamType(true)
 		if bad {
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", btyp.From.Line, btyp.From.Column, btyp.From.Kind, btyp.From.Value))
 			result.List = append(result.List, ast.Param{Type: btyp})

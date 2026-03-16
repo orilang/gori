@@ -343,4 +343,58 @@ func TestParser_type_sum(t *testing.T) {
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
+
+	t.Run("bad_x10", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWType, Value: "type", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "_test", Line: 3, Column: 6},
+			{Kind: token.KWSum, Value: "sum", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 21},
+			{Kind: token.KWInt, Value: "int", Line: 4, Column: 3},
+			{Kind: token.RBrace, Value: "}", Line: 4, Column: 1},
+			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
+
+	t.Run("bad_x11", func(t *testing.T) {
+		input := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+
+			{Kind: token.KWType, Value: "type", Line: 3, Column: 1},
+			{Kind: token.Ident, Value: "test", Line: 3, Column: 6},
+			{Kind: token.KWSum, Value: "sum", Line: 3, Column: 11},
+			{Kind: token.LBrace, Value: "{", Line: 3, Column: 16},
+			{Kind: token.Ident, Value: "Circle", Line: 4, Column: 3},
+			{Kind: token.LParen, Value: "(", Line: 4, Column: 9},
+			{Kind: token.Ident, Value: "radius", Line: 4, Column: 10},
+			{Kind: token.Ident, Value: "_", Line: 4, Column: 17},
+			{Kind: token.RParen, Value: ")", Line: 4, Column: 22},
+			{Kind: token.Ident, Value: "Rect", Line: 5, Column: 3},
+			{Kind: token.LParen, Value: "(", Line: 5, Column: 7},
+			{Kind: token.Ident, Value: "w", Line: 5, Column: 8},
+			{Kind: token.KWInt, Value: "float", Line: 5, Column: 10},
+			{Kind: token.Comma, Value: ",", Line: 5, Column: 15},
+			{Kind: token.Ident, Value: "h", Line: 5, Column: 17},
+			{Kind: token.KWInt, Value: "float", Line: 5, Column: 19},
+			{Kind: token.RParen, Value: ")", Line: 5, Column: 24},
+			{Kind: token.Ident, Value: "None", Line: 6, Column: 3},
+			{Kind: token.Comment, Value: "// comment", Line: 6, Column: 8},
+			{Kind: token.RBrace, Value: "}", Line: 7, Column: 1},
+			{Kind: token.EOF, Value: "", Line: 8, Column: 1},
+		}
+
+		parser := New(input)
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.errors), 0)
+	})
 }

@@ -10,7 +10,7 @@ import (
 // parseStructType returns parsed struct
 func (p *Parser) parseStructType() *ast.StructType {
 	kwt := p.expect(token.KWType, "expected 'type'")
-	kwi := p.expect(token.Ident, "expected 'ident'")
+	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kws := p.expect(token.KWStruct, "expected 'struct'")
 	lbrace := p.expect(token.LBrace, "expected '{'")
 
@@ -54,7 +54,7 @@ func (p *Parser) parseStructType() *ast.StructType {
 
 // parseStructTypeField is in charge of parsing struct field
 func (p *Parser) parseStructTypeField() *ast.FieldDecl {
-	kw := p.expect(token.Ident, "expected 'ident'")
+	kw := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	fd := &ast.FieldDecl{
 		Name:   kw,
 		Public: isPublic(kw),

@@ -10,7 +10,7 @@ import (
 // parseInterfaceType returns parsed interface
 func (p *Parser) parseInterfaceType() *ast.InterfaceType {
 	kwt := p.expect(token.KWType, "expected 'type'")
-	kwi := p.expect(token.Ident, "expected 'ident'")
+	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kws := p.expect(token.KWInterface, "expected 'interface'")
 	lbrace := p.expect(token.LBrace, "expected '{'")
 
@@ -61,7 +61,7 @@ func (p *Parser) parseInterfaceType() *ast.InterfaceType {
 
 // parseFuncSignature returns function signature for interface
 func (p *Parser) parseFuncSignature() ast.InterfaceMethods {
-	name := p.expect(token.Ident, "expected function name")
+	name := p.expectValidIdent(token.Ident, true, "expected function name")
 	_ = p.expect(token.LParen, "expected '(' after function name")
 
 	f := ast.InterfaceMethods{
@@ -100,7 +100,7 @@ func (p *Parser) parseFuncSignature() ast.InterfaceMethods {
 
 // parseFuncSignatureParam returns function parameter
 func (p *Parser) parseFuncSignatureParam() ast.Param {
-	name := p.expect(token.Ident, "expected parameter identifier")
+	name := p.expectValidIdent(token.Ident, true, "expected parameter identifier")
 	return ast.Param{Name: name, Type: p.parseFuncSignatureParamType()}
 }
 
@@ -191,7 +191,7 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 
 // parseInterfaceTypeEmbbed returns embbed signature for interface
 func (p *Parser) parseInterfaceTypeEmbbed() ast.TypeRef {
-	kw := p.expect(token.Ident, "expected 'ident'")
+	kw := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 
 	tr := ast.TypeRef{}
 	tr.Parts = append(tr.Parts, kw)
