@@ -98,4 +98,8 @@ const (
 	KWView
 	KWShared
 	KWComptime
+	KWMake
+	KWMap
+	KWHashMap
+	KWNil
 )
