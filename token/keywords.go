@@ -35,6 +35,16 @@ var keywords = map[string]Kind{
 	"true":        BoolLit,
 	"false":       BoolLit,
 	"range":       KWRange,
+	"implements":  KWImplements,
+	"enum":        KWEnum,
+	"sum":         KWSum,
+	"view":        KWView,
+	"shared":      KWShared,
+	"comptime":    KWComptime,
+	"make":        KWMake,
+	"map":         KWMap,
+	"hashmap":     KWHashMap,
+	"nil":         KWNil,
 }
 
 var builtinTypes = map[Kind]bool{
@@ -144,6 +154,8 @@ var varConstTypes = map[Kind]bool{
 	KWString:    true,
 	KWBool:      true,
 	KWInterface: true,
+	KWMap:       true,
+	KWHashMap:   true,
 }
 
 var funcParamTypes = map[Kind]bool{
@@ -163,6 +175,8 @@ var funcParamTypes = map[Kind]bool{
 	KWBool:      true,
 	KWInterface: true,
 	KWFunc:      true,
+	KWMap:       true,
+	KWHashMap:   true,
 }
 
 var structTypes = map[Kind]bool{
@@ -182,6 +196,8 @@ var structTypes = map[Kind]bool{
 	KWBool:      true,
 	KWInterface: true,
 	KWFunc:      true,
+	KWMap:       true,
+	KWHashMap:   true,
 }
 
 var validTypeDecl = map[Kind]bool{
