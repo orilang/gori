@@ -807,4 +807,51 @@ func main() {
 
 		assert.Equal(false, ok)
 	})
+
+	t.Run("map", func(t *testing.T) {
+		input := `package main
+
+func main() {
+  var x map[string]string = nil
+  var y hashmap[string]string = nil
+}
+`
+		result := []token.Token{
+			{Kind: token.KWPackage, Value: "package"},
+			{Kind: token.Ident, Value: "main"},
+			{Kind: token.KWFunc, Value: "func"},
+			{Kind: token.Ident, Value: "main"},
+			{Kind: token.LParen, Value: "("},
+			{Kind: token.RParen, Value: ")"},
+			{Kind: token.LBrace, Value: "{"},
+			{Kind: token.KWVar, Value: "var"},
+			{Kind: token.Ident, Value: "x"},
+			{Kind: token.KWMap, Value: "map"},
+			{Kind: token.LBracket, Value: "["},
+			{Kind: token.KWString, Value: "string"},
+			{Kind: token.RBracket, Value: "]"},
+			{Kind: token.KWString, Value: "string"},
+			{Kind: token.Assign, Value: "="},
+			{Kind: token.KWNil, Value: "nil"},
+
+			{Kind: token.KWVar, Value: "var"},
+			{Kind: token.Ident, Value: "y"},
+			{Kind: token.KWHashMap, Value: "hashmap"},
+			{Kind: token.LBracket, Value: "["},
+			{Kind: token.KWString, Value: "string"},
+			{Kind: token.RBracket, Value: "]"},
+			{Kind: token.KWString, Value: "string"},
+			{Kind: token.Assign, Value: "="},
+			{Kind: token.KWNil, Value: "nil"},
+			{Kind: token.RBrace, Value: "}"},
+			{Kind: token.EOF, Value: ""},
+		}
+		lex := New([]byte(input))
+		lex.Tokenize()
+		for i, r := range result {
+			assert.Equal(r.Kind, lex.Tokens[i].Kind)
+			assert.Equal(r.Value, lex.Tokens[i].Value)
+		}
+		assert.Equal(len(result), len(lex.Tokens))
+	})
 }
