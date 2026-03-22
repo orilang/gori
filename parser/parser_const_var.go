@@ -18,7 +18,13 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 		return btyp
 	}
 	eq := p.expect(token.Assign, "expected '=")
-	init := p.parseExpr(LOWEST)
+	var init ast.Expr
+	switch p.peek().Value {
+	case "[":
+		init = new(p.parseSliceElements())
+	default:
+		init = p.parseExpr(LOWEST)
+	}
 
 	return &ast.ConstDeclStmt{
 		ConstKW: kw,
@@ -33,17 +39,36 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 func (p *Parser) parseVarDecl() ast.Stmt {
 	kw := p.expect(token.KWVar, "expected 'var'")
 	name := p.expectValidIdent(token.Ident, true, "expected variable name")
+	var view token.Token
+	if p.kind() == token.KWView {
+		view = p.expect(token.KWView, "expected 'view'")
+	}
 
 	typ, btyp, bad := p.parseVarConstType()
 	if bad {
 		return btyp
 	}
 	eq := p.expect(token.Assign, "expected '=")
-	init := p.parseExpr(LOWEST)
+	var init ast.Expr
+	switch p.peek().Value {
+	case "make":
+		init = p.parseMakeExpr()
+	case "[":
+		// []string{}
+		init = new(p.parseSliceElements())
+	default:
+		// x[1:]
+		if p.lookForInSliceHeader(token.LBracket) {
+			init = p.parseSliceExpr(p.parsePrefix())
+		} else {
+			init = p.parseExpr(LOWEST)
+		}
+	}
 
 	return &ast.VarDeclStmt{
 		VarKW: kw,
 		Name:  name,
+		View:  view,
 		Type:  typ,
 		Eq:    eq,
 		Init:  init,
@@ -51,21 +76,27 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 }
 
 // parseVarConstType returns const/vars types
-func (p *Parser) parseVarConstType() (*ast.NameType, *ast.BadType, bool) {
+func (p *Parser) parseVarConstType() (ast.Type, *ast.BadType, bool) {
 	typ := &ast.NameType{}
 	btyp := &ast.BadType{}
 	var bad bool
-	tok := p.peek()
 
-	if token.IsVarConstTypes(tok.Kind) {
-		typ.Name = tok
-	} else {
+	switch {
+	case p.kind() == token.LBracket:
+		return new(p.parseSliceOrArrayType()), nil, false
+
+	case token.IsMapType(p.kind()):
+		return p.parseMapsHashMapsDecl(), nil, false
+
+	case token.IsVarConstTypes(p.kind()):
+		typ.Name = p.next()
+	default:
+		tok := p.next()
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		btyp.From = tok
 		btyp.Reason = "unexpected type name"
 		bad = true
 	}
 
-	_ = p.next()
 	return typ, btyp, bad
 }

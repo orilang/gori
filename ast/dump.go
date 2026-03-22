@@ -511,39 +511,6 @@ func (d *dumper) node(n any, indent int) {
 		}
 		d.kv(indent+1, "RBrace", v.RBrace)
 
-	case *SliceType:
-		if v.VarConstKW.Kind == token.KWConst {
-			d.line(indent, "ConstDecl")
-			d.kv(indent+1, "Const", v.VarConstKW)
-		} else {
-			d.line(indent, "VarDecl")
-			d.kv(indent+1, "Var", v.VarConstKW)
-		}
-		d.kv(indent+1, "Name", v.Name)
-		d.sliceOrArrayType(indent+1, true, v.Type.Parts)
-
-		if v.Eq != (token.Token{}) {
-			d.kv(indent+1, "Eq", v.Eq)
-			d.sliceOrArrayType(indent+2, true, v.Elements.Type.Parts)
-			d.kv(indent+2, "LBrace", v.Elements.LBrace)
-			if len(v.Elements.Elements) > 0 {
-				d.line(indent+3, "Elements")
-				for _, v := range v.Elements.Elements {
-					d.expr(v, indent+4)
-				}
-			}
-			d.kv(indent+2, "RBrace", v.Elements.RBrace)
-		}
-
-	case *SliceViewType:
-		d.line(indent, "VarDecl")
-		d.kv(indent+1, "Var", v.VarKW)
-		d.kv(indent+1, "Name", v.Name)
-		d.kv(indent+1, "View", v.View)
-		d.sliceOrArrayType(indent+1, true, v.Type.Parts)
-		d.kv(indent+1, "Eq", v.Eq)
-		d.expr(v.Elements, indent+1)
-
 	case *SliceExpr:
 		d.expr(v.X, indent+1)
 		d.kv(indent+2, "LBracket", v.LBracket)
@@ -558,39 +525,6 @@ func (d *dumper) node(n any, indent int) {
 		}
 		d.kv(indent+2, "RBracket", v.RBracket)
 
-	case *ArrayType:
-		if v.VarConstKW.Kind == token.KWConst {
-			d.line(indent, "ConstDecl")
-			d.kv(indent+1, "Const", v.VarConstKW)
-		} else {
-			d.line(indent, "VarDecl")
-			d.kv(indent+1, "Var", v.VarConstKW)
-		}
-		d.kv(indent+1, "Name", v.Name)
-		d.sliceOrArrayType(indent+1, true, v.Type.Parts)
-
-		if v.Eq != (token.Token{}) {
-			d.kv(indent+1, "Eq", v.Eq)
-			d.sliceOrArrayType(indent+2, true, v.Elements.Type.Parts)
-			d.kv(indent+2, "LBrace", v.Elements.LBrace)
-			if len(v.Elements.Elements) > 0 {
-				d.line(indent+3, "Elements")
-				for _, v := range v.Elements.Elements {
-					d.expr(v, indent+4)
-				}
-			}
-			d.kv(indent+2, "RBrace", v.Elements.RBrace)
-		}
-
-	case *ArrayViewType:
-		d.line(indent, "VarDecl")
-		d.kv(indent+1, "Var", v.VarKW)
-		d.kv(indent+1, "Name", v.Name)
-		d.kv(indent+1, "View", v.View)
-		d.sliceOrArrayType(indent+1, true, v.Type.Parts)
-		d.kv(indent+1, "Eq", v.Eq)
-		d.expr(v.Elements, indent+1)
-
 	case *TypeRef:
 		d.sliceOrArrayType(indent+1, false, v.Parts)
 
@@ -602,6 +536,48 @@ func (d *dumper) node(n any, indent int) {
 		if v.Func != nil {
 			d.node(v.Func, indent)
 		}
+
+	case *MapType:
+		if v.KindKW.Kind == token.KWMap {
+			d.kv(indent, "Map", v.KindKW)
+		} else {
+			d.kv(indent, "Hashmap", v.KindKW)
+		}
+		d.kv(indent, "LBracket", v.LBracket)
+		d.line(indent, "KeyType:")
+		for _, v := range v.KeyType.Parts {
+			d.kv(indent+1, "Name", v)
+		}
+		d.kv(indent, "RBracket", v.RBracket)
+		d.line(indent, "ValueType:")
+		for _, v := range v.KeyType.Parts {
+			d.kv(indent+1, "Name", v)
+		}
+
+	case *MakeExpr:
+		d.kv(indent, "Make", v.MakeKW)
+		d.kv(indent, "LParen", v.LParen)
+		d.node(v.Type, indent)
+		if len(v.Args) > 0 {
+			d.line(indent, "Size:")
+			d.node(v.Args[0], indent+1)
+			if len(v.Args) == 2 {
+				d.line(indent, "Cap:")
+				d.node(v.Args[1], indent+1)
+			}
+		}
+		d.kv(indent, "RParen", v.RParen)
+
+	case *SliceElementsExpr:
+		d.node(new(v.Type), indent)
+		d.kv(indent, "LBrace", v.LBrace)
+		if len(v.Elements) > 0 {
+			d.line(indent+1, "Elements")
+			for _, x := range v.Elements {
+				d.node(x, indent+2)
+			}
+		}
+		d.kv(indent, "RBrace", v.RBrace)
 
 	default:
 		if n == nil {
@@ -682,7 +658,7 @@ func (d *dumper) typ(n Type, indent int) {
 	case *BadType:
 		d.node(v, indent)
 
-	case *TypeRef:
+	case *TypeRef, *MapType:
 		d.node(v, indent)
 
 	default:
@@ -705,9 +681,7 @@ func (d *dumper) stmt(n Stmt, indent int) {
 	case *BreakStmt, *ContinueStmt, *SwitchStmt, *FallThroughStmt:
 		d.node(v, indent)
 
-	case *StructType, *InterfaceType, *EnumType, *SumType, *SliceType, *SliceViewType:
-		d.node(v, indent)
-	case *ArrayType, *ArrayViewType, *ComptimeType:
+	case *StructType, *InterfaceType, *EnumType, *SumType, *ComptimeType:
 		d.node(v, indent)
 
 	default:
@@ -727,7 +701,7 @@ func (d *dumper) expr(n Expr, indent int) {
 	case *BadExpr, *BinaryExpr, *ParenExpr, *UnaryExpr, *SelectorExpr:
 		d.node(v, indent)
 
-	case *IndexExpr, *CallExpr, *SliceExpr:
+	case *IndexExpr, *CallExpr, *SliceExpr, *MakeExpr, *SliceElementsExpr:
 		d.node(v, indent)
 
 	default:
@@ -741,9 +715,9 @@ func (d *dumper) expr(n Expr, indent int) {
 
 // sliceType returns slice type
 func (d *dumper) sliceOrArrayType(indent int, printType bool, t []token.Token) {
-	if printType {
-		d.line(indent, "Type:")
-	}
+	// if printType {
+	// 	d.line(indent, "Type:")
+	// }
 	x := indent + 1
 	for _, v := range t {
 		switch v.Kind {

@@ -19,7 +19,7 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 	}
 	for p.kind() != token.RParen && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
-			tok := p.next()
+			tok := p.expect(token.Comma, "expected ','")
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadDecl{From: kw, To: tok, Reason: "expected expression not ','"}
 		}
@@ -31,7 +31,7 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 		}
 
 		if p.kind() == token.Comma {
-			_ = p.next()
+			_ = p.expect(token.Comma, "expected ','")
 			if p.kind() == token.RParen || p.kind() == token.EOF {
 				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadDecl{From: kw, To: p.peek(), Reason: "expected expression after ','"}
@@ -180,7 +180,7 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 					btyp := &ast.BadType{
 						From:   lp,
 						To:     p.peek(),
-						Reason: "EEEEexpected ',' after parameter(s)",
+						Reason: "expected ',' after parameter(s)",
 					}
 					result.List = append(result.List, ast.Param{Name: p.peek(), Type: btyp})
 					return result

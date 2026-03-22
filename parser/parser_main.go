@@ -213,9 +213,9 @@ func (p *Parser) lookForInSwitchCaseHeader(k token.Kind) bool {
 	return false
 }
 
-// lookForInSliceViewColonHeader loops against for statements to find
+// lookForInSliceHeader loops against for statements to find
 // provided token Kind and returns true when found
-func (p *Parser) lookForInSliceViewColonHeader(k token.Kind) bool {
+func (p *Parser) lookForInSliceHeader(k token.Kind) bool {
 	pos := p.position
 	if pos >= len(p.Tokens) {
 		return false
@@ -242,18 +242,7 @@ func (p *Parser) ParseFile() *ast.File {
 	for p.kind() != token.EOF {
 		switch p.kind() {
 		case token.KWConst:
-			switch {
-			// const x []int
-			case p.kindNext(p.position+2) == token.LBracket && p.kindNext(p.position+3) == token.RBracket:
-				f.Const = append(f.Const, p.parseSliceDecl())
-
-			// const x [5]int
-			case p.kindNext(p.position+2) == token.LBracket && p.kindNext(p.position+3) == token.IntLit:
-				f.Const = append(f.Const, p.parseArrayDecl())
-
-			default:
-				f.Const = append(f.Const, p.parseConstDecl())
-			}
+			f.Const = append(f.Const, p.parseConstDecl())
 
 		case token.KWFunc:
 			f.Decls = append(f.Decls, p.parseFuncDecl())
@@ -312,41 +301,11 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 // parseStmt returns declaration within parseBlock
 func (p *Parser) parseStmt() ast.Stmt {
 	if p.kind() == token.KWConst {
-		switch {
-		// const x []int
-		case p.kindNext(p.position+2) == token.LBracket && p.kindNext(p.position+3) == token.RBracket:
-			return p.parseSliceDecl()
-
-		// const x [5]int
-		case p.kindNext(p.position+2) == token.LBracket && p.kindNext(p.position+3) == token.IntLit:
-			return p.parseArrayDecl()
-
-		default:
-			return p.parseConstDecl()
-		}
+		return p.parseConstDecl()
 	}
 
 	if p.kind() == token.KWVar {
-		switch {
-		// var x view []int
-		case p.kindNext(p.position+2) == token.KWView && p.kindNext(p.position+3) == token.LBracket && p.kindNext(p.position+4) == token.RBracket:
-			return p.parseSliceViewDecl()
-
-		// var x view [5]int
-		case p.kindNext(p.position+2) == token.KWView && p.kindNext(p.position+3) == token.LBracket && p.kindNext(p.position+4) == token.IntLit:
-			return p.parseArrayViewDecl()
-
-		// var x []int
-		case p.kindNext(p.position+2) == token.LBracket && p.kindNext(p.position+3) == token.RBracket:
-			return p.parseSliceDecl()
-
-		// var x [5]int
-		case p.kindNext(p.position+2) == token.LBracket && p.kindNext(p.position+3) == token.IntLit:
-			return p.parseArrayDecl()
-
-		default:
-			return p.parseVarDecl()
-		}
+		return p.parseVarDecl()
 	}
 
 	if p.kind() == token.KWReturn {
