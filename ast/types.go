@@ -67,7 +67,8 @@ type ConstDeclStmt struct {
 type VarDeclStmt struct {
 	VarKW token.Token // KWVar
 	Name  token.Token // Ident
-	Type  Type        // Optional
+	View  token.Token // Optional
+	Type  Type
 	Eq    token.Token // Assign or Define
 	Init  Expr
 }
@@ -338,28 +339,11 @@ type VariantsMethods struct {
 	Params []Param
 }
 
-type SliceType struct {
-	VarConstKW token.Token
-	Name       token.Token
-	Type       TypeRef
-	Eq         token.Token
-	Elements   SliceElements
-}
-
-type SliceElements struct {
+type SliceElementsExpr struct {
 	Type     TypeRef
 	LBrace   token.Token
 	Elements []Expr
 	RBrace   token.Token
-}
-
-type SliceViewType struct {
-	VarKW    token.Token
-	Name     token.Token
-	View     token.Token
-	Type     TypeRef
-	Eq       token.Token
-	Elements *SliceExpr
 }
 
 type SliceExpr struct {
@@ -371,25 +355,24 @@ type SliceExpr struct {
 	RBracket token.Token
 }
 
-type ArrayType struct {
-	VarConstKW token.Token
-	Name       token.Token
-	Type       TypeRef
-	Eq         token.Token
-	Elements   SliceElements
-}
-
-type ArrayViewType struct {
-	VarKW    token.Token
-	Name     token.Token
-	View     token.Token
-	Type     TypeRef
-	Eq       token.Token
-	Elements *SliceExpr
-}
-
 type ComptimeType struct {
 	Comptime token.Token
 	Const    Stmt
 	Func     Decl
+}
+
+type MapType struct {
+	KindKW    token.Token // map or hashmap
+	LBracket  token.Token
+	KeyType   TypeRef
+	RBracket  token.Token
+	ValueType TypeRef
+}
+
+type MakeExpr struct {
+	MakeKW token.Token
+	LParen token.Token
+	Type   Type
+	Args   []Expr // optional
+	RParen token.Token
 }

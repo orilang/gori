@@ -618,82 +618,36 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(st.RBrace, st.End())
 	})
 
+	//slice_expr_x1
 	t.Run("slice_type_x1", func(t *testing.T) {
-		st := &SliceType{
-			VarConstKW: token.Token{
-				Kind:   token.KWConst,
-				Value:  "const",
-				Line:   1,
-				Column: 1,
-			},
-			Elements: SliceElements{
-				Elements: []Expr{
-					&IntLitExpr{Name: token.Token{
-						Kind:  token.IntLit,
-						Value: "1",
-					}},
-				},
-				RBrace: token.Token{
-					Kind:   token.RBrace,
-					Value:  "}",
-					Line:   5,
-					Column: 1,
+		x := TypeRef{
+			Parts: []token.Token{
+				{
+					Kind:  token.Ident,
+					Value: "x",
 				},
 			},
 		}
-
-		assert.Equal(st.VarConstKW, st.Start())
-		assert.Equal(st.Elements.RBrace, st.End())
-	})
-
-	t.Run("slice_type_x2", func(t *testing.T) {
-		st := &SliceType{
-			VarConstKW: token.Token{
-				Kind:   token.KWConst,
-				Value:  "const",
-				Line:   1,
-				Column: 1,
-			},
+		rb := token.Token{
+			Kind:   token.RBrace,
+			Value:  "}",
+			Line:   5,
+			Column: 1,
 		}
 
-		assert.Equal(st.VarConstKW, st.Start())
-		assert.Equal(token.Token{}, st.End())
-	})
-
-	t.Run("slice_view_type_x1", func(t *testing.T) {
-		st := &SliceViewType{
-			VarKW: token.Token{
-				Kind:   token.KWVar,
-				Value:  "var",
-				Line:   1,
-				Column: 1,
+		st := &SliceElementsExpr{
+			Type: x,
+			Elements: []Expr{
+				&IntLitExpr{Name: token.Token{
+					Kind:  token.IntLit,
+					Value: "1",
+				}},
 			},
-			Elements: &SliceExpr{
-				RBracket: token.Token{
-					Kind:   token.RBracket,
-					Value:  "}",
-					Line:   5,
-					Column: 1,
-				},
-			},
+			RBrace: rb,
 		}
 
-		assert.Equal(st.VarKW, st.Start())
-		assert.Equal(st.Elements.RBracket, st.End())
-	})
-
-	t.Run("slice_view_type_x2", func(t *testing.T) {
-		st := &SliceViewType{
-			VarKW: token.Token{
-				Kind:   token.KWVar,
-				Value:  "var",
-				Line:   1,
-				Column: 1,
-			},
-		}
-
-		assert.Equal(st.VarKW, st.Start())
-		assert.Equal(token.Token{}, st.End())
+		assert.Equal(x.Parts[0], st.Start())
+		assert.Equal(rb, st.End())
 	})
 
 	t.Run("slice_expr_x1", func(t *testing.T) {
@@ -715,84 +669,6 @@ func TestAst_position(t *testing.T) {
 
 		assert.Equal(x, st.Start())
 		assert.Equal(st.RBracket, st.End())
-	})
-
-	t.Run("array_type_x1", func(t *testing.T) {
-		st := &ArrayType{
-			VarConstKW: token.Token{
-				Kind:   token.KWConst,
-				Value:  "const",
-				Line:   1,
-				Column: 1,
-			},
-			Elements: SliceElements{
-				Elements: []Expr{
-					&IntLitExpr{Name: token.Token{
-						Kind:  token.IntLit,
-						Value: "1",
-					}},
-				},
-				RBrace: token.Token{
-					Kind:   token.RBrace,
-					Value:  "}",
-					Line:   5,
-					Column: 1,
-				},
-			},
-		}
-
-		assert.Equal(st.VarConstKW, st.Start())
-		assert.Equal(st.Elements.RBrace, st.End())
-	})
-
-	t.Run("array_type_x2", func(t *testing.T) {
-		st := &ArrayType{
-			VarConstKW: token.Token{
-				Kind:   token.KWConst,
-				Value:  "const",
-				Line:   1,
-				Column: 1,
-			},
-		}
-
-		assert.Equal(st.VarConstKW, st.Start())
-		assert.Equal(token.Token{}, st.End())
-	})
-
-	t.Run("array_view_type_x1", func(t *testing.T) {
-		st := &ArrayViewType{
-			VarKW: token.Token{
-				Kind:   token.KWVar,
-				Value:  "var",
-				Line:   1,
-				Column: 1,
-			},
-			Elements: &SliceExpr{
-				RBracket: token.Token{
-					Kind:   token.RBracket,
-					Value:  "}",
-					Line:   5,
-					Column: 1,
-				},
-			},
-		}
-
-		assert.Equal(st.VarKW, st.Start())
-		assert.Equal(st.Elements.RBracket, st.End())
-	})
-
-	t.Run("array_view_type_x2", func(t *testing.T) {
-		st := &ArrayViewType{
-			VarKW: token.Token{
-				Kind:   token.KWVar,
-				Value:  "var",
-				Line:   1,
-				Column: 1,
-			},
-		}
-
-		assert.Equal(st.VarKW, st.Start())
-		assert.Equal(token.Token{}, st.End())
 	})
 
 	t.Run("type_ref_x1", func(t *testing.T) {
@@ -822,5 +698,55 @@ func TestAst_position(t *testing.T) {
 
 		assert.Equal(token.Token{}, st.Start())
 		assert.Equal(token.Token{}, st.End())
+	})
+
+	t.Run("map_type_x1", func(t *testing.T) {
+		m := token.Token{
+			Kind:   token.KWMap,
+			Value:  "a",
+			Line:   1,
+			Column: 1,
+		}
+
+		x := token.Token{
+			Kind:   token.Ident,
+			Value:  "a",
+			Line:   2,
+			Column: 1,
+		}
+
+		st := &MapType{
+			KindKW: m,
+			ValueType: TypeRef{
+				Parts: []token.Token{x},
+			},
+		}
+
+		assert.Equal(m, st.Start())
+		assert.Equal(x, st.End())
+	})
+
+	t.Run("make_expr_x1", func(t *testing.T) {
+		m := token.Token{
+			Kind:   token.Ident,
+			Value:  "make",
+			Line:   1,
+			Column: 1,
+		}
+
+		x := token.Token{
+			Kind:   token.RParen,
+			Value:  ")",
+			Line:   2,
+			Column: 1,
+		}
+
+		st := &MakeExpr{
+			MakeKW: m,
+			RParen: x,
+		}
+
+		assert.Equal(m, st.Start())
+		assert.Equal(x, st.End())
 	})
 }

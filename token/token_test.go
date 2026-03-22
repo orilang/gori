@@ -288,4 +288,84 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsValidTypeDecl(tc.input))
 		}
 	})
+
+	t.Run("is_slice_type", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWFunc,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsSliceType(tc.input))
+		}
+	})
+
+	t.Run("is_map_type", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWMap,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsMapType(tc.input))
+		}
+	})
+
+	t.Run("is_map_types", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWFunc,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsMapTypes(tc.input))
+		}
+	})
+
+	t.Run("is_map_types", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWMap,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsMakeTypes(tc.input))
+		}
+	})
 }

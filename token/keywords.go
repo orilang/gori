@@ -41,7 +41,6 @@ var keywords = map[string]Kind{
 	"view":        KWView,
 	"shared":      KWShared,
 	"comptime":    KWComptime,
-	"make":        KWMake,
 	"map":         KWMap,
 	"hashmap":     KWHashMap,
 	"nil":         KWNil,
@@ -225,4 +224,35 @@ var sliceTypes = map[Kind]bool{
 	KWFunc:    true,
 	Dot:       true,
 	IntLit:    true,
+}
+
+var mapType = map[Kind]bool{
+	KWMap:     true,
+	KWHashMap: true,
+}
+
+var mapTypes = map[Kind]bool{
+	Ident:     true,
+	KWInt:     true,
+	KWInt8:    true,
+	KWInt32:   true,
+	KWInt64:   true,
+	KWUint:    true,
+	KWUint8:   true,
+	KWUint32:  true,
+	KWUint64:  true,
+	KWFloat:   true,
+	KWFloat32: true,
+	KWFloat64: true,
+	KWString:  true,
+	KWBool:    true,
+	KWFunc:    true,
+	Dot:       true,
+	IntLit:    true,
+}
+
+var makeTypes = map[Kind]bool{
+	LBracket:  true,
+	KWMap:     true,
+	KWHashMap: true,
 }

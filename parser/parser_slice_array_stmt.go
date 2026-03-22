@@ -8,45 +8,6 @@ import (
 	"github.com/orilang/gori/token"
 )
 
-// parseSliceDecl returns parsed slice
-func (p *Parser) parseSliceDecl() *ast.SliceType {
-	st := &ast.SliceType{}
-	if p.kind() == token.KWVar {
-		kwt := p.expect(token.KWVar, "expected 'var'")
-		kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
-
-		st.VarConstKW = kwt
-		st.Name = kwi
-		st.Type = p.parseSliceOrArrayType()
-
-		if p.kind() == token.Assign {
-			st.Eq = p.next()
-			st.Elements = p.parseSliceElements()
-		}
-	} else if p.kind() == token.KWConst {
-		kwt := p.expect(token.KWConst, "expected 'const'")
-		kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
-
-		st.VarConstKW = kwt
-		st.Name = kwi
-		st.Type = p.parseSliceOrArrayType()
-
-		if p.kind() != token.Assign {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected '=', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
-			p.consumeTo(token.EOF)
-			return st
-		}
-
-		st.Eq = p.next()
-		st.Elements = p.parseSliceElements()
-	}
-	if p.kind() == token.SemiComma {
-		_ = p.next()
-	}
-
-	return st
-}
-
 // parseSliceOrArrayType returns slice or array type
 func (p *Parser) parseSliceOrArrayType() ast.TypeRef {
 	var tp ast.TypeRef
@@ -76,11 +37,6 @@ func (p *Parser) parseSliceOrArrayType() ast.TypeRef {
 		}
 		tp.Parts = append(tp.Parts, p.next())
 
-		if p.kind() == token.SemiComma {
-			_ = p.next()
-			break
-		}
-
 		if p.newlineSincePrev() {
 			break
 		}
@@ -90,8 +46,8 @@ func (p *Parser) parseSliceOrArrayType() ast.TypeRef {
 }
 
 // parseSliceElements returns slice elements
-func (p *Parser) parseSliceElements() ast.SliceElements {
-	se := ast.SliceElements{
+func (p *Parser) parseSliceElements() ast.SliceElementsExpr {
+	se := ast.SliceElementsExpr{
 		Type: p.parseSliceOrArrayType(),
 	}
 	lb := p.expect(token.LBrace, "expected '{'")
@@ -101,7 +57,7 @@ func (p *Parser) parseSliceElements() ast.SliceElements {
 		se.Elements = append(se.Elements, p.parseExpr(LOWEST))
 
 		if p.kind() == token.Comma {
-			_ = p.next()
+			_ = p.expect(token.Comma, "expected ','")
 			continue
 		}
 		if p.kind() == token.RBrace {
@@ -111,30 +67,12 @@ func (p *Parser) parseSliceElements() ast.SliceElements {
 
 	rb := p.expect(token.RBrace, "expected '}'")
 	se.RBrace = rb
-	return se
-}
-
-// parseSliceViewDecl returns parsed slice view
-func (p *Parser) parseSliceViewDecl() *ast.SliceViewType {
-	kwt := p.expect(token.KWVar, "expected 'var'")
-	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
-	kwv := p.expect(token.KWView, "expected 'view'")
-
-	st := &ast.SliceViewType{
-		VarKW: kwt,
-		Name:  kwi,
-		View:  kwv,
-		Type:  p.parseSliceOrArrayType(),
-	}
-
-	st.Eq = p.expect(token.Assign, "expected '='")
-	st.Elements = p.parseSliceExpr(p.parsePrefix())
 
 	if p.kind() == token.SemiComma {
-		_ = p.next()
+		_ = p.expect(token.SemiComma, "expected ';'")
 	}
 
-	return st
+	return se
 }
 
 // parseSliceExpr returns expressions for parsePostfix func
@@ -165,67 +103,10 @@ func (p *Parser) parseSliceExpr(left ast.Expr) *ast.SliceExpr {
 		x.High = p.parseExpr(LOWEST)
 	}
 	x.RBracket = p.expect(token.RBracket, "RBracket expected ']'")
+
+	if p.kind() == token.SemiComma {
+		_ = p.expect(token.SemiComma, "expected ';'")
+	}
+
 	return x
-}
-
-// parseArrayDecl returns parsed array
-func (p *Parser) parseArrayDecl() *ast.ArrayType {
-	st := &ast.ArrayType{}
-	if p.kind() == token.KWVar {
-		kwt := p.expect(token.KWVar, "expected 'var'")
-		kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
-
-		st.VarConstKW = kwt
-		st.Name = kwi
-		st.Type = p.parseSliceOrArrayType()
-
-		if p.kind() == token.Assign {
-			st.Eq = p.next()
-			st.Elements = p.parseSliceElements()
-		}
-	} else if p.kind() == token.KWConst {
-		kwt := p.expect(token.KWConst, "expected 'const'")
-		kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
-
-		st.VarConstKW = kwt
-		st.Name = kwi
-		st.Type = p.parseSliceOrArrayType()
-
-		if p.kind() != token.Assign {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected '=', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
-			p.consumeTo(token.EOF)
-			return st
-		}
-
-		st.Eq = p.next()
-		st.Elements = p.parseSliceElements()
-	}
-	if p.kind() == token.SemiComma {
-		_ = p.next()
-	}
-
-	return st
-}
-
-// parseArrayViewDecl returns parsed array view
-func (p *Parser) parseArrayViewDecl() *ast.ArrayViewType {
-	kwt := p.expect(token.KWVar, "expected 'var'")
-	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
-	kwv := p.expect(token.KWView, "expected 'view'")
-
-	st := &ast.ArrayViewType{
-		VarKW: kwt,
-		Name:  kwi,
-		View:  kwv,
-		Type:  p.parseSliceOrArrayType(),
-	}
-
-	st.Eq = p.expect(token.Assign, "expected '='")
-	st.Elements = p.parseSliceExpr(p.parsePrefix())
-
-	if p.kind() == token.SemiComma {
-		_ = p.next()
-	}
-
-	return st
 }

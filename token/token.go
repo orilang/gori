@@ -79,3 +79,18 @@ func IsValidTypeDecl(k Kind) bool {
 func IsSliceType(k Kind) bool {
 	return sliceTypes[k]
 }
+
+// IsMapType returns true when the provided kind found
+func IsMapType(k Kind) bool {
+	return mapType[k]
+}
+
+// IsMapTypes returns true when the provided kind found
+func IsMapTypes(k Kind) bool {
+	return mapTypes[k]
+}
+
+// IsMakeTypes returns true when the provided kind found
+func IsMakeTypes(k Kind) bool {
+	return makeTypes[k]
+}
