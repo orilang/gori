@@ -23,13 +23,30 @@ func TestLexer_lexer(t *testing.T) {
 		assert.ErrorIs(lex.StartLexing(), syscall.Errno(2))
 	})
 
-	t.Run("success", func(t *testing.T) {
+	t.Run("success_files", func(t *testing.T) {
 		workingDir, err := os.Getwd()
 		assert.Nil(err)
 
 		lex, err := NewLexer(Config{Directory: filepath.Join(workingDir, "..", "testdata/success")})
 		assert.Nil(err)
 		assert.Nil(lex.StartLexing())
+	})
+
+	t.Run("success_start_lexing_from_string", func(t *testing.T) {
+		lex, err := NewLexer(Config{StringOnly: true})
+		assert.Nil(err)
+		lex.StartLexingFromString("package main")
+	})
+
+	t.Run("success_fetch_tokens_from_string", func(t *testing.T) {
+		lex, err := NewLexer(Config{StringOnly: true})
+		assert.Nil(err)
+		result := []token.Token{
+			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
+			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+			{Kind: token.EOF, Value: "", Line: 2, Column: 1},
+		}
+		assert.Equal(result, lex.FetchTokensFromString("package main\n"))
 	})
 
 	t.Run("illegal", func(t *testing.T) {

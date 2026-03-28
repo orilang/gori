@@ -9,6 +9,9 @@ type Config struct {
 	// File to parse
 	File string
 
+	// StringOnly returns config for strings management only
+	StringOnly bool
+
 	// Directory to take as input and list files to parse
 	Directory string
 
