@@ -92,56 +92,56 @@ func TestAst_dump(t *testing.T) {
 	t.Run("decl_nil", func(t *testing.T) {
 		var b bytes.Buffer
 		d := dumper{w: &b}
-		d.decl(nil, 0)
+		d.decl(0, nil)
 		assert.Equal("(nil decl)\n", b.String())
 	})
 
 	t.Run("decl_not_nil", func(t *testing.T) {
 		var b bytes.Buffer
 		d := dumper{w: &b}
-		d.decl(&dumpType{}, 0)
+		d.decl(0, &dumpType{})
 		assert.Equal("<<unhandled decl *ast.dumpType>>\n", b.String())
 	})
 
 	t.Run("typ_nil", func(t *testing.T) {
 		var b bytes.Buffer
 		d := dumper{w: &b}
-		d.typ(nil, 0)
+		d.typ(0, nil)
 		assert.Equal("(nil type)\n", b.String())
 	})
 
 	t.Run("typ_not_nil", func(t *testing.T) {
 		var b bytes.Buffer
 		d := dumper{w: &b}
-		d.typ(&dumpType{}, 0)
+		d.typ(0, &dumpType{})
 		assert.Equal("<<unhandled type *ast.dumpType>>\n", b.String())
 	})
 
 	t.Run("stmt_nil", func(t *testing.T) {
 		var b bytes.Buffer
 		d := dumper{w: &b}
-		d.stmt(nil, 0)
+		d.stmt(0, nil)
 		assert.Equal("(nil stmt)\n", b.String())
 	})
 
 	t.Run("stmt_not_nil", func(t *testing.T) {
 		var b bytes.Buffer
 		d := dumper{w: &b}
-		d.stmt(&dumpType{}, 0)
+		d.stmt(0, &dumpType{})
 		assert.Equal("<<unhandled stmt *ast.dumpType>>\n", b.String())
 	})
 
 	t.Run("expr_nil", func(t *testing.T) {
 		var b bytes.Buffer
 		d := dumper{w: &b}
-		d.expr(nil, 0)
+		d.expr(0, nil)
 		assert.Equal("(nil expr)\n", b.String())
 	})
 
 	t.Run("expr_not_nil", func(t *testing.T) {
 		var b bytes.Buffer
 		d := dumper{w: &b}
-		d.expr(&dumpType{}, 0)
+		d.expr(0, &dumpType{})
 		assert.Equal("<<unhandled expr *ast.dumpType>>\n", b.String())
 	})
 
