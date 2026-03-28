@@ -10,6 +10,12 @@ import (
 
 // NewLexer returns files config to StartLexing
 func NewLexer(config Config) (*Files, error) {
+	if config.StringOnly {
+		return &Files{
+			output: config.Output,
+		}, nil
+	}
+
 	w, err := walk.Walk(walk.Config{File: config.File, Directory: config.Directory})
 	if err != nil {
 		return nil, err
@@ -21,7 +27,7 @@ func NewLexer(config Config) (*Files, error) {
 	}, nil
 }
 
-// StartLexing ranges over files to tokenization
+// StartLexing ranges over files for tokenization
 func (f *Files) StartLexing() error {
 	for _, file := range f.Files {
 		data, err := os.ReadFile(file)
@@ -39,6 +45,26 @@ func (f *Files) StartLexing() error {
 		}
 	}
 	return nil
+}
+
+// StartLexingFromString transforms data passed for tokenization
+func (f *Files) StartLexingFromString(s string) {
+	l := New([]byte(s))
+	l.Tokenize()
+
+	if f.output {
+		for _, v := range l.Tokens {
+			fmt.Printf("Kind %d value %s line %d column %d\n", v.Kind, v.Value, v.Line, v.Column)
+		}
+	}
+}
+
+// FetchTokensFromString returns tokenization results from string
+func (f *Files) FetchTokensFromString(s string) []token.Token {
+	l := New([]byte(s))
+	l.Tokenize()
+
+	return l.Tokens
 }
 
 // New is used to issue an input to later be used by Tokenize
