@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/orilang/gori/ast"
-	"github.com/orilang/gori/token"
+	"github.com/orilang/gori/lexer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,65 +12,29 @@ func TestParser_parser_make_cap(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("map_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 1},
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "main", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 10},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
-			{Kind: token.KWVar, Value: "var", Line: 4, Column: 3},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 7},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 9},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 12},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 13},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 19},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 20},
-			{Kind: token.Assign, Value: "=", Line: 4, Column: 27},
-			{Kind: token.Ident, Value: "make", Line: 4, Column: 29},
-			{Kind: token.LParen, Value: "(", Line: 4, Column: 33},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 34},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 37},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 38},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 44},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 45},
-			{Kind: token.RParen, Value: ")", Line: 4, Column: 51},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWVar, Value: "var", Line: 5, Column: 3},
-			{Kind: token.Ident, Value: "y", Line: 5, Column: 7},
-			{Kind: token.KWHashMap, Value: "hashmap", Line: 5, Column: 9},
-			{Kind: token.LBracket, Value: "[", Line: 5, Column: 16},
-			{Kind: token.KWString, Value: "string", Line: 5, Column: 17},
-			{Kind: token.RBracket, Value: "]", Line: 5, Column: 23},
-			{Kind: token.KWString, Value: "string", Line: 5, Column: 24},
-			{Kind: token.Assign, Value: "=", Line: 5, Column: 31},
-			{Kind: token.Ident, Value: "make", Line: 5, Column: 29},
-			{Kind: token.LParen, Value: "(", Line: 5, Column: 33},
-			{Kind: token.KWHashMap, Value: "hashmap", Line: 5, Column: 38},
-			{Kind: token.LBracket, Value: "[", Line: 5, Column: 37},
-			{Kind: token.KWString, Value: "string", Line: 5, Column: 38},
-			{Kind: token.RBracket, Value: "]", Line: 5, Column: 44},
-			{Kind: token.KWString, Value: "string", Line: 5, Column: 45},
-			{Kind: token.RParen, Value: ")", Line: 5, Column: 51},
-			{Kind: token.RBrace, Value: "}", Line: 6, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 7, Column: 1},
-		}
-
-		parser := New(input)
+func main() {
+  var x map[string]string = make(map[string]string)
+  var y hashmap[string]string = make(hashmap[string]string)
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
- Name: "main" @1:1 (kind=3)
+ Name: "main" @1:9 (kind=3)
  Decls
   FuncDecl
-   Function: "func" @3:9 (kind=10)
+   Function: "func" @3:1 (kind=10)
    Name: "main" @3:6 (kind=3)
    Params
     (none)
    Body
     BlockStmt
-     LBrace: "{" @3:12 (kind=41)
+     LBrace: "{" @3:13 (kind=41)
      Stmts
       VarDeclStmt
        Var: "var" @4:3 (kind=11)
@@ -108,62 +72,40 @@ func TestParser_parser_make_cap(t *testing.T) {
          Name: "string" @5:17 (kind=24)
        Eq: "=" @5:31 (kind=49)
        Init
-        Make: "make" @5:29 (kind=3)
-        LParen: "(" @5:33 (kind=39)
+        Make: "make" @5:33 (kind=3)
+        LParen: "(" @5:37 (kind=39)
         Hashmap: "hashmap" @5:38 (kind=80)
-        LBracket: "[" @5:37 (kind=43)
+        LBracket: "[" @5:45 (kind=43)
         KeyType:
-         Name: "string" @5:38 (kind=24)
-        RBracket: "]" @5:44 (kind=44)
+         Name: "string" @5:46 (kind=24)
+        RBracket: "]" @5:52 (kind=44)
         ValueType:
-         Name: "string" @5:38 (kind=24)
-        RParen: ")" @5:51 (kind=40)
+         Name: "string" @5:46 (kind=24)
+        RParen: ")" @5:59 (kind=40)
      RBrace: "}" @6:1 (kind=42)
 `
+
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
 
 	t.Run("map_x2", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 1},
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "main", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 10},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
-			{Kind: token.KWVar, Value: "var", Line: 4, Column: 3},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 7},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 9},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 12},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 13},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 19},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 20},
-			{Kind: token.Assign, Value: "=", Line: 4, Column: 27},
-			{Kind: token.Ident, Value: "make", Line: 4, Column: 29},
-			{Kind: token.LParen, Value: "(", Line: 4, Column: 33},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 34},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 37},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 38},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 44},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 45},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 46},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 47},
-			{Kind: token.RParen, Value: ")", Line: 4, Column: 49},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.RBrace, Value: "}", Line: 6, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 7, Column: 1},
-		}
-
-		parser := New(input)
+func main(){
+  var x map[string]string = make(map[string]string,10)
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
- Name: "main" @1:1 (kind=3)
+ Name: "main" @1:9 (kind=3)
  Decls
   FuncDecl
-   Function: "func" @3:9 (kind=10)
+   Function: "func" @3:1 (kind=10)
    Name: "main" @3:6 (kind=3)
    Params
     (none)
@@ -195,238 +137,120 @@ func TestParser_parser_make_cap(t *testing.T) {
          Name: "string" @4:38 (kind=24)
         Size:
          IntLitExpr
-          Value: "10" @4:47 (kind=4)
-        RParen: ")" @4:49 (kind=40)
-     RBrace: "}" @6:1 (kind=42)
+          Value: "10" @4:52 (kind=4)
+        RParen: ")" @4:54 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
 
 	t.Run("slice_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 1},
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "main", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 10},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
-			{Kind: token.KWVar, Value: "var", Line: 4, Column: 3},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 7},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 12},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 19},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 20},
-			{Kind: token.Assign, Value: "=", Line: 4, Column: 27},
-			{Kind: token.Ident, Value: "make", Line: 4, Column: 29},
-			{Kind: token.LParen, Value: "(", Line: 4, Column: 33},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 37},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 44},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 45},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 46},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 47},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 49},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 50},
-			{Kind: token.RParen, Value: ")", Line: 4, Column: 52},
-			{Kind: token.SemiComma, Value: ";", Line: 4, Column: 53},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.RBrace, Value: "}", Line: 6, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 7, Column: 1},
-		}
-
-		parser := New(input)
+func main() {
+  var x []string = make([]string,10,10);
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
- Name: "main" @1:1 (kind=3)
+ Name: "main" @1:9 (kind=3)
  Decls
   FuncDecl
-   Function: "func" @3:9 (kind=10)
+   Function: "func" @3:1 (kind=10)
    Name: "main" @3:6 (kind=3)
    Params
     (none)
    Body
     BlockStmt
-     LBrace: "{" @3:12 (kind=41)
+     LBrace: "{" @3:13 (kind=41)
      Stmts
       VarDeclStmt
        Var: "var" @4:3 (kind=11)
        Name: "x" @4:7 (kind=3)
        Type
-          LBracket: "[" @4:12 (kind=43)
-          RBracket: "]" @4:19 (kind=44)
-          Ident: "string" @4:20 (kind=24)
-       Eq: "=" @4:27 (kind=49)
+          LBracket: "[" @4:9 (kind=43)
+          RBracket: "]" @4:10 (kind=44)
+          Ident: "string" @4:11 (kind=24)
+       Eq: "=" @4:18 (kind=49)
        Init
-        Make: "make" @4:29 (kind=3)
-        LParen: "(" @4:33 (kind=39)
-          LBracket: "[" @4:37 (kind=43)
-          RBracket: "]" @4:44 (kind=44)
-          Ident: "string" @4:45 (kind=24)
+        Make: "make" @4:20 (kind=3)
+        LParen: "(" @4:24 (kind=39)
+          LBracket: "[" @4:25 (kind=43)
+          RBracket: "]" @4:26 (kind=44)
+          Ident: "string" @4:27 (kind=24)
         Size:
          IntLitExpr
-          Value: "10" @4:47 (kind=4)
+          Value: "10" @4:34 (kind=4)
         Cap:
          IntLitExpr
-          Value: "10" @4:50 (kind=4)
-        RParen: ")" @4:52 (kind=40)
-     RBrace: "}" @6:1 (kind=42)
+          Value: "10" @4:37 (kind=4)
+        RParen: ")" @4:39 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
 
 	t.Run("bad_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 1},
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "main", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 10},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
-			{Kind: token.KWVar, Value: "var", Line: 4, Column: 3},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 7},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 9},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 12},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 13},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 19},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 20},
-			{Kind: token.Assign, Value: "=", Line: 4, Column: 27},
-			{Kind: token.Ident, Value: "make", Line: 4, Column: 29},
-			{Kind: token.LParen, Value: "(", Line: 4, Column: 33},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 34},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 37},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 38},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 44},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 45},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 49},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 50},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 53},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 56},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 57},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 60},
-			{Kind: token.RParen, Value: ")", Line: 4, Column: 51},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 6, Column: 1},
-		}
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-		parser := New(input)
+func main() {
+  var x map[string]string = make(map[string]string,10,10,10)
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_x2", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 1},
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "main", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 10},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
-			{Kind: token.KWVar, Value: "var", Line: 4, Column: 3},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 7},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 9},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 12},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 13},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 19},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 20},
-			{Kind: token.Assign, Value: "=", Line: 4, Column: 27},
-			{Kind: token.Ident, Value: "make", Line: 4, Column: 29},
-			{Kind: token.LParen, Value: "(", Line: 4, Column: 33},
-			{Kind: token.Ident, Value: "mmap", Line: 4, Column: 34},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 37},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 38},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 44},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 45},
-			{Kind: token.RParen, Value: ")", Line: 4, Column: 51},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 6, Column: 1},
-		}
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-		parser := New(input)
+func main() {
+  var x map[string]string = make(mmap[string]string)
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_x3", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 1},
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "main", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 10},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
-			{Kind: token.KWVar, Value: "var", Line: 4, Column: 3},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 7},
-			{Kind: token.Ident, Value: "test", Line: 4, Column: 9},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 12},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 13},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 19},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 20},
-			{Kind: token.Assign, Value: "=", Line: 4, Column: 27},
-			{Kind: token.Ident, Value: "make", Line: 4, Column: 29},
-			{Kind: token.LParen, Value: "(", Line: 4, Column: 33},
-			{Kind: token.Ident, Value: "mmap", Line: 4, Column: 34},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 37},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 38},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 44},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 45},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 46},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 49},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 50},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 53},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 56},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 57},
-			{Kind: token.IntLit, Value: "10", Line: 4, Column: 60},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 45},
-			{Kind: token.RParen, Value: ")", Line: 4, Column: 51},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 6, Column: 1},
-		}
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-		parser := New(input)
+func main() {
+  var x test[string]string = make(mmap[string]string 10,10,10,10 "string")
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_x4", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 1},
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "main", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 10},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 12},
-			{Kind: token.KWVar, Value: "var", Line: 4, Column: 3},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 7},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 9},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 12},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 13},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 19},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 20},
-			{Kind: token.Assign, Value: "=", Line: 4, Column: 27},
-			{Kind: token.Ident, Value: "make", Line: 4, Column: 29},
-			{Kind: token.LParen, Value: "(", Line: 4, Column: 33},
-			{Kind: token.KWMap, Value: "map", Line: 4, Column: 34},
-			{Kind: token.LBracket, Value: "[", Line: 4, Column: 37},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 38},
-			{Kind: token.RBracket, Value: "]", Line: 4, Column: 44},
-			{Kind: token.KWString, Value: "string", Line: 4, Column: 45},
-			{Kind: token.Comma, Value: ",", Line: 4, Column: 49},
-			{Kind: token.StringLit, Value: "plop", Line: 4, Column: 50},
-			{Kind: token.RParen, Value: ")", Line: 4, Column: 51},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 6, Column: 1},
-		}
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-		parser := New(input)
+func main() {
+  var x map[string]string = make(map[string]string,"plop")
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)

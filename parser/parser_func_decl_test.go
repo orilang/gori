@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/orilang/gori/ast"
-	"github.com/orilang/gori/token"
+	"github.com/orilang/gori/lexer"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -12,21 +12,14 @@ func TestParser_func_decl(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("return_types_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 14},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()int{
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -41,7 +34,7 @@ func TestParser_func_decl(t *testing.T) {
      Param
       Type
        NameType
-        Name: "int" @3:10 (kind=12)
+        Name: "int" @3:9 (kind=12)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -49,25 +42,14 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("return_types_x2", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 14},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 15},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 19},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 20},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(int,int){
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -87,8 +69,8 @@ func TestParser_func_decl(t *testing.T) {
      Param
       Type
        NameType
-        Name: "int" @3:15 (kind=12)
-    RParent: ")" @3:19 (kind=40)
+        Name: "int" @3:14 (kind=12)
+    RParent: ")" @3:17 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -96,27 +78,13 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("return_types_x3", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 12},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 19},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a int,b int){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -135,11 +103,11 @@ func TestParser_func_decl(t *testing.T) {
        NameType
         Name: "int" @3:12 (kind=12)
      Param
-      Ident: "b" @3:17 (kind=3)
+      Ident: "b" @3:16 (kind=3)
       Type
        NameType
-        Name: "int" @3:19 (kind=12)
-    RParent: ")" @3:20 (kind=40)
+        Name: "int" @3:18 (kind=12)
+    RParent: ")" @3:21 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -147,20 +115,13 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("return_types_x4", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 11},
-			{Kind: token.RBrace, Value: "}", Line: 3, Column: 12},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x(){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -178,27 +139,13 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("return_types_x5", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.Ident, Value: "z", Line: 3, Column: 12},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.Ident, Value: "z", Line: 3, Column: 19},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a z, b z){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -217,11 +164,11 @@ func TestParser_func_decl(t *testing.T) {
        NameType
         Name: "z" @3:12 (kind=3)
      Param
-      Ident: "b" @3:17 (kind=3)
+      Ident: "b" @3:15 (kind=3)
       Type
        NameType
-        Name: "z" @3:19 (kind=3)
-    RParent: ")" @3:20 (kind=40)
+        Name: "z" @3:17 (kind=3)
+    RParent: ")" @3:18 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -229,24 +176,13 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("return_types_x6", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.Ident, Value: "z", Line: 3, Column: 12},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 13},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 14},
-			{Kind: token.RBrace, Value: "}", Line: 3, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a z){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -272,26 +208,13 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("return_types_x7", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.LBracket, Value: "[", Line: 3, Column: 12},
-			{Kind: token.RBracket, Value: "]", Line: 3, Column: 13},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 14},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 18},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 19},
-			{Kind: token.RBrace, Value: "}", Line: 3, Column: 20},
-			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a []int){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -310,7 +233,7 @@ func TestParser_func_decl(t *testing.T) {
          LBracket: "[" @3:12 (kind=43)
          RBracket: "]" @3:13 (kind=44)
          Ident: "int" @3:14 (kind=12)
-    RParent: ")" @3:18 (kind=40)
+    RParent: ")" @3:17 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -318,23 +241,13 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("return_types_x8", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LBracket, Value: "[", Line: 3, Column: 10},
-			{Kind: token.RBracket, Value: "]", Line: 3, Column: 11},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 12},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 16},
-			{Kind: token.RBrace, Value: "}", Line: 3, Column: 17},
-			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
-		}
-
-		parser := New(input)
+func x()[]int{}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -348,9 +261,9 @@ func TestParser_func_decl(t *testing.T) {
    Results
      Param
       Type
-         LBracket: "[" @3:10 (kind=43)
-         RBracket: "]" @3:11 (kind=44)
-         Ident: "int" @3:12 (kind=12)
+         LBracket: "[" @3:9 (kind=43)
+         RBracket: "]" @3:10 (kind=44)
+         Ident: "int" @3:11 (kind=12)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -358,29 +271,13 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("return_types_x9", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.LBracket, Value: "[", Line: 3, Column: 10},
-			{Kind: token.RBracket, Value: "]", Line: 3, Column: 11},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 12},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.LBracket, Value: "[", Line: 3, Column: 17},
-			{Kind: token.RBracket, Value: "]", Line: 3, Column: 18},
-			{Kind: token.KWInt, Value: "string", Line: 3, Column: 19},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 26},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 27},
-			{Kind: token.RBrace, Value: "}", Line: 3, Column: 28},
-			{Kind: token.EOF, Value: "", Line: 4, Column: 1},
-		}
-
-		parser := New(input)
+func x()([]int,[]string){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -400,10 +297,10 @@ func TestParser_func_decl(t *testing.T) {
          Ident: "int" @3:12 (kind=12)
      Param
       Type
-         LBracket: "[" @3:17 (kind=43)
-         RBracket: "]" @3:18 (kind=44)
-         Ident: "string" @3:19 (kind=12)
-    RParent: ")" @3:26 (kind=40)
+         LBracket: "[" @3:16 (kind=43)
+         RBracket: "]" @3:17 (kind=44)
+         Ident: "string" @3:18 (kind=24)
+    RParent: ")" @3:24 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -411,27 +308,17 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("struct_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 9},
-			{Kind: token.KWType, Value: "type", Line: 4, Column: 1},
-			{Kind: token.Ident, Value: "test", Line: 4, Column: 6},
-			{Kind: token.KWStruct, Value: "struct", Line: 4, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 18},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 20},
-			{Kind: token.KWInt, Value: "int", Line: 4, Column: 22},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 19},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 9},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x(){
+  type test struct {
+	  x int
+	}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -446,41 +333,31 @@ func TestParser_func_decl(t *testing.T) {
     BlockStmt
      LBrace: "{" @3:9 (kind=41)
      Stmts
-      Type: "type" @4:1 (kind=26)
-      Name: "test" @4:6 (kind=3)
-      Struct: "struct" @4:11 (kind=27)
-      LBrace: "{" @4:18 (kind=41)
-       Name: "x" @4:20 (kind=3)
+      Type: "type" @4:3 (kind=26)
+      Name: "test" @4:8 (kind=3)
+      Struct: "struct" @4:13 (kind=27)
+      LBrace: "{" @4:20 (kind=41)
+       Name: "x" @5:4 (kind=3)
        Type:
         NameType
-         Name: "int" @4:22 (kind=12)
-      RBrace: "}" @4:19 (kind=42)
-     RBrace: "}" @5:9 (kind=42)
+         Name: "int" @5:6 (kind=12)
+      RBrace: "}" @6:2 (kind=42)
+     RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
 
 	t.Run("interface_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 9},
-			{Kind: token.KWType, Value: "type", Line: 4, Column: 1},
-			{Kind: token.Ident, Value: "test", Line: 4, Column: 6},
-			{Kind: token.KWInterface, Value: "interface", Line: 4, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 22},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 23},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 9},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x(){
+  type test interface {}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -495,38 +372,29 @@ func TestParser_func_decl(t *testing.T) {
     BlockStmt
      LBrace: "{" @3:9 (kind=41)
      Stmts
-      Type: "type" @4:1 (kind=26)
-      Name: "test" @4:6 (kind=3)
-      Interface: "interface" @4:11 (kind=28)
-      LBrace: "{" @4:22 (kind=41)
-      RBrace: "}" @4:23 (kind=42)
-     RBrace: "}" @5:9 (kind=42)
+      Type: "type" @4:3 (kind=26)
+      Name: "test" @4:8 (kind=3)
+      Interface: "interface" @4:13 (kind=28)
+      LBrace: "{" @4:23 (kind=41)
+      RBrace: "}" @4:24 (kind=42)
+     RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
 
 	t.Run("enum_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 9},
-			{Kind: token.KWType, Value: "type", Line: 4, Column: 1},
-			{Kind: token.Ident, Value: "Color", Line: 4, Column: 6},
-			{Kind: token.KWEnum, Value: "enum", Line: 4, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 17},
-			{Kind: token.Ident, Value: "Red", Line: 5, Column: 5},
-			{Kind: token.RBrace, Value: "}", Line: 6, Column: 1},
-			{Kind: token.RBrace, Value: "}", Line: 7, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 9, Column: 1},
-		}
-
-		parser := New(input)
+func x(){
+  type Color enum {
+	  Red
+	}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -541,14 +409,14 @@ func TestParser_func_decl(t *testing.T) {
     BlockStmt
      LBrace: "{" @3:9 (kind=41)
      Stmts
-      Type: "type" @4:1 (kind=26)
-       Name: "Color" @4:6 (kind=3)
+      Type: "type" @4:3 (kind=26)
+       Name: "Color" @4:8 (kind=3)
        Public: true
-       Enum: "enum" @4:11 (kind=74)
-       LBrace: "{" @4:17 (kind=41)
+       Enum: "enum" @4:14 (kind=74)
+       LBrace: "{" @4:19 (kind=41)
        Variants
-        Ident: "Red" @5:5 (kind=3)
-       RBrace: "}" @6:1 (kind=42)
+        Ident: "Red" @5:4 (kind=3)
+       RBrace: "}" @6:2 (kind=42)
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -556,30 +424,17 @@ func TestParser_func_decl(t *testing.T) {
 	})
 
 	t.Run("sum_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 9},
-			{Kind: token.KWType, Value: "type", Line: 4, Column: 1},
-			{Kind: token.Ident, Value: "Share", Line: 4, Column: 6},
-			{Kind: token.KWSum, Value: "sum", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "Circle", Line: 4, Column: 3},
-			{Kind: token.LParen, Value: "(", Line: 4, Column: 9},
-			{Kind: token.Ident, Value: "radius", Line: 4, Column: 10},
-			{Kind: token.KWInt, Value: "float", Line: 4, Column: 17},
-			{Kind: token.RParen, Value: ")", Line: 4, Column: 22},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 1},
-			{Kind: token.RBrace, Value: "}", Line: 6, Column: 1},
-			{Kind: token.EOF, Value: "", Line: 7, Column: 1},
-		}
-
-		parser := New(input)
+func x(){
+  type Shape sum {
+	  Circle(radius float)
+	}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		result := `File
  Package: "package" @1:1 (kind=8)
@@ -594,500 +449,268 @@ func TestParser_func_decl(t *testing.T) {
     BlockStmt
      LBrace: "{" @3:9 (kind=41)
      Stmts
-      Type: "type" @4:1 (kind=26)
-       Name: "Share" @4:6 (kind=3)
-       Sum: "sum" @3:11 (kind=75)
+      Type: "type" @4:3 (kind=26)
+       Name: "Shape" @4:8 (kind=3)
+       Sum: "sum" @4:14 (kind=75)
       Public: true
-       LBrace: "{" @3:16 (kind=41)
+       LBrace: "{" @4:18 (kind=41)
         VariantMethods
-         Methods: "Circle" @4:3 (kind=3)
+         Methods: "Circle" @5:4 (kind=3)
           Params
            Param
-            Ident: "radius" @4:10 (kind=3)
+            Ident: "radius" @5:11 (kind=3)
             Type
              NameType
-              Name: "float" @4:17 (kind=12)
-       RBrace: "}" @5:1 (kind=42)
-     RBrace: "}" @6:1 (kind=42)
+              Name: "float" @5:18 (kind=20)
+       RBrace: "}" @6:2 (kind=42)
+     RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
 	})
 
 	t.Run("bad_return_types_x1", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 9},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 14},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x(),int{}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x2", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 14},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 15},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 16},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(int,,int){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x3", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 12},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a int,b){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x4", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 10},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 11},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 12},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x5", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 10},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 11},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 12},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 18},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 19},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 20},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(,a int,b){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x6", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 10},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 11},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 12},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 18},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 19},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 20},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()int,{}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x7", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 9},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 10},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 11},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 12},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a int,b,){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x8", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 11},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 18},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 19},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 20},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 21},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a int,b b b){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x9", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 11},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 19},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 20},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 21},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 22},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 23},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a int,b b,){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x10", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 11},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 19},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 20},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 21},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 22},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 23},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a int,b return){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x11", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 12},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.KWReturn, Value: "return", Line: 3, Column: 19},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a int,b return){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x12", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.KWReturn, Value: "return", Line: 3, Column: 19},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 21},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 22},
-			{Kind: token.KWReturn, Value: "return", Line: 3, Column: 24},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 25},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 26},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a return,b return){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x13", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.KWStruct, Value: "struct", Line: 3, Column: 10},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 14},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x() struct {}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x14", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 14},
-			{Kind: token.KWStruct, Value: "struct", Line: 3, Column: 16},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 24},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 25},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(int, struct){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x15", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
-			{Kind: token.KWStruct, Value: "struct", Line: 3, Column: 16},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 24},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 25},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(int struct){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x16", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 10},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 14},
-			{Kind: token.KWInt, Value: "int", Line: 3, Column: 16},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 17},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 24},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 25},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(int,int,){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x17", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.Comma, Value: ",", Line: 3, Column: 16},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.Ident, Value: "z", Line: 3, Column: 19},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a, b z){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x18", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "_", Line: 3, Column: 10},
-			{Kind: token.Ident, Value: "b", Line: 3, Column: 17},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(_ b){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
 	})
 
 	t.Run("bad_return_types_x19", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWFunc, Value: "func", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "x", Line: 3, Column: 6},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 7},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 8},
-			{Kind: token.LParen, Value: "(", Line: 3, Column: 9},
-			{Kind: token.Ident, Value: "a", Line: 3, Column: 10},
-			{Kind: token.Ident, Value: "_", Line: 3, Column: 17},
-			{Kind: token.RParen, Value: ")", Line: 3, Column: 20},
-			{Kind: token.LBrace, Value: "{", Line: 4, Column: 21},
-			{Kind: token.RBrace, Value: "}", Line: 4, Column: 15},
-			{Kind: token.EOF, Value: "", Line: 5, Column: 1},
-		}
-
-		parser := New(input)
+func x()(a _){}
+`
+		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
 		assert.Greater(len(parser.errors), 0)
