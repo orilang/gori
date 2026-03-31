@@ -33,7 +33,7 @@ func TestLexer_lexer(t *testing.T) {
 	})
 
 	t.Run("success_start_lexing_from_string", func(t *testing.T) {
-		lex, err := NewLexer(Config{StringOnly: true})
+		lex, err := NewLexer(Config{StringOnly: true, Output: true})
 		assert.Nil(err)
 		lex.StartLexingFromString("package main")
 	})
