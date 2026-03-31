@@ -131,6 +131,7 @@ func main() {
   var pi float64 = 3.14
   var pi2 float64 = 3.14 // comment
   var pi3 float64 = 3.141_592_653_59
+  var 123pi float64 = 3.141_592_653_59
   var pix float64 = .14
   var piy float64 = 3_14
 
@@ -224,6 +225,12 @@ func main() {
 
 			{Kind: token.KWVar, Value: "var"},
 			{Kind: token.Ident, Value: "pi3"},
+			{Kind: token.KWFloat64, Value: "float64"},
+			{Kind: token.Assign, Value: "="},
+			{Kind: token.FloatLit, Value: "3.141_592_653_59"},
+
+			{Kind: token.KWVar, Value: "var"},
+			{Kind: token.Ident, Value: "123pi"},
 			{Kind: token.KWFloat64, Value: "float64"},
 			{Kind: token.Assign, Value: "="},
 			{Kind: token.FloatLit, Value: "3.141_592_653_59"},
