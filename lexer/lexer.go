@@ -276,7 +276,7 @@ func (l *Lexer) Tokenize() {
 			} else {
 				line, column := l.line, l.column
 				tok = append(tok, v)
-				l.newToken(token.Illegal, tok, line, column)
+				l.newToken(token.Ident, tok, line, column)
 				l.advance(1, false)
 			}
 
