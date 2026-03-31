@@ -114,7 +114,7 @@ func (p *Parser) expect(k token.Kind, msg string) token.Token {
 
 // expect compares the current token with the provided token Kind.
 // If not found, and error will be append to errors list.
-// It will validate ident matching ^(a-zA-Z)?(0-9)?_ .
+// It will validate ident matching ^[a-zA-Z][a-zA-Z0-9_]? .
 // If forbidBlankIdentifier is set and the ident value is an underscore,
 // an error will be raised
 func (p *Parser) expectValidIdent(k token.Kind, forbidBlankIdentifier bool, msg string) token.Token {
@@ -128,18 +128,9 @@ func (p *Parser) expectValidIdent(k token.Kind, forbidBlankIdentifier bool, msg 
 			p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
 		} else {
 			ch := tok.Value[0]
-			// checking if ident starts with _123 or 123abcd
-			if len(tok.Value) > 1 && (ch == '_' || ch >= '0' && ch <= '9') {
+			// checking if ident starts with 123abcd
+			if len(tok.Value) > 1 && ch >= '0' && ch <= '9' {
 				p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
-			}
-
-			// check if we find non ascii characters
-			for i := range tok.Value {
-				v := tok.Value[i]
-				x := v == '_' || (v >= '0' && v <= '9') || (v >= 'a' && v <= 'z') || (v >= 'A' && v <= 'Z')
-				if !x {
-					p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
-				}
 			}
 		}
 	}

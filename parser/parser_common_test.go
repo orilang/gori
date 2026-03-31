@@ -34,9 +34,7 @@ func TestParser_parse_common(t *testing.T) {
 	})
 
 	t.Run("match_true", func(t *testing.T) {
-		input := "package"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("package"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		_, ok := parse.match(token.KWPackage)
@@ -56,9 +54,7 @@ func TestParser_parse_common(t *testing.T) {
 	})
 
 	t.Run("expect_ok", func(t *testing.T) {
-		input := "package"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("package"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		_ = parse.expect(token.KWPackage, "ok")
@@ -67,9 +63,7 @@ func TestParser_parse_common(t *testing.T) {
 	})
 
 	t.Run("expect_errors", func(t *testing.T) {
-		input := "package"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("package"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		tok := parse.expect(token.Illegal, "nok")
@@ -78,45 +72,35 @@ func TestParser_parse_common(t *testing.T) {
 	})
 
 	t.Run("peekPrecedence_lowest", func(t *testing.T) {
-		input := "package"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("package"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(LOWEST, parse.peekPrecedence())
 	})
 
 	t.Run("peekPrecedence_multiplicative", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(MULTIPLICATIVE, parse.peekPrecedence())
 	})
 
 	t.Run("look_for_x1", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(false, parse.lookForInForHeader(token.Comma))
 	})
 
 	t.Run("look_for_x2", func(t *testing.T) {
-		input := "a 1"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("a 1"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(true, parse.lookForInForHeader(token.IntLit))
 	})
 
 	t.Run("look_for_x3", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		parse.position = len(lex.Tokens)
@@ -124,27 +108,21 @@ func TestParser_parse_common(t *testing.T) {
 	})
 
 	t.Run("look_for_in_switch_header_x1", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(false, parse.lookForInSwitchHeader(token.SemiComma))
 	})
 
 	t.Run("look_for_in_switch_header_x2", func(t *testing.T) {
-		input := "switch x:=f();x"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("switch x:=f();x"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(true, parse.lookForInSwitchHeader(token.SemiComma))
 	})
 
 	t.Run("look_for_in_switch_header_x3", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		parse.position = len(lex.Tokens)
@@ -152,27 +130,21 @@ func TestParser_parse_common(t *testing.T) {
 	})
 
 	t.Run("look_for_in_switch_case_header_x1", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(false, parse.lookForInSwitchCaseHeader(token.Comma))
 	})
 
 	t.Run("look_for_in_switch_case_header_x2", func(t *testing.T) {
-		input := "case 1,2"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("case 1,2"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(true, parse.lookForInSwitchCaseHeader(token.Comma))
 	})
 
 	t.Run("look_for_in_switch_case_header_x3", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		parse.position = len(lex.Tokens)
@@ -201,20 +173,15 @@ func TestParser_parse_common(t *testing.T) {
 	})
 
 	t.Run("new_line_since_prev_true", func(t *testing.T) {
-		input := []token.Token{
-			{Kind: token.KWPackage, Value: "package", Line: 1, Column: 1},
-			{Kind: token.Ident, Value: "main", Line: 1, Column: 9},
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
 
-			{Kind: token.KWType, Value: "type", Line: 3, Column: 1},
-			{Kind: token.Ident, Value: "test", Line: 3, Column: 6},
-			{Kind: token.KWStruct, Value: "struct", Line: 3, Column: 11},
-			{Kind: token.LBrace, Value: "{", Line: 3, Column: 18},
-			{Kind: token.Ident, Value: "x", Line: 4, Column: 18},
-			{Kind: token.KWInt, Value: "int", Line: 4, Column: 18},
-			{Kind: token.RBrace, Value: "}", Line: 5, Column: 19},
-			{Kind: token.EOF, Value: "", Line: 6, Column: 1},
-		}
-		p := New(input)
+type test struct{
+  x int
+}
+`
+		p := New(lex.FetchTokensFromString(data))
 		p.position = 6
 		assert.Equal(true, p.newlineSincePrev())
 	})
@@ -226,27 +193,21 @@ func TestParser_parse_common(t *testing.T) {
 	})
 
 	t.Run("look_for_in_slice_view_colon_header_x1", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(false, parse.lookForInSliceHeader(token.Comma))
 	})
 
 	t.Run("look_for_in_slice_view_colon_header_x2", func(t *testing.T) {
-		input := "[:]"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("[:]"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		assert.Equal(true, parse.lookForInSliceHeader(token.Colon))
 	})
 
 	t.Run("look_for_in_slice_view_colon_header_x3", func(t *testing.T) {
-		input := "*"
-
-		lex := lexer.New([]byte(input))
+		lex := lexer.New([]byte("*"))
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		parse.position = len(lex.Tokens)
