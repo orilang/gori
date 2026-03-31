@@ -693,9 +693,7 @@ func main() {
 			{Kind: token.Illegal, Value: "|"},
 			{Kind: token.IntLit, Value: "1"},
 
-			// _ here is only temporary
-			// in future tests it won't be
-			{Kind: token.Illegal, Value: "_"},
+			{Kind: token.Ident, Value: "_"},
 			{Kind: token.Define, Value: ":="},
 			{Kind: token.IntLit, Value: "1"},
 

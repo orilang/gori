@@ -164,6 +164,9 @@ func (d *dumper) node(indent int, n any) {
 		d.line(indent, "VarDeclStmt")
 		d.kv(indent+1, "Var", v.VarKW)
 		d.kv(indent+1, "Name", v.Name)
+		if v.View != (token.Token{}) {
+			d.kv(indent+1, "View", v.View)
+		}
 
 		d.line(indent+1, "Type")
 		if v.Type == nil {
@@ -601,6 +604,9 @@ func (d *dumper) kv(indent int, key string, t token.Token) {
 
 // fmtTok returns token content with line, column etc
 func fmtTok(t token.Token) string {
+	if strings.Contains(t.Value, `"`) {
+		return fmt.Sprintf("%s @%d:%d (kind=%d)", t.Value, t.Line, t.Column, t.Kind)
+	}
 	return fmt.Sprintf("%q @%d:%d (kind=%d)", t.Value, t.Line, t.Column, t.Kind)
 }
 
