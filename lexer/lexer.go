@@ -399,13 +399,16 @@ func (l *Lexer) identOrKeyword() {
 // number parses the token and appends token list
 func (l *Lexer) number() {
 	var (
-		tok            []byte
-		dot, undescore int
-		prev           byte
-		illegal        bool
+		tok              []byte
+		dot, undescore   int
+		prev             byte
+		illegal, isIdent bool
 	)
 	line, column := l.line, l.column
 	for i, v := range l.input[l.position:] {
+		if isLetter(v) {
+			isIdent = true
+		}
 		if v == '.' || v == '_' {
 			if i > 0 && ((prev == '.' && v == '_') || (prev == '_' && v == '.') || (prev == '_' && v == '_')) {
 				illegal = true
@@ -416,7 +419,7 @@ func (l *Lexer) number() {
 			if v == '_' {
 				undescore++
 			}
-		} else if !isDigit(v) {
+		} else if !isDigit(v) && !isLetter(v) {
 			break
 		}
 		prev = v
@@ -449,6 +452,8 @@ func (l *Lexer) number() {
 			}
 			l.newToken(token.IntLit, tok, line, column)
 
+		case isIdent:
+			l.newToken(token.Ident, tok, line, column)
 		default:
 			l.newToken(token.IntLit, tok, line, column)
 		}
