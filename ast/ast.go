@@ -2,115 +2,58 @@ package ast
 
 import "github.com/orilang/gori/token"
 
-func (*FuncDecl) declNode() {}
+func (*FuncDecl) declNode()          {}
+func (*dumpType) declNode()          {}
+func (*BadDecl) declNode()           {}
+func (*ConstDecl) declNode()         {}
+func (*VarDecl) declNode()           {}
+func (*BadType) declNode()           {}
+func (*StructDecl) declNode()        {}
+func (*InterfaceDecl) declNode()     {}
+func (*EnumDecl) declNode()          {}
+func (*SumDecl) declNode()           {}
+func (*ComptimeBlockDecl) declNode() {}
+func (*ImplementsDecl) declNode()    {}
 
-// func (*FuncDecl) stmtNode() {}
-
-func (*dumpType) declNode() {}
-
-func (*dumpType) stmtNode() {}
-func (*dumpType) typeNode() {}
-
-func (*dumpType) exprNode() {}
-
-func (*BadDecl) declNode() {}
-
-// func (*BadDecl) stmtNode() {}
-
-func (*BlockStmt) stmtNode() {}
-
-func (*ConstDecl) declNode() {}
-
-// func (*ConstDecl) stmtNode() {}
-
-func (*VarDecl) declNode() {}
-
-// func (*VarDecl) stmtNode() {}
-
-// func (*IdentExpr) stmtNode() {}
-func (*IdentExpr) exprNode() {}
-
-func (*BadType) typeNode() {}
-
-// func (*BadType) stmtNode() {}
-func (*BadType) declNode() {}
-
-func (*IntLitExpr) exprNode() {}
-
-func (*FloatLitExpr) exprNode() {}
-
-func (*BoolLitExpr) exprNode() {}
-
-func (*StringLitExpr) exprNode() {}
-
-func (*ParenExpr) exprNode() {}
-func (*BadExpr) exprNode()   {}
-
-func (*BinaryExpr) exprNode()   {}
-func (*UnaryExpr) exprNode()    {}
-func (*SelectorExpr) exprNode() {}
-
-func (*IndexExpr) exprNode()  {}
-func (*CallExpr) exprNode()   {}
-func (*AssignStmt) stmtNode() {}
-
-func (*ExprStmt) stmtNode() {}
-func (*BadStmt) stmtNode()  {}
-
-func (*ReturnStmt) stmtNode() {}
-func (*IfStmt) stmtNode()     {}
-func (*ForStmt) stmtNode()    {}
-
-func (*RangeStmt) stmtNode() {}
-
-func (*IncDecStmt) stmtNode() {}
-
-func (*BreakStmt) stmtNode() {}
-
-func (*ContinueStmt) stmtNode() {}
-
-func (*SwitchStmt) stmtNode() {}
-
-// func (*CaseClause) stmtNode()      {}
-func (*FallThroughStmt) stmtNode() {}
-
-func (*StructDecl) declNode() {}
-
-// func (*StructDecl) stmtNode() {}
-
-func (*InterfaceDecl) declNode() {}
-
-// func (*InterfaceDecl) stmtNode() {}
-
-func (*EnumDecl) declNode() {}
-
-// func (*EnumDecl) stmtNode() {}
-
-func (*SumDecl) declNode() {}
-
-// func (*SumDecl) stmtNode() {}
-
-func (*SliceExpr) exprNode() {}
-
+func (*dumpType) typeNode()  {}
+func (*BadType) typeNode()   {}
 func (*NamedType) typeNode() {}
-
 func (*SliceType) typeNode() {}
 func (*ArrayType) typeNode() {}
+func (*MapType) typeNode()   {}
 
-func (*DeclStmt) stmtNode() {}
+func (*dumpType) exprNode()      {}
+func (*IdentExpr) exprNode()     {}
+func (*IntLitExpr) exprNode()    {}
+func (*FloatLitExpr) exprNode()  {}
+func (*BoolLitExpr) exprNode()   {}
+func (*StringLitExpr) exprNode() {}
+func (*ParenExpr) exprNode()     {}
+func (*BadExpr) exprNode()       {}
+func (*BinaryExpr) exprNode()    {}
+func (*UnaryExpr) exprNode()     {}
+func (*SelectorExpr) exprNode()  {}
+func (*IndexExpr) exprNode()     {}
+func (*CallExpr) exprNode()      {}
+func (*SliceExpr) exprNode()     {}
+func (*MakeExpr) exprNode()      {}
+func (*SliceLitExpr) exprNode()  {}
 
-func (*ComptimeBlockDecl) declNode() {}
-
-// func (*ComptimeBlockDecl) stmtNode() {}
-
-func (*ImplementsDecl) declNode() {}
-
-// func (*ImplementsDecl) stmtNode() {}
-
-func (*MapType) typeNode() {}
-
-func (*MakeExpr) exprNode()     {}
-func (*SliceLitExpr) exprNode() {}
+func (*dumpType) stmtNode()        {}
+func (*BlockStmt) stmtNode()       {}
+func (*AssignStmt) stmtNode()      {}
+func (*ExprStmt) stmtNode()        {}
+func (*BadStmt) stmtNode()         {}
+func (*ReturnStmt) stmtNode()      {}
+func (*IfStmt) stmtNode()          {}
+func (*ForStmt) stmtNode()         {}
+func (*RangeStmt) stmtNode()       {}
+func (*IncDecStmt) stmtNode()      {}
+func (*BreakStmt) stmtNode()       {}
+func (*ContinueStmt) stmtNode()    {}
+func (*SwitchStmt) stmtNode()      {}
+func (*FallThroughStmt) stmtNode() {}
+func (*DeclStmt) stmtNode()        {}
 
 func (x *FuncDecl) Start() token.Token {
 	return x.FuncKW
