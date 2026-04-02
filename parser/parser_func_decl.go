@@ -52,13 +52,11 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 func (p *Parser) parseFuncParam(forbidBlankIdentifier bool) ast.Param {
 	name := p.expectValidIdent(token.Ident, forbidBlankIdentifier, "expected parameter identifier")
 	if p.kind() == token.LBracket && p.kindNext(p.position+1) == token.RBracket {
-		x := p.parseSliceOrArrayType()
-		return ast.Param{Name: name, Type: &x}
+		return ast.Param{Name: name, Type: p.parseSliceOrArrayType()}
 	}
 
 	if p.kind() == token.LBracket && p.kindNext(p.position+1) == token.IntLit && p.kindNext(p.position+2) == token.RBracket {
-		x := p.parseSliceOrArrayType()
-		return ast.Param{Name: name, Type: &x}
+		return ast.Param{Name: name, Type: p.parseSliceOrArrayType()}
 	}
 
 	typ, btyp, bad := p.parseFuncParamType(true)
@@ -69,16 +67,16 @@ func (p *Parser) parseFuncParam(forbidBlankIdentifier bool) ast.Param {
 }
 
 // parseFuncParamType returns func parameter type
-func (p *Parser) parseFuncParamType(forbidBlankIdentifier bool) (*ast.NameType, *ast.BadType, bool) {
-	typ := &ast.NameType{}
+func (p *Parser) parseFuncParamType(forbidBlankIdentifier bool) (*ast.NamedType, *ast.BadType, bool) {
+	typ := &ast.NamedType{}
 	btyp := &ast.BadType{}
 	var bad bool
 
 	if token.IsFuncParamTypes(p.kind()) {
 		if p.kind() == token.Ident {
-			typ.Name = p.expectValidIdent(p.kind(), forbidBlankIdentifier, "expected valid ident")
+			typ.Parts = append(typ.Parts, p.expectValidIdent(p.kind(), forbidBlankIdentifier, "expected valid ident"))
 		} else {
-			typ.Name = p.next()
+			typ.Parts = append(typ.Parts, p.next())
 		}
 	} else {
 		tok := p.next()
@@ -164,8 +162,7 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 			// entering into kind: (type, type)
 			for p.kind() != token.RParen && p.kind() != token.LBrace && p.kind() != token.EOF {
 				if p.kind() == token.LBracket {
-					x := p.parseSliceOrArrayType()
-					result.List = append(result.List, ast.Param{Type: &x})
+					result.List = append(result.List, ast.Param{Type: p.parseSliceOrArrayType()})
 				} else {
 					typ, btyp, bad := p.parseFuncParamType(true)
 					if bad {
@@ -218,8 +215,7 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 	}
 
 	if p.kind() == token.LBracket {
-		x := p.parseSliceOrArrayType()
-		result.List = append(result.List, ast.Param{Type: &x})
+		result.List = append(result.List, ast.Param{Type: p.parseSliceOrArrayType()})
 	} else {
 		typ, btyp, bad := p.parseFuncParamType(true)
 		if bad {

@@ -71,8 +71,8 @@ func x(a z){
     Param
      Ident: "a" @3:8 (kind=3)
      Type
-      NameType
-       Name: "z" @3:10 (kind=3)
+      NamedType
+       Ident: "z" @3:10 (kind=3)
    Body
     BlockStmt
      LBrace: "{" @3:12 (kind=41)
@@ -117,8 +117,8 @@ func x(a z){
     Param
      Ident: "a" @3:8 (kind=3)
      Type
-      NameType
-       Name: "z" @3:10 (kind=3)
+      NamedType
+       Ident: "z" @3:10 (kind=3)
    Body
     BlockStmt
      LBrace: "{" @3:12 (kind=41)
@@ -243,8 +243,10 @@ func x(a []int){
     Param
      Ident: "a" @3:8 (kind=3)
      Type
-        LBracket: "[" @3:10 (kind=43)
-        RBracket: "]" @3:11 (kind=44)
+      SliceType:
+       LBracket: "[" @3:10 (kind=43)
+       RBracket: "]" @3:11 (kind=44)
+       NamedType
         Ident: "int" @3:12 (kind=12)
    Body
     BlockStmt
@@ -284,9 +286,12 @@ func x(a [5]int){
     Param
      Ident: "a" @3:8 (kind=3)
      Type
-        LBracket: "[" @3:10 (kind=43)
-        Size: "5" @3:11 (kind=4)
-        RBracket: "]" @3:12 (kind=44)
+      ArrayType:
+       LBracket: "[" @3:10 (kind=43)
+       IntLitExpr
+        Value: "5" @3:11 (kind=4)
+       RBracket: "]" @3:12 (kind=44)
+       NamedType
         Ident: "int" @3:13 (kind=12)
    Body
     BlockStmt
@@ -326,8 +331,8 @@ func x(_ z){
     Param
      Ident: "_" @3:8 (kind=3)
      Type
-      NameType
-       Name: "z" @3:10 (kind=3)
+      NamedType
+       Ident: "z" @3:10 (kind=3)
    Body
     BlockStmt
      LBrace: "{" @3:12 (kind=41)

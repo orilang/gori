@@ -8,13 +8,13 @@ import (
 )
 
 // parseEnumDecl is in charge of parsing enum type
-func (p *Parser) parseEnumDecl() *ast.EnumType {
+func (p *Parser) parseEnumDecl() ast.Decl {
 	kwp := p.expect(token.KWType, "expected 'type'")
 	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kwe := p.expect(token.KWEnum, "expected 'enum'")
 	lbrace := p.expect(token.LBrace, "expected '{'")
 
-	ed := &ast.EnumType{
+	ed := &ast.EnumDecl{
 		TypeDecl: kwp,
 		Name:     kwi,
 		Public:   isPublic(kwi),

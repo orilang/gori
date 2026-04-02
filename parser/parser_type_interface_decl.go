@@ -8,13 +8,13 @@ import (
 )
 
 // parseInterfaceType returns parsed interface
-func (p *Parser) parseInterfaceType() *ast.InterfaceType {
+func (p *Parser) parseInterfaceDecl() ast.Decl {
 	kwt := p.expect(token.KWType, "expected 'type'")
 	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kws := p.expect(token.KWInterface, "expected 'interface'")
 	lbrace := p.expect(token.LBrace, "expected '{'")
 
-	it := &ast.InterfaceType{
+	it := &ast.InterfaceDecl{
 		TypeDecl:  kwt,
 		Name:      kwi,
 		Public:    isPublic(kwi),
@@ -60,11 +60,11 @@ func (p *Parser) parseInterfaceType() *ast.InterfaceType {
 }
 
 // parseFuncSignature returns function signature for interface
-func (p *Parser) parseFuncSignature() ast.InterfaceMethods {
+func (p *Parser) parseFuncSignature() ast.InterfaceMethod {
 	name := p.expectValidIdent(token.Ident, true, "expected function name")
 	_ = p.expect(token.LParen, "expected '(' after function name")
 
-	f := ast.InterfaceMethods{
+	f := ast.InterfaceMethod{
 		Name: name,
 	}
 	for p.kind() != token.RParen && p.kind() != token.EOF {
@@ -105,12 +105,12 @@ func (p *Parser) parseFuncSignatureParam() ast.Param {
 }
 
 // parseFuncSignatureParamType returns func parameter type
-func (p *Parser) parseFuncSignatureParamType() *ast.NameType {
-	typ := &ast.NameType{}
+func (p *Parser) parseFuncSignatureParamType() ast.Type {
+	typ := &ast.NamedType{}
 	tok := p.next()
 
 	if token.IsFuncParamTypes(tok.Kind) {
-		typ.Name = tok
+		typ.Parts = append(typ.Parts, tok)
 	} else {
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		p.consumeTo(token.RParen)
@@ -190,19 +190,19 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 }
 
 // parseInterfaceTypeEmbbed returns embbed signature for interface
-func (p *Parser) parseInterfaceTypeEmbbed() ast.TypeRef {
+func (p *Parser) parseInterfaceTypeEmbbed() ast.Type {
 	kw := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 
-	tr := ast.TypeRef{}
-	tr.Parts = append(tr.Parts, kw)
+	nt := &ast.NamedType{}
+	nt.Parts = append(nt.Parts, kw)
 	if p.kind() == token.Dot {
-		tr.Parts = append(tr.Parts, p.next())
+		nt.Parts = append(nt.Parts, p.next())
 		if p.kind() != token.Ident {
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ident after '.', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.RBrace)
-			return tr
+			return nt
 		}
-		tr.Parts = append(tr.Parts, p.next())
+		nt.Parts = append(nt.Parts, p.next())
 	}
-	return tr
+	return nt
 }

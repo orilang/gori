@@ -329,7 +329,7 @@ func TestToken(t *testing.T) {
 		}
 	})
 
-	t.Run("is_map_types", func(t *testing.T) {
+	t.Run("is_map_types_x1", func(t *testing.T) {
 		tests := []struct {
 			input    Kind
 			expected bool
@@ -349,7 +349,7 @@ func TestToken(t *testing.T) {
 		}
 	})
 
-	t.Run("is_map_types", func(t *testing.T) {
+	t.Run("is_map_types_x2", func(t *testing.T) {
 		tests := []struct {
 			input    Kind
 			expected bool

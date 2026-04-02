@@ -11,10 +11,10 @@ import (
 func (p *Parser) parseForStmtExpr() ast.Stmt {
 	ftok := p.expect(token.KWFor, "expected 'for'")
 	fstmt := &ast.ForStmt{
-		For: ftok,
+		ForKW: ftok,
 	}
 	rstmt := &ast.RangeStmt{
-		For: ftok,
+		ForKW: ftok,
 	}
 
 	// infinite loop

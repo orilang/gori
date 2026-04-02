@@ -8,13 +8,13 @@ import (
 )
 
 // parseSumDecl returns parsed sum
-func (p *Parser) parseSumDecl() *ast.SumType {
+func (p *Parser) parseSumDecl() ast.Decl {
 	kwt := p.expect(token.KWType, "expected 'type'")
 	kwi := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kws := p.expect(token.KWSum, "expected 'sum'")
 	lbrace := p.expect(token.LBrace, "expected '{'")
 
-	st := &ast.SumType{
+	st := &ast.SumDecl{
 		TypeDecl: kwt,
 		Name:     kwi,
 		Public:   isPublic(kwi),
@@ -31,9 +31,9 @@ func (p *Parser) parseSumDecl() *ast.SumType {
 
 		if p.kind() == token.Ident {
 			if p.kindNext(p.position+1) == token.LParen {
-				st.Methods = append(st.Methods, p.parseSumFuncSignature())
+				st.Variants = append(st.Variants, p.parseSumFuncSignature())
 			} else {
-				st.Variants = append(st.Variants, p.next())
+				st.Variants = append(st.Variants, ast.SumVariant{Name: p.next()})
 			}
 		}
 
@@ -59,7 +59,7 @@ func (p *Parser) parseSumDecl() *ast.SumType {
 		p.consumeTo(token.RBrace)
 	}
 
-	if len(st.Variants) == 0 && len(st.Methods) == 0 {
+	if len(st.Variants) == 0 {
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected variant(s) or variant method(s) inside braces, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		p.consumeTo(token.RBrace)
 		return st
@@ -72,11 +72,11 @@ func (p *Parser) parseSumDecl() *ast.SumType {
 }
 
 // parseFuncSignature returns function signature for interface
-func (p *Parser) parseSumFuncSignature() ast.VariantsMethods {
+func (p *Parser) parseSumFuncSignature() ast.SumVariant {
 	name := p.expectValidIdent(token.Ident, true, "expected function name")
 	_ = p.expect(token.LParen, "expected '(' after function name")
 
-	f := ast.VariantsMethods{
+	f := ast.SumVariant{
 		Name: name,
 	}
 	for p.kind() != token.RParen && p.kind() != token.EOF {
@@ -121,14 +121,14 @@ func (p *Parser) parseSumFuncSignatureParam() ast.Param {
 }
 
 // parseFuncSignatureParamType returns func parameter type
-func (p *Parser) parseSumFuncSignatureParamType() *ast.NameType {
-	typ := &ast.NameType{}
+func (p *Parser) parseSumFuncSignatureParamType() ast.Type {
+	typ := &ast.NamedType{}
 
 	if token.IsFuncParamTypes(p.kind()) {
 		if p.kind() == token.Ident {
-			typ.Name = p.expectValidIdent(p.kind(), true, "expected valid ident")
+			typ.Parts = append(typ.Parts, p.expectValidIdent(p.kind(), true, "expected valid ident"))
 		} else {
-			typ.Name = p.next()
+			typ.Parts = append(typ.Parts, p.next())
 		}
 	} else {
 		tok := p.next()

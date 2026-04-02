@@ -68,8 +68,8 @@ func x(a z){
     Param
      Ident: "a" @3:8 (kind=3)
      Type
-      NameType
-       Name: "z" @3:10 (kind=3)
+      NamedType
+       Ident: "z" @3:10 (kind=3)
    Body
     BlockStmt
      LBrace: "{" @3:12 (kind=41)
@@ -111,8 +111,8 @@ func x(a z){
     Param
      Ident: "a" @3:8 (kind=3)
      Type
-      NameType
-       Name: "z" @3:10 (kind=3)
+      NamedType
+       Ident: "z" @3:10 (kind=3)
    Body
     BlockStmt
      LBrace: "{" @3:12 (kind=41)

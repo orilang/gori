@@ -775,7 +775,8 @@ func x(){
         BlockStmt
          LBrace: "{" @4:6 (kind=41)
          Stmts
-          Break: "break" @5:4 (kind=32)
+          BreakStmt
+           Break: "break" @5:4 (kind=32)
          RBrace: "}" @6:2 (kind=42)
      RBrace: "}" @7:1 (kind=42)
 `
@@ -814,7 +815,8 @@ func x(){
         BlockStmt
          LBrace: "{" @4:6 (kind=41)
          Stmts
-          Continue: "continue" @5:4 (kind=33)
+          ContinueStmt
+           Continue: "continue" @5:4 (kind=33)
          RBrace: "}" @6:2 (kind=42)
      RBrace: "}" @7:1 (kind=42)
 `
@@ -863,7 +865,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Break: "break" @6:6 (kind=32)
+              BreakStmt
+               Break: "break" @6:6 (kind=32)
              RBrace: "}" @7:2 (kind=42)
          RBrace: "}" @8:2 (kind=42)
      RBrace: "}" @9:1 (kind=42)
@@ -913,7 +916,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:8 (kind=41)
              Stmts
-              Break: "break" @6:6 (kind=32)
+              BreakStmt
+               Break: "break" @6:6 (kind=32)
              RBrace: "}" @7:3 (kind=42)
          RBrace: "}" @8:2 (kind=42)
      RBrace: "}" @9:1 (kind=42)
@@ -963,7 +967,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Continue: "continue" @6:6 (kind=33)
+              ContinueStmt
+               Continue: "continue" @6:6 (kind=33)
              RBrace: "}" @7:3 (kind=42)
          RBrace: "}" @8:2 (kind=42)
      RBrace: "}" @9:1 (kind=42)
@@ -1014,7 +1019,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Continue: "continue" @6:6 (kind=33)
+              ContinueStmt
+               Continue: "continue" @6:6 (kind=33)
               CallExpr
                Callee
                 IdentExpr
@@ -1070,7 +1076,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Continue: "continue" @6:6 (kind=33)
+              ContinueStmt
+               Continue: "continue" @6:6 (kind=33)
               CallExpr
                Callee
                 IdentExpr
@@ -1127,7 +1134,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Break: "break" @6:6 (kind=32)
+              BreakStmt
+               Break: "break" @6:6 (kind=32)
               CallExpr
                Callee
                 IdentExpr
@@ -1183,7 +1191,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Break: "break" @6:6 (kind=32)
+              BreakStmt
+               Break: "break" @6:6 (kind=32)
               CallExpr
                Callee
                 IdentExpr
@@ -1240,7 +1249,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Break: "break" @6:6 (kind=32)
+              BreakStmt
+               Break: "break" @6:6 (kind=32)
               CallExpr
                Callee
                 IdentExpr
@@ -1299,7 +1309,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Break: "break" @6:6 (kind=32)
+              BreakStmt
+               Break: "break" @6:6 (kind=32)
               CallExpr
                Callee
                 IdentExpr
@@ -1356,7 +1367,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Continue: "continue" @6:6 (kind=33)
+              ContinueStmt
+               Continue: "continue" @6:6 (kind=33)
               CallExpr
                Callee
                 IdentExpr
@@ -1415,7 +1427,8 @@ func x(){
             BlockStmt
              LBrace: "{" @5:9 (kind=41)
              Stmts
-              Continue: "continue" @6:6 (kind=33)
+              ContinueStmt
+               Continue: "continue" @6:6 (kind=33)
               CallExpr
                Callee
                 IdentExpr

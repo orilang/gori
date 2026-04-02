@@ -7,21 +7,23 @@ import (
 	"github.com/orilang/gori/token"
 )
 
-// parseComptimeStmt returns comptime expression
-func (p *Parser) parseComptimeStmt() ast.Stmt {
+// parseComptimeBlockDecl returns comptime expression
+func (p *Parser) parseComptimeBlockDecl() ast.Decl {
 	x := p.expect(token.KWComptime, "expected 'comptime'")
 	if p.kind() == token.KWConst {
-		return &ast.ComptimeType{
-			Comptime: x,
-			Const:    p.parseConstDecl(),
+		c := &ast.ComptimeBlockDecl{
+			ComptimeKW: x,
 		}
+		c.Decls = append(c.Decls, p.parseConstDecl())
+		return c
 	}
 
 	if p.kind() == token.KWFunc {
-		return &ast.ComptimeType{
-			Comptime: x,
-			Func:     p.parseFuncDecl(),
+		c := &ast.ComptimeBlockDecl{
+			ComptimeKW: x,
 		}
+		c.Decls = append(c.Decls, p.parseFuncDecl())
+		return c
 	}
 
 	p.errors = append(p.errors, fmt.Errorf("%d:%d: expected 'const' or 'func', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))

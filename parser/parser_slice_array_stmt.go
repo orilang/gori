@@ -9,17 +9,12 @@ import (
 )
 
 // parseSliceOrArrayType returns slice or array type
-func (p *Parser) parseSliceOrArrayType() ast.TypeRef {
-	var tp ast.TypeRef
-	lb := p.expect(token.LBracket, "expected '['")
-	if p.kind() == token.IntLit {
-		size := p.expect(token.IntLit, "expected 'intLit'")
-		rb := p.expect(token.RBracket, "expected ']'")
-		tp.Parts = append(tp.Parts, lb, size, rb)
-	} else {
-		rb := p.expect(token.RBracket, "expected ']'")
-		tp.Parts = append(tp.Parts, lb, rb)
-	}
+func (p *Parser) parseSliceOrArrayType() ast.Type {
+	var (
+		slice ast.SliceType
+		array ast.ArrayType
+		nt    ast.NamedType
+	)
 	kindList := []token.Kind{
 		token.Comma,
 		token.SemiComma,
@@ -29,25 +24,55 @@ func (p *Parser) parseSliceOrArrayType() ast.TypeRef {
 		token.EOF,
 	}
 
+	lb := p.expect(token.LBracket, "expected '['")
+	if p.kind() == token.IntLit {
+		array.LBracket = lb
+		size := p.parseExpr(LOWEST)
+		rb := p.expect(token.RBracket, "expected ']'")
+		array.Len = size
+		array.RBracket = rb
+
+		for !slices.Contains(kindList, p.kind()) {
+			if !token.IsSliceType(p.kind()) {
+				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected array type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				p.consumeTo(token.EOF)
+				return &array
+			}
+			nt.Parts = append(nt.Parts, p.next())
+
+			if p.newlineSincePrev() {
+				break
+			}
+		}
+
+		array.Elem = &nt
+		return &array
+	}
+
+	rb := p.expect(token.RBracket, "expected ']'")
+	slice.LBracket = lb
+	slice.RBracket = rb
+
 	for !slices.Contains(kindList, p.kind()) {
 		if !token.IsSliceType(p.kind()) {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected slice/array type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected slice type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.EOF)
-			return tp
+			return &slice
 		}
-		tp.Parts = append(tp.Parts, p.next())
+		nt.Parts = append(nt.Parts, p.next())
 
 		if p.newlineSincePrev() {
 			break
 		}
 	}
 
-	return tp
+	slice.Elem = &nt
+	return &slice
 }
 
 // parseSliceElements returns slice elements
-func (p *Parser) parseSliceElements() ast.SliceElementsExpr {
-	se := ast.SliceElementsExpr{
+func (p *Parser) parseSliceElements() *ast.SliceLitExpr {
+	se := &ast.SliceLitExpr{
 		Type: p.parseSliceOrArrayType(),
 	}
 	lb := p.expect(token.LBrace, "expected '{'")
