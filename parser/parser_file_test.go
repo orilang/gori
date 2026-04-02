@@ -40,18 +40,17 @@ func main(){
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- ConstDecls
+ Decls
   ConstDecl
    Const: "const" @3:1 (kind=23)
    Name: "a" @3:7 (kind=3)
    Type
-    NameType
-     Name: "float" @3:9 (kind=20)
+    NamedType
+     Ident: "float" @3:9 (kind=20)
    Eq: "=" @3:15 (kind=49)
    Init
     FloatLitExpr
      Value: "3.14" @3:17 (kind=5)
- Decls
   FuncDecl
    Function: "func" @4:1 (kind=10)
    Name: "main" @4:6 (kind=3)
@@ -65,18 +64,18 @@ func main(){
        Const: "const" @5:3 (kind=23)
        Name: "ab" @5:9 (kind=3)
        Type
-        NameType
-         Name: "float" @5:12 (kind=20)
+        NamedType
+         Ident: "float" @5:12 (kind=20)
        Eq: "=" @5:18 (kind=49)
        Init
         FloatLitExpr
          Value: "3.14" @5:20 (kind=5)
-      VarDeclStmt
+      VarDecl
        Var: "var" @6:2 (kind=11)
        Name: "a" @6:6 (kind=3)
        Type
-        NameType
-         Name: "int" @6:8 (kind=12)
+        NamedType
+         Ident: "int" @6:8 (kind=12)
        Eq: "=" @6:12 (kind=49)
        Init
         IntLitExpr
@@ -122,18 +121,18 @@ func x(a int, b string, c string){}
     Param
      Ident: "a" @3:8 (kind=3)
      Type
-      NameType
-       Name: "int" @3:10 (kind=12)
+      NamedType
+       Ident: "int" @3:10 (kind=12)
     Param
      Ident: "b" @3:15 (kind=3)
      Type
-      NameType
-       Name: "string" @3:17 (kind=24)
+      NamedType
+       Ident: "string" @3:17 (kind=24)
     Param
      Ident: "c" @3:25 (kind=3)
      Type
-      NameType
-       Name: "string" @3:27 (kind=24)
+      NamedType
+       Ident: "string" @3:27 (kind=24)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))

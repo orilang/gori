@@ -8,7 +8,7 @@ import (
 )
 
 // parseMapsHashMapsDecl parses maps or hashmaps declarations
-func (p *Parser) parseMapsHashMapsDecl() *ast.MapType {
+func (p *Parser) parseMapsHashMapsDecl() ast.Type {
 	var kw token.Token
 	if p.kind() == token.KWMap {
 		kw = p.expect(token.KWMap, "expected 'map'")
@@ -22,7 +22,7 @@ func (p *Parser) parseMapsHashMapsDecl() *ast.MapType {
 		LBracket: lb,
 	}
 
-	var keyType ast.TypeRef
+	var keyType ast.NamedType
 	for p.kind() != token.RBracket && p.kind() != token.RParen && p.kind() != token.EOF {
 		if !token.IsMapTypes(p.kind()) {
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected map/hashmap key type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
@@ -36,10 +36,10 @@ func (p *Parser) parseMapsHashMapsDecl() *ast.MapType {
 		}
 	}
 
-	x.KeyType = keyType
+	x.KeyType = &keyType
 	x.RBracket = p.expect(token.RBracket, "expected ']'")
 
-	var valueType ast.TypeRef
+	var valueType ast.NamedType
 	for p.kind() != token.Assign && p.kind() != token.EOF {
 		if !token.IsMapTypes(p.kind()) {
 			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected map/hashmap key type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
@@ -53,7 +53,7 @@ func (p *Parser) parseMapsHashMapsDecl() *ast.MapType {
 		}
 	}
 
-	x.ValueType = valueType
+	x.ValueType = &valueType
 
 	return x
 }

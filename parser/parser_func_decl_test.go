@@ -33,8 +33,8 @@ func x()int{
    Results
      Param
       Type
-       NameType
-        Name: "int" @3:9 (kind=12)
+       NamedType
+        Ident: "int" @3:9 (kind=12)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -64,12 +64,12 @@ func x()(int,int){
     LParent: "(" @3:9 (kind=39)
      Param
       Type
-       NameType
-        Name: "int" @3:10 (kind=12)
+       NamedType
+        Ident: "int" @3:10 (kind=12)
      Param
       Type
-       NameType
-        Name: "int" @3:14 (kind=12)
+       NamedType
+        Ident: "int" @3:14 (kind=12)
     RParent: ")" @3:17 (kind=40)
    Body
 `
@@ -100,13 +100,13 @@ func x()(a int,b int){}
      Param
       Ident: "a" @3:10 (kind=3)
       Type
-       NameType
-        Name: "int" @3:12 (kind=12)
+       NamedType
+        Ident: "int" @3:12 (kind=12)
      Param
       Ident: "b" @3:16 (kind=3)
       Type
-       NameType
-        Name: "int" @3:18 (kind=12)
+       NamedType
+        Ident: "int" @3:18 (kind=12)
     RParent: ")" @3:21 (kind=40)
    Body
 `
@@ -161,13 +161,13 @@ func x()(a z, b z){}
      Param
       Ident: "a" @3:10 (kind=3)
       Type
-       NameType
-        Name: "z" @3:12 (kind=3)
+       NamedType
+        Ident: "z" @3:12 (kind=3)
      Param
       Ident: "b" @3:15 (kind=3)
       Type
-       NameType
-        Name: "z" @3:17 (kind=3)
+       NamedType
+        Ident: "z" @3:17 (kind=3)
     RParent: ")" @3:18 (kind=40)
    Body
 `
@@ -198,8 +198,8 @@ func x()(a z){}
      Param
       Ident: "a" @3:10 (kind=3)
       Type
-       NameType
-        Name: "z" @3:12 (kind=3)
+       NamedType
+        Ident: "z" @3:12 (kind=3)
     RParent: ")" @3:13 (kind=40)
    Body
 `
@@ -230,8 +230,10 @@ func x()(a []int){}
      Param
       Ident: "a" @3:10 (kind=3)
       Type
-         LBracket: "[" @3:12 (kind=43)
-         RBracket: "]" @3:13 (kind=44)
+       SliceType:
+        LBracket: "[" @3:12 (kind=43)
+        RBracket: "]" @3:13 (kind=44)
+        NamedType
          Ident: "int" @3:14 (kind=12)
     RParent: ")" @3:17 (kind=40)
    Body
@@ -261,8 +263,10 @@ func x()[]int{}
    Results
      Param
       Type
-         LBracket: "[" @3:9 (kind=43)
-         RBracket: "]" @3:10 (kind=44)
+       SliceType:
+        LBracket: "[" @3:9 (kind=43)
+        RBracket: "]" @3:10 (kind=44)
+        NamedType
          Ident: "int" @3:11 (kind=12)
    Body
 `
@@ -292,13 +296,17 @@ func x()([]int,[]string){}
     LParent: "(" @3:9 (kind=39)
      Param
       Type
-         LBracket: "[" @3:10 (kind=43)
-         RBracket: "]" @3:11 (kind=44)
+       SliceType:
+        LBracket: "[" @3:10 (kind=43)
+        RBracket: "]" @3:11 (kind=44)
+        NamedType
          Ident: "int" @3:12 (kind=12)
      Param
       Type
-         LBracket: "[" @3:16 (kind=43)
-         RBracket: "]" @3:17 (kind=44)
+       SliceType:
+        LBracket: "[" @3:16 (kind=43)
+        RBracket: "]" @3:17 (kind=44)
+        NamedType
          Ident: "string" @3:18 (kind=24)
     RParent: ")" @3:24 (kind=40)
    Body
@@ -333,15 +341,16 @@ func x(){
     BlockStmt
      LBrace: "{" @3:9 (kind=41)
      Stmts
-      Type: "type" @4:3 (kind=26)
-      Name: "test" @4:8 (kind=3)
-      Struct: "struct" @4:13 (kind=27)
-      LBrace: "{" @4:20 (kind=41)
-       Name: "x" @5:4 (kind=3)
-       Type:
-        NameType
-         Name: "int" @5:6 (kind=12)
-      RBrace: "}" @6:2 (kind=42)
+      StructDecl:
+       Type: "type" @4:3 (kind=26)
+       Name: "test" @4:8 (kind=3)
+       Struct: "struct" @4:13 (kind=27)
+       LBrace: "{" @4:20 (kind=41)
+        Name: "x" @5:4 (kind=3)
+        Type:
+         NamedType
+          Ident: "int" @5:6 (kind=12)
+       RBrace: "}" @6:2 (kind=42)
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -372,11 +381,12 @@ func x(){
     BlockStmt
      LBrace: "{" @3:9 (kind=41)
      Stmts
-      Type: "type" @4:3 (kind=26)
-      Name: "test" @4:8 (kind=3)
-      Interface: "interface" @4:13 (kind=28)
-      LBrace: "{" @4:23 (kind=41)
-      RBrace: "}" @4:24 (kind=42)
+      InterfaceDecl:
+       Type: "type" @4:3 (kind=26)
+       Name: "test" @4:8 (kind=3)
+       Interface: "interface" @4:13 (kind=28)
+       LBrace: "{" @4:23 (kind=41)
+       RBrace: "}" @4:24 (kind=42)
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -409,14 +419,15 @@ func x(){
     BlockStmt
      LBrace: "{" @3:9 (kind=41)
      Stmts
-      Type: "type" @4:3 (kind=26)
-       Name: "Color" @4:8 (kind=3)
-       Public: true
-       Enum: "enum" @4:14 (kind=74)
-       LBrace: "{" @4:19 (kind=41)
-       Variants
-        Ident: "Red" @5:4 (kind=3)
-       RBrace: "}" @6:2 (kind=42)
+      EnumDecl:
+       Type: "type" @4:3 (kind=26)
+        Name: "Color" @4:8 (kind=3)
+        Public: true
+        Enum: "enum" @4:14 (kind=74)
+        LBrace: "{" @4:19 (kind=41)
+         Variants
+          Ident: "Red" @5:4 (kind=3)
+        RBrace: "}" @6:2 (kind=42)
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -449,19 +460,20 @@ func x(){
     BlockStmt
      LBrace: "{" @3:9 (kind=41)
      Stmts
-      Type: "type" @4:3 (kind=26)
-       Name: "Shape" @4:8 (kind=3)
-       Sum: "sum" @4:14 (kind=75)
-      Public: true
+      SumDecl:
+       Type: "type" @4:3 (kind=26)
+        Name: "Shape" @4:8 (kind=3)
+        Sum: "sum" @4:14 (kind=75)
+       Public: true
        LBrace: "{" @4:18 (kind=41)
-        VariantMethods
-         Methods: "Circle" @5:4 (kind=3)
+        Variants
+         SumVariant: "Circle" @5:4 (kind=3)
           Params
            Param
             Ident: "radius" @5:11 (kind=3)
             Type
-             NameType
-              Name: "float" @5:18 (kind=20)
+             NamedType
+              Ident: "float" @5:18 (kind=20)
        RBrace: "}" @6:2 (kind=42)
      RBrace: "}" @7:1 (kind=42)
 `

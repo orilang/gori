@@ -233,7 +233,7 @@ func (p *Parser) ParseFile() *ast.File {
 	for p.kind() != token.EOF {
 		switch p.kind() {
 		case token.KWConst:
-			f.Const = append(f.Const, p.parseConstDecl())
+			f.Decls = append(f.Decls, p.parseConstDecl())
 
 		case token.KWFunc:
 			f.Decls = append(f.Decls, p.parseFuncDecl())
@@ -241,13 +241,13 @@ func (p *Parser) ParseFile() *ast.File {
 		case token.KWType:
 			if token.IsValidTypeDecl(p.kindNext(p.position + 2)) {
 				if p.kindNext(p.position+2) == token.KWStruct {
-					f.Structs = append(f.Structs, p.parseStructType())
+					f.Decls = append(f.Decls, p.parseStructDecl())
 				} else if p.kindNext(p.position+2) == token.KWInterface {
-					f.Interfaces = append(f.Interfaces, p.parseInterfaceType())
+					f.Decls = append(f.Decls, p.parseInterfaceDecl())
 				} else if p.kindNext(p.position+2) == token.KWEnum {
-					f.Enums = append(f.Enums, p.parseEnumDecl())
+					f.Decls = append(f.Decls, p.parseEnumDecl())
 				} else {
-					f.Sums = append(f.Sums, p.parseSumDecl())
+					f.Decls = append(f.Decls, p.parseSumDecl())
 				}
 			} else {
 				tok := p.peek()
@@ -256,11 +256,11 @@ func (p *Parser) ParseFile() *ast.File {
 			}
 
 		case token.KWComptime:
-			f.Comptime = append(f.Comptime, p.parseComptimeStmt())
+			f.Decls = append(f.Decls, p.parseComptimeBlockDecl())
 
 		default:
 			if p.kindNext(p.position+1) == token.KWImplements {
-				f.Implements = append(f.Implements, p.parseImplementsDecl())
+				f.Decls = append(f.Decls, p.parseImplementsDecl())
 			} else {
 				tok := p.peek()
 				p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
@@ -292,11 +292,15 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 // parseStmt returns declaration within parseBlock
 func (p *Parser) parseStmt() ast.Stmt {
 	if p.kind() == token.KWConst {
-		return p.parseConstDecl()
+		return &ast.DeclStmt{
+			Decl: p.parseConstDecl(),
+		}
 	}
 
 	if p.kind() == token.KWVar {
-		return p.parseVarDecl()
+		return &ast.DeclStmt{
+			Decl: p.parseVarDecl(),
+		}
 	}
 
 	if p.kind() == token.KWReturn {
@@ -330,13 +334,21 @@ func (p *Parser) parseStmt() ast.Stmt {
 	if p.kind() == token.KWType && token.IsValidTypeDecl(p.kindNext(p.position+2)) {
 		{
 			if p.kindNext(p.position+2) == token.KWStruct {
-				return p.parseStructType()
+				return &ast.DeclStmt{
+					Decl: p.parseStructDecl(),
+				}
 			} else if p.kindNext(p.position+2) == token.KWInterface {
-				return p.parseInterfaceType()
+				return &ast.DeclStmt{
+					Decl: p.parseInterfaceDecl(),
+				}
 			} else if p.kindNext(p.position+2) == token.KWEnum {
-				return p.parseEnumDecl()
+				return &ast.DeclStmt{
+					Decl: p.parseEnumDecl(),
+				}
 			} else {
-				return p.parseSumDecl()
+				return &ast.DeclStmt{
+					Decl: p.parseSumDecl(),
+				}
 			}
 		}
 	}

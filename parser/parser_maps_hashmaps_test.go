@@ -36,52 +36,66 @@ func main(){
     BlockStmt
      LBrace: "{" @3:12 (kind=41)
      Stmts
-      VarDeclStmt
+      VarDecl
        Var: "var" @4:3 (kind=11)
        Name: "x" @4:7 (kind=3)
        Type
-        Map: "map" @4:9 (kind=79)
-        LBracket: "[" @4:12 (kind=43)
-        KeyType:
-         Name: "string" @4:13 (kind=24)
-        RBracket: "]" @4:19 (kind=44)
-        ValueType:
-         Name: "string" @4:13 (kind=24)
+        MapType:
+         Map: "map" @4:9 (kind=79)
+         LBracket: "[" @4:12 (kind=43)
+         KeyType:
+          NamedType
+           Ident: "string" @4:13 (kind=24)
+         RBracket: "]" @4:19 (kind=44)
+         ValueType:
+          NamedType
+           Ident: "string" @4:20 (kind=24)
        Eq: "=" @4:26 (kind=49)
        Init
-        Make: "make" @4:27 (kind=3)
-        LParen: "(" @4:31 (kind=39)
-        Map: "map" @4:32 (kind=79)
-        LBracket: "[" @4:35 (kind=43)
-        KeyType:
-         Name: "string" @4:36 (kind=24)
-        RBracket: "]" @4:42 (kind=44)
-        ValueType:
-         Name: "string" @4:36 (kind=24)
-        RParen: ")" @4:49 (kind=40)
-      VarDeclStmt
+        MakeExpr:
+         Make: "make" @4:27 (kind=3)
+         LParen: "(" @4:31 (kind=39)
+         MapType:
+          Map: "map" @4:32 (kind=79)
+          LBracket: "[" @4:35 (kind=43)
+          KeyType:
+           NamedType
+            Ident: "string" @4:36 (kind=24)
+          RBracket: "]" @4:42 (kind=44)
+          ValueType:
+           NamedType
+            Ident: "string" @4:43 (kind=24)
+         RParen: ")" @4:49 (kind=40)
+      VarDecl
        Var: "var" @5:3 (kind=11)
        Name: "y" @5:7 (kind=3)
        Type
-        Hashmap: "hashmap" @5:9 (kind=80)
-        LBracket: "[" @5:16 (kind=43)
-        KeyType:
-         Name: "string" @5:17 (kind=24)
-        RBracket: "]" @5:23 (kind=44)
-        ValueType:
-         Name: "string" @5:17 (kind=24)
+        MapType:
+         Hashmap: "hashmap" @5:9 (kind=80)
+         LBracket: "[" @5:16 (kind=43)
+         KeyType:
+          NamedType
+           Ident: "string" @5:17 (kind=24)
+         RBracket: "]" @5:23 (kind=44)
+         ValueType:
+          NamedType
+           Ident: "string" @5:24 (kind=24)
        Eq: "=" @5:30 (kind=49)
        Init
-        Make: "make" @5:31 (kind=3)
-        LParen: "(" @5:35 (kind=39)
-        Hashmap: "hashmap" @5:36 (kind=80)
-        LBracket: "[" @5:43 (kind=43)
-        KeyType:
-         Name: "string" @5:44 (kind=24)
-        RBracket: "]" @5:50 (kind=44)
-        ValueType:
-         Name: "string" @5:44 (kind=24)
-        RParen: ")" @5:57 (kind=40)
+        MakeExpr:
+         Make: "make" @5:31 (kind=3)
+         LParen: "(" @5:35 (kind=39)
+         MapType:
+          Hashmap: "hashmap" @5:36 (kind=80)
+          LBracket: "[" @5:43 (kind=43)
+          KeyType:
+           NamedType
+            Ident: "string" @5:44 (kind=24)
+          RBracket: "]" @5:50 (kind=44)
+          ValueType:
+           NamedType
+            Ident: "string" @5:51 (kind=24)
+         RParen: ")" @5:57 (kind=40)
      RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))

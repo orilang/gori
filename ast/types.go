@@ -14,16 +14,16 @@ type dumper struct {
 
 // File holds requirements from parsed file
 type File struct {
-	PackageKW  token.Token
-	Name       token.Token
-	Const      []Stmt
-	Decls      []Decl
-	Structs    []*StructType
-	Interfaces []*InterfaceType
-	Implements []*ImplementsDecl
-	Enums      []*EnumType
-	Sums       []*SumType
-	Comptime   []Stmt
+	PackageKW token.Token
+	Name      token.Token
+	// Const      []Stmt
+	Decls []Decl
+	// Structs    []*StructType
+	// Interfaces []*InterfaceType
+	// Implements []*ImplementsDecl
+	// Enums      []*EnumType
+	// Sums       []*SumType
+	// Comptime   []Stmt
 }
 
 // FuncDecl holds function parsed content
@@ -54,8 +54,8 @@ type BlockStmt struct {
 	RBrace token.Token
 }
 
-// ConstDeclStmt holds constant content
-type ConstDeclStmt struct {
+// ConstDecl holds constant content
+type ConstDecl struct {
 	ConstKW token.Token // KWConst
 	Name    token.Token // Ident
 	Type    Type        // Optional
@@ -63,8 +63,8 @@ type ConstDeclStmt struct {
 	Init    Expr
 }
 
-// VarDeclStmt holds variable content
-type VarDeclStmt struct {
+// VarDec holds variable content
+type VarDecl struct {
 	VarKW token.Token // KWVar
 	Name  token.Token // Ident
 	View  token.Token // Optional
@@ -76,11 +76,6 @@ type VarDeclStmt struct {
 // IdentExpr holds identifier content
 type IdentExpr struct {
 	Name token.Token // Ident
-}
-
-// NameType holds identifier type
-type NameType struct {
-	Name token.Token
 }
 
 // BadType holds returned bad type with reason
@@ -188,12 +183,25 @@ type ExprStmt struct {
 	Expr Expr
 }
 
-type Decl interface{ declNode() }
-type Type interface{ typeNode() }
+type DeclStmt struct {
+	Decl Decl
+}
+
+type Decl interface {
+	Position
+	declNode()
+}
+
+type Type interface {
+	Position
+	typeNode()
+}
+
 type Stmt interface {
 	Position
 	stmtNode()
 }
+
 type Expr interface {
 	Position
 	exprNode()
@@ -217,7 +225,7 @@ type IfStmt struct {
 }
 
 type ForStmt struct {
-	For       token.Token
+	ForKW     token.Token
 	Init      Stmt
 	Condition Expr
 	Post      Stmt
@@ -225,7 +233,7 @@ type ForStmt struct {
 }
 
 type RangeStmt struct {
-	For   token.Token
+	ForKW token.Token
 	Key   *IdentExpr
 	Value *IdentExpr
 	Op    token.Token
@@ -264,10 +272,10 @@ type CaseClause struct {
 }
 
 type FallThroughStmt struct {
-	FallThroughStmt token.Token
+	FallThrough token.Token
 }
 
-type StructType struct {
+type StructDecl struct {
 	TypeDecl token.Token
 	Name     token.Token
 	Struct   token.Token
@@ -285,35 +293,35 @@ type FieldDecl struct {
 	Default Expr         // nil if no default
 }
 
-type InterfaceType struct {
+type NamedType struct {
+	// e.g "pkg.Type" or "Type"
+	Parts []token.Token // identifiers around dots
+}
+
+type InterfaceDecl struct {
 	TypeDecl  token.Token
 	Name      token.Token
 	Public    bool
 	Interface token.Token
 	LBrace    token.Token
-	Embeds    []TypeRef
-	Methods   []InterfaceMethods
+	Embeds    []Type
+	Methods   []InterfaceMethod
 	RBrace    token.Token
 }
 
-type TypeRef struct {
-	// e.g "pkg.Type" or "Type"
-	Parts []token.Token // identifiers around dots
-}
-
-type InterfaceMethods struct {
+type InterfaceMethod struct {
 	Name    token.Token
 	Params  []Param
 	Results ReturnTypes
 }
 
 type ImplementsDecl struct {
-	Type       token.Token
+	TypeName   token.Token
 	Implements token.Token
-	Interface  TypeRef
+	Interface  Type
 }
 
-type EnumType struct {
+type EnumDecl struct {
 	TypeDecl token.Token
 	Name     token.Token
 	Public   bool
@@ -323,24 +331,36 @@ type EnumType struct {
 	RBrace   token.Token
 }
 
-type SumType struct {
+type SumDecl struct {
 	TypeDecl token.Token
 	Name     token.Token
 	Public   bool
 	Sum      token.Token
 	LBrace   token.Token
-	Variants []token.Token
-	Methods  []VariantsMethods
+	Variants []SumVariant
 	RBrace   token.Token
 }
 
-type VariantsMethods struct {
+type SumVariant struct {
 	Name   token.Token
 	Params []Param
 }
 
-type SliceElementsExpr struct {
-	Type     TypeRef
+type SliceType struct {
+	LBracket token.Token
+	RBracket token.Token
+	Elem     Type
+}
+
+type ArrayType struct {
+	LBracket token.Token
+	Len      Expr
+	RBracket token.Token
+	Elem     Type
+}
+
+type SliceLitExpr struct {
+	Type     Type
 	LBrace   token.Token
 	Elements []Expr
 	RBrace   token.Token
@@ -355,18 +375,17 @@ type SliceExpr struct {
 	RBracket token.Token
 }
 
-type ComptimeType struct {
-	Comptime token.Token
-	Const    Stmt
-	Func     Decl
+type ComptimeBlockDecl struct {
+	ComptimeKW token.Token
+	Decls      []Decl
 }
 
 type MapType struct {
 	KindKW    token.Token // map or hashmap
 	LBracket  token.Token
-	KeyType   TypeRef
+	KeyType   Type
 	RBracket  token.Token
-	ValueType TypeRef
+	ValueType Type
 }
 
 type MakeExpr struct {

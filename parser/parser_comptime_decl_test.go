@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParser_comptime_stmt(t *testing.T) {
+func TestParser_comptime_decl(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("const_x1", func(t *testing.T) {
@@ -23,18 +23,19 @@ comptime const a float = 3.14
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- ComptimeStmt
-  Comptime: "comptime" @3:1 (kind=78)
-  ConstDecl
-   Const: "const" @3:10 (kind=23)
-   Name: "a" @3:16 (kind=3)
-   Type
-    NameType
-     Name: "float" @3:18 (kind=20)
-   Eq: "=" @3:24 (kind=49)
-   Init
-    FloatLitExpr
-     Value: "3.14" @3:26 (kind=5)
+ Decls
+  CompTimeBlockDecl:
+   Comptime: "comptime" @3:1 (kind=78)
+    ConstDecl
+     Const: "const" @3:10 (kind=23)
+     Name: "a" @3:16 (kind=3)
+     Type
+      NamedType
+       Ident: "float" @3:18 (kind=20)
+     Eq: "=" @3:24 (kind=49)
+     Init
+      FloatLitExpr
+       Value: "3.14" @3:26 (kind=5)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -52,20 +53,23 @@ comptime func x()[]int{}
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- ComptimeStmt
-  Comptime: "comptime" @3:1 (kind=78)
-  FuncDecl
-   Function: "func" @3:10 (kind=10)
-   Name: "x" @3:15 (kind=3)
-   Params
-    (none)
-   Results
-     Param
-      Type
-         LBracket: "[" @3:18 (kind=43)
-         RBracket: "]" @3:19 (kind=44)
-         Ident: "int" @3:20 (kind=12)
-   Body
+ Decls
+  CompTimeBlockDecl:
+   Comptime: "comptime" @3:1 (kind=78)
+    FuncDecl
+     Function: "func" @3:10 (kind=10)
+     Name: "x" @3:15 (kind=3)
+     Params
+      (none)
+     Results
+       Param
+        Type
+         SliceType:
+          LBracket: "[" @3:18 (kind=43)
+          RBracket: "]" @3:19 (kind=44)
+          NamedType
+           Ident: "int" @3:20 (kind=12)
+     Body
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))

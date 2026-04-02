@@ -2,61 +2,128 @@ package ast
 
 import "github.com/orilang/gori/token"
 
-func (*FuncDecl) declNode()          {}
-func (*dumpType) declNode()          {}
-func (*BadDecl) declNode()           {}
-func (*BlockStmt) stmtNode()         {}
-func (*ConstDeclStmt) stmtNode()     {}
-func (*VarDeclStmt) stmtNode()       {}
-func (*IdentExpr) stmtNode()         {}
-func (*dumpType) stmtNode()          {}
-func (*NameType) typeNode()          {}
-func (*BadType) typeNode()           {}
-func (*dumpType) typeNode()          {}
-func (*IdentExpr) exprNode()         {}
-func (*IntLitExpr) exprNode()        {}
-func (*FloatLitExpr) exprNode()      {}
-func (*BoolLitExpr) exprNode()       {}
-func (*StringLitExpr) exprNode()     {}
-func (*ParenExpr) exprNode()         {}
-func (*BadExpr) exprNode()           {}
-func (*BinaryExpr) exprNode()        {}
-func (*UnaryExpr) exprNode()         {}
-func (*SelectorExpr) exprNode()      {}
-func (*IndexExpr) exprNode()         {}
-func (*CallExpr) exprNode()          {}
-func (*dumpType) exprNode()          {}
-func (*AssignStmt) stmtNode()        {}
-func (*ExprStmt) stmtNode()          {}
-func (*BadStmt) stmtNode()           {}
-func (*BadType) stmtNode()           {}
-func (*ReturnStmt) stmtNode()        {}
-func (*IfStmt) stmtNode()            {}
-func (*ForStmt) stmtNode()           {}
-func (*RangeStmt) stmtNode()         {}
-func (*IncDecStmt) stmtNode()        {}
-func (*BreakStmt) stmtNode()         {}
-func (*ContinueStmt) stmtNode()      {}
-func (*SwitchStmt) stmtNode()        {}
-func (*CaseClause) stmtNode()        {}
-func (*FallThroughStmt) stmtNode()   {}
-func (*StructType) stmtNode()        {}
-func (*InterfaceType) stmtNode()     {}
-func (*EnumType) stmtNode()          {}
-func (*SumType) stmtNode()           {}
-func (*SliceExpr) exprNode()         {}
-func (*TypeRef) typeNode()           {}
-func (*TypeRef) exprNode()           {}
-func (*ComptimeType) stmtNode()      {}
-func (*MapType) typeNode()           {}
-func (*MakeExpr) exprNode()          {}
-func (*SliceElementsExpr) exprNode() {}
+func (*FuncDecl) declNode() {}
+
+// func (*FuncDecl) stmtNode() {}
+
+func (*dumpType) declNode() {}
+
+func (*dumpType) stmtNode() {}
+func (*dumpType) typeNode() {}
+
+func (*dumpType) exprNode() {}
+
+func (*BadDecl) declNode() {}
+
+// func (*BadDecl) stmtNode() {}
+
+func (*BlockStmt) stmtNode() {}
+
+func (*ConstDecl) declNode() {}
+
+// func (*ConstDecl) stmtNode() {}
+
+func (*VarDecl) declNode() {}
+
+// func (*VarDecl) stmtNode() {}
+
+// func (*IdentExpr) stmtNode() {}
+func (*IdentExpr) exprNode() {}
+
+func (*BadType) typeNode() {}
+
+// func (*BadType) stmtNode() {}
+func (*BadType) declNode() {}
+
+func (*IntLitExpr) exprNode() {}
+
+func (*FloatLitExpr) exprNode() {}
+
+func (*BoolLitExpr) exprNode() {}
+
+func (*StringLitExpr) exprNode() {}
+
+func (*ParenExpr) exprNode() {}
+func (*BadExpr) exprNode()   {}
+
+func (*BinaryExpr) exprNode()   {}
+func (*UnaryExpr) exprNode()    {}
+func (*SelectorExpr) exprNode() {}
+
+func (*IndexExpr) exprNode()  {}
+func (*CallExpr) exprNode()   {}
+func (*AssignStmt) stmtNode() {}
+
+func (*ExprStmt) stmtNode() {}
+func (*BadStmt) stmtNode()  {}
+
+func (*ReturnStmt) stmtNode() {}
+func (*IfStmt) stmtNode()     {}
+func (*ForStmt) stmtNode()    {}
+
+func (*RangeStmt) stmtNode() {}
+
+func (*IncDecStmt) stmtNode() {}
+
+func (*BreakStmt) stmtNode() {}
+
+func (*ContinueStmt) stmtNode() {}
+
+func (*SwitchStmt) stmtNode() {}
+
+// func (*CaseClause) stmtNode()      {}
+func (*FallThroughStmt) stmtNode() {}
+
+func (*StructDecl) declNode() {}
+
+// func (*StructDecl) stmtNode() {}
+
+func (*InterfaceDecl) declNode() {}
+
+// func (*InterfaceDecl) stmtNode() {}
+
+func (*EnumDecl) declNode() {}
+
+// func (*EnumDecl) stmtNode() {}
+
+func (*SumDecl) declNode() {}
+
+// func (*SumDecl) stmtNode() {}
+
+func (*SliceExpr) exprNode() {}
+
+func (*NamedType) typeNode() {}
+
+func (*SliceType) typeNode() {}
+func (*ArrayType) typeNode() {}
+
+func (*DeclStmt) stmtNode() {}
+
+func (*ComptimeBlockDecl) declNode() {}
+
+// func (*ComptimeBlockDecl) stmtNode() {}
+
+func (*ImplementsDecl) declNode() {}
+
+// func (*ImplementsDecl) stmtNode() {}
+
+func (*MapType) typeNode() {}
+
+func (*MakeExpr) exprNode()     {}
+func (*SliceLitExpr) exprNode() {}
+
+func (x *FuncDecl) Start() token.Token {
+	return x.FuncKW
+}
+func (x *FuncDecl) End() token.Token {
+	if x.Body != nil {
+		return x.Body.End()
+	}
+	return token.Token{}
+}
 
 func (x *IdentExpr) Start() token.Token { return x.Name }
 func (x *IdentExpr) End() token.Token   { return x.Name }
-
-func (x *NameType) Start() token.Token { return x.Name }
-func (x *NameType) End() token.Token   { return x.Name }
 
 func (x *IntLitExpr) Start() token.Token { return x.Name }
 func (x *IntLitExpr) End() token.Token   { return x.Name }
@@ -108,11 +175,11 @@ func (x *ReturnStmt) End() token.Token {
 func (x *BlockStmt) Start() token.Token { return x.LBrace }
 func (x *BlockStmt) End() token.Token   { return x.RBrace }
 
-func (x *ConstDeclStmt) Start() token.Token { return x.ConstKW }
-func (x *ConstDeclStmt) End() token.Token   { return x.Init.End() }
+func (x *ConstDecl) Start() token.Token { return x.ConstKW }
+func (x *ConstDecl) End() token.Token   { return x.Init.End() }
 
-func (x *VarDeclStmt) Start() token.Token { return x.VarKW }
-func (x *VarDeclStmt) End() token.Token   { return x.Init.End() }
+func (x *VarDecl) Start() token.Token { return x.VarKW }
+func (x *VarDecl) End() token.Token   { return x.Init.End() }
 
 func (x *AssignStmt) Start() token.Token { return x.Left.Start() }
 func (x *AssignStmt) End() token.Token   { return x.Right.End() }
@@ -134,7 +201,7 @@ func (x *IfStmt) End() token.Token {
 func (x *BadDecl) Start() token.Token { return x.From }
 func (x *BadDecl) End() token.Token   { return x.To }
 
-func (x *ForStmt) Start() token.Token { return x.For }
+func (x *ForStmt) Start() token.Token { return x.ForKW }
 func (x *ForStmt) End() token.Token {
 	if x.Body != nil {
 		return x.Body.End()
@@ -142,7 +209,7 @@ func (x *ForStmt) End() token.Token {
 	return token.Token{}
 }
 
-func (x *RangeStmt) Start() token.Token { return x.For }
+func (x *RangeStmt) Start() token.Token { return x.ForKW }
 func (x *RangeStmt) End() token.Token {
 	if x.Body != nil {
 		return x.Body.End()
@@ -170,39 +237,63 @@ func (x *CaseClause) End() token.Token {
 	return token.Token{}
 }
 
-func (x *FallThroughStmt) Start() token.Token { return x.FallThroughStmt }
-func (x *FallThroughStmt) End() token.Token   { return x.FallThroughStmt }
+func (x *FallThroughStmt) Start() token.Token { return x.FallThrough }
+func (x *FallThroughStmt) End() token.Token   { return x.FallThrough }
 
-func (x *StructType) Start() token.Token { return x.TypeDecl }
-func (x *StructType) End() token.Token   { return x.RBrace }
+func (x *StructDecl) Start() token.Token { return x.TypeDecl }
+func (x *StructDecl) End() token.Token   { return x.RBrace }
 
-func (x *InterfaceType) Start() token.Token { return x.TypeDecl }
-func (x *InterfaceType) End() token.Token   { return x.RBrace }
+func (x *InterfaceDecl) Start() token.Token { return x.TypeDecl }
+func (x *InterfaceDecl) End() token.Token   { return x.RBrace }
 
-func (x *EnumType) Start() token.Token { return x.TypeDecl }
-func (x *EnumType) End() token.Token   { return x.RBrace }
+func (x *EnumDecl) Start() token.Token { return x.TypeDecl }
+func (x *EnumDecl) End() token.Token   { return x.RBrace }
 
-func (x *SumType) Start() token.Token { return x.TypeDecl }
-func (x *SumType) End() token.Token   { return x.RBrace }
+func (x *SumDecl) Start() token.Token { return x.TypeDecl }
+func (x *SumDecl) End() token.Token   { return x.RBrace }
+
+func (x *SliceType) Start() token.Token { return x.LBracket }
+func (x *SliceType) End() token.Token {
+	if x.Elem != nil {
+		return x.Elem.End()
+	}
+	return token.Token{}
+}
+
+func (x *ArrayType) Start() token.Token { return x.LBracket }
+func (x *ArrayType) End() token.Token {
+	if x.Elem != nil {
+		return x.Elem.End()
+	}
+	return token.Token{}
+}
 
 func (x *SliceExpr) Start() token.Token { return x.X.Start() }
 func (x *SliceExpr) End() token.Token   { return x.RBracket }
 
-func (x *TypeRef) Start() token.Token {
+func (x *SliceLitExpr) Start() token.Token {
+	if x.Type != nil {
+		return x.Type.Start()
+	}
+	return token.Token{}
+}
+func (x *SliceLitExpr) End() token.Token { return x.RBrace }
+
+func (x *NamedType) Start() token.Token {
 	if len(x.Parts) > 0 {
 		return x.Parts[0]
 	}
 	return token.Token{}
 }
-func (x *TypeRef) End() token.Token {
+func (x *NamedType) End() token.Token {
 	if len(x.Parts) > 0 {
 		return x.Parts[len(x.Parts)-1]
 	}
 	return token.Token{}
 }
 
-func (x *ComptimeType) Start() token.Token { return x.Comptime }
-func (x *ComptimeType) End() token.Token   { return x.Comptime }
+func (x *ComptimeBlockDecl) Start() token.Token { return x.ComptimeKW }
+func (x *ComptimeBlockDecl) End() token.Token   { return x.ComptimeKW }
 
 func (x *MapType) Start() token.Token { return x.KindKW }
 func (x *MapType) End() token.Token   { return x.ValueType.End() }
@@ -210,5 +301,24 @@ func (x *MapType) End() token.Token   { return x.ValueType.End() }
 func (x *MakeExpr) Start() token.Token { return x.MakeKW }
 func (x *MakeExpr) End() token.Token   { return x.RParen }
 
-func (x *SliceElementsExpr) Start() token.Token { return x.Type.Start() }
-func (x *SliceElementsExpr) End() token.Token   { return x.RBrace }
+func (x *ImplementsDecl) Start() token.Token { return x.TypeName }
+func (x *ImplementsDecl) End() token.Token {
+	if x.Interface != nil {
+		return x.Interface.End()
+	}
+	return token.Token{}
+}
+
+func (x *DeclStmt) Start() token.Token {
+	if x.Decl != nil {
+		return x.Decl.Start()
+	}
+	return token.Token{}
+}
+
+func (x *DeclStmt) End() token.Token {
+	if x.Decl != nil {
+		return x.Decl.End()
+	}
+	return token.Token{}
+}

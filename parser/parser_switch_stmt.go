@@ -145,7 +145,7 @@ func (p *Parser) parseFallThroughStmt() ast.Stmt {
 	// any unauthorized statement is rejected after 'fallthrough'
 	if p.kind() == token.RBrace || p.kind() == token.EOF || p.kind() == token.KWCase || p.kind() == token.KWDefault {
 		return &ast.FallThroughStmt{
-			FallThroughStmt: kw,
+			FallThrough: kw,
 		}
 	}
 

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParser_type_interface(t *testing.T) {
+func TestParser_type_interface_decl(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("empty_x1", func(t *testing.T) {
@@ -23,12 +23,13 @@ type test interface{}
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
-  RBrace: "}" @3:21 (kind=42)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
+   RBrace: "}" @3:21 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -46,13 +47,14 @@ type Test interface{}
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "Test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  Public: true
-  LBrace: "{" @3:20 (kind=41)
-  RBrace: "}" @3:21 (kind=42)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "Test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   Public: true
+   LBrace: "{" @3:20 (kind=41)
+   RBrace: "}" @3:21 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -72,20 +74,21 @@ type test interface{
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
    Name: "X" @4:3 (kind=3)
    Params
     (none)
    Results
      Param
       Type
-       NameType
-        Name: "error" @4:7 (kind=3)
-  RBrace: "}" @5:1 (kind=42)
+       NamedType
+        Ident: "error" @4:7 (kind=3)
+   RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -103,20 +106,21 @@ type test interface{ X() error }
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
    Name: "X" @3:22 (kind=3)
    Params
     (none)
    Results
      Param
       Type
-       NameType
-        Name: "error" @3:26 (kind=3)
-  RBrace: "}" @3:32 (kind=42)
+       NamedType
+        Ident: "error" @3:26 (kind=3)
+   RBrace: "}" @3:32 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -134,32 +138,33 @@ type test interface{ X() error;Y(a int) error}
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
    Name: "X" @3:22 (kind=3)
    Params
     (none)
    Results
      Param
       Type
-       NameType
-        Name: "error" @3:26 (kind=3)
+       NamedType
+        Ident: "error" @3:26 (kind=3)
    Name: "Y" @3:32 (kind=3)
    Params
     Param
      Ident: "a" @3:34 (kind=3)
      Type
-      NameType
-       Name: "int" @3:36 (kind=12)
+      NamedType
+       Ident: "int" @3:36 (kind=12)
    Results
      Param
       Type
-       NameType
-        Name: "error" @3:41 (kind=3)
-  RBrace: "}" @3:46 (kind=42)
+       NamedType
+        Ident: "error" @3:41 (kind=3)
+   RBrace: "}" @3:46 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -180,32 +185,33 @@ type test interface{
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
    Name: "X" @4:3 (kind=3)
    Params
     (none)
    Results
      Param
       Type
-       NameType
-        Name: "error" @4:7 (kind=3)
+       NamedType
+        Ident: "error" @4:7 (kind=3)
    Name: "Y" @5:3 (kind=3)
    Params
     Param
      Ident: "a" @5:5 (kind=3)
      Type
-      NameType
-       Name: "int" @5:7 (kind=12)
+      NamedType
+       Ident: "int" @5:7 (kind=12)
    Results
      Param
       Type
-       NameType
-        Name: "error" @5:12 (kind=3)
-  RBrace: "}" @6:1 (kind=42)
+       NamedType
+        Ident: "error" @5:12 (kind=3)
+   RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -226,32 +232,33 @@ type test interface{
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
    Name: "X" @4:3 (kind=3)
    Params
     (none)
    Results
      Param
       Type
-       NameType
-        Name: "error" @4:7 (kind=3)
+       NamedType
+        Ident: "error" @4:7 (kind=3)
    Name: "Y" @5:3 (kind=3)
    Params
     Param
      Ident: "a" @5:5 (kind=3)
      Type
-      NameType
-       Name: "int" @5:7 (kind=12)
+      NamedType
+       Ident: "int" @5:7 (kind=12)
    Results
      Param
       Type
-       NameType
-        Name: "error" @5:12 (kind=3)
-  RBrace: "}" @6:1 (kind=42)
+       NamedType
+        Ident: "error" @5:12 (kind=3)
+   RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -271,11 +278,12 @@ type test interface{
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
    Name: "X" @4:3 (kind=3)
    Params
     (none)
@@ -284,15 +292,15 @@ type test interface{
      Param
       Ident: "y" @4:7 (kind=3)
       Type
-       NameType
-        Name: "int" @4:9 (kind=12)
+       NamedType
+        Ident: "int" @4:9 (kind=12)
      Param
       Ident: "z" @4:13 (kind=3)
       Type
-       NameType
-        Name: "int" @4:15 (kind=12)
+       NamedType
+        Ident: "int" @4:15 (kind=12)
     RParent: ")" @4:18 (kind=40)
-  RBrace: "}" @5:1 (kind=42)
+   RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -312,32 +320,33 @@ type test interface{
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
    Name: "X" @4:3 (kind=3)
    Params
     (none)
    Results
      Param
       Type
-       NameType
-        Name: "error" @4:7 (kind=3)
+       NamedType
+        Ident: "error" @4:7 (kind=3)
    Name: "Y" @4:13 (kind=3)
    Params
     Param
      Ident: "a" @4:15 (kind=3)
      Type
-      NameType
-       Name: "int" @4:17 (kind=12)
+      NamedType
+       Ident: "int" @4:17 (kind=12)
    Results
      Param
       Type
-       NameType
-        Name: "error" @4:21 (kind=3)
-  RBrace: "}" @5:1 (kind=42)
+       NamedType
+        Ident: "error" @4:21 (kind=3)
+   RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -357,11 +366,12 @@ type test interface{
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
    Name: "X" @4:3 (kind=3)
    Params
     (none)
@@ -369,14 +379,14 @@ type test interface{
     LParent: "(" @4:6 (kind=39)
      Param
       Type
-       NameType
-        Name: "a" @4:7 (kind=3)
+       NamedType
+        Ident: "a" @4:7 (kind=3)
      Param
       Type
-       NameType
-        Name: "int" @4:10 (kind=12)
+       NamedType
+        Ident: "int" @4:10 (kind=12)
     RParent: ")" @4:13 (kind=40)
-  RBrace: "}" @5:1 (kind=42)
+   RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))
@@ -396,16 +406,18 @@ type test interface{
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Interfaces
-  Type: "type" @3:1 (kind=26)
-  Name: "test" @3:6 (kind=3)
-  Interface: "interface" @3:11 (kind=28)
-  LBrace: "{" @3:20 (kind=41)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "test" @3:6 (kind=3)
+   Interface: "interface" @3:11 (kind=28)
+   LBrace: "{" @3:20 (kind=41)
     Embeds
-     Ident: "X" @4:3 (kind=3)
-     Dot: "." @4:4 (kind=48)
-     Ident: "Y" @4:5 (kind=3)
-  RBrace: "}" @5:1 (kind=42)
+     NamedType
+      Ident: "X" @4:3 (kind=3)
+      Dot: "." @4:4 (kind=48)
+      Ident: "Y" @4:5 (kind=3)
+   RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.errors))

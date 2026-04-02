@@ -8,7 +8,7 @@ import (
 )
 
 // parseConstDecl returns constant declaration
-func (p *Parser) parseConstDecl() ast.Stmt {
+func (p *Parser) parseConstDecl() ast.Decl {
 	kw := p.expect(token.KWConst, "expected 'const'")
 	name := p.expectValidIdent(token.Ident, true, "expected constant name")
 
@@ -21,12 +21,12 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 	var init ast.Expr
 	switch p.peek().Value {
 	case "[":
-		init = new(p.parseSliceElements())
+		init = p.parseSliceElements()
 	default:
 		init = p.parseExpr(LOWEST)
 	}
 
-	return &ast.ConstDeclStmt{
+	return &ast.ConstDecl{
 		ConstKW: kw,
 		Name:    name,
 		Type:    typ,
@@ -36,7 +36,7 @@ func (p *Parser) parseConstDecl() ast.Stmt {
 }
 
 // parseVarDecl returns variable declaration
-func (p *Parser) parseVarDecl() ast.Stmt {
+func (p *Parser) parseVarDecl() ast.Decl {
 	kw := p.expect(token.KWVar, "expected 'var'")
 	name := p.expectValidIdent(token.Ident, true, "expected variable name")
 	var view token.Token
@@ -55,7 +55,7 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 		init = p.parseMakeExpr()
 	case "[":
 		// []string{}
-		init = new(p.parseSliceElements())
+		init = p.parseSliceElements()
 	default:
 		// x[1:]
 		if p.lookForInSliceHeader(token.LBracket) {
@@ -65,7 +65,7 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 		}
 	}
 
-	return &ast.VarDeclStmt{
+	return &ast.VarDecl{
 		VarKW: kw,
 		Name:  name,
 		View:  view,
@@ -77,19 +77,19 @@ func (p *Parser) parseVarDecl() ast.Stmt {
 
 // parseVarConstType returns const/vars types
 func (p *Parser) parseVarConstType() (ast.Type, *ast.BadType, bool) {
-	typ := &ast.NameType{}
+	typ := &ast.NamedType{}
 	btyp := &ast.BadType{}
 	var bad bool
 
 	switch {
 	case p.kind() == token.LBracket:
-		return new(p.parseSliceOrArrayType()), nil, false
+		return p.parseSliceOrArrayType(), nil, false
 
 	case token.IsMapType(p.kind()):
 		return p.parseMapsHashMapsDecl(), nil, false
 
 	case token.IsVarConstTypes(p.kind()):
-		typ.Name = p.next()
+		typ.Parts = append(typ.Parts, p.next())
 	default:
 		tok := p.next()
 		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))

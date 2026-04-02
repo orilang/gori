@@ -29,26 +29,6 @@ func TestAst_dump(t *testing.T) {
 		assert.NotNil(result)
 	})
 
-	t.Run("nil_const_type", func(t *testing.T) {
-		f := &ConstDeclStmt{
-			ConstKW: token.Token{Kind: token.KWConst, Value: "const"},
-			Name:    token.Token{Kind: token.Ident, Value: "x"},
-			Type:    nil,
-		}
-		result := Dump(f)
-		assert.NotNil(result)
-	})
-
-	t.Run("nil_var_type", func(t *testing.T) {
-		f := &VarDeclStmt{
-			VarKW: token.Token{Kind: token.KWVar, Value: "var"},
-			Name:  token.Token{Kind: token.Ident, Value: "x"},
-			Type:  nil,
-		}
-		result := Dump(f)
-		assert.NotNil(result)
-	})
-
 	t.Run("nil_parent_expr", func(t *testing.T) {
 		f := &ParenExpr{
 			Left:  token.Token{Kind: token.LParen, Value: "("},
@@ -60,7 +40,7 @@ func TestAst_dump(t *testing.T) {
 	})
 
 	t.Run("bad_type_from", func(t *testing.T) {
-		f := &ConstDeclStmt{
+		f := &ConstDecl{
 			ConstKW: token.Token{Kind: token.KWConst, Value: "const"},
 			Name:    token.Token{Kind: token.Ident, Value: "x"},
 			Type:    &BadType{From: token.Token{Kind: token.Not, Line: 1, Column: 9, Value: "!"}},
@@ -71,7 +51,7 @@ func TestAst_dump(t *testing.T) {
 	})
 
 	t.Run("bad_type_from_to", func(t *testing.T) {
-		f := &ConstDeclStmt{
+		f := &ConstDecl{
 			ConstKW: token.Token{Kind: token.KWConst, Value: "const"},
 			Name:    token.Token{Kind: token.Ident, Value: "x"},
 			Type: &BadType{

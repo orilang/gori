@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParser_parse_const(t *testing.T) {
+func TestParser_parse_const_decl(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("float_lit", func(t *testing.T) {
@@ -22,8 +22,8 @@ func TestParser_parse_const(t *testing.T) {
  Const: "const" @1:1 (kind=23)
  Name: "a" @1:7 (kind=3)
  Type
-  NameType
-   Name: "float" @1:9 (kind=20)
+  NamedType
+   Ident: "float" @1:9 (kind=20)
  Eq: "=" @1:15 (kind=49)
  Init
   FloatLitExpr
@@ -67,7 +67,7 @@ func TestParser_parse_const(t *testing.T) {
 	})
 }
 
-func TestParser_parse_var(t *testing.T) {
+func TestParser_parse_var_decl(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("int_lit", func(t *testing.T) {
@@ -77,12 +77,12 @@ func TestParser_parse_var(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseVarDecl()
-		result := `VarDeclStmt
+		result := `VarDecl
  Var: "var" @1:1 (kind=11)
  Name: "a" @1:5 (kind=3)
  Type
-  NameType
-   Name: "int" @1:7 (kind=12)
+  NamedType
+   Ident: "int" @1:7 (kind=12)
  Eq: "=" @1:11 (kind=49)
  Init
   IntLitExpr
@@ -99,12 +99,12 @@ func TestParser_parse_var(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseVarDecl()
-		result := `VarDeclStmt
+		result := `VarDecl
  Var: "var" @1:1 (kind=11)
  Name: "a" @1:5 (kind=3)
  Type
-  NameType
-   Name: "float" @1:7 (kind=20)
+  NamedType
+   Ident: "float" @1:7 (kind=20)
  Eq: "=" @1:13 (kind=49)
  Init
   FloatLitExpr
@@ -143,12 +143,12 @@ func TestParser_parse_var(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseVarDecl()
-		result := `VarDeclStmt
+		result := `VarDecl
  Var: "var" @1:1 (kind=11)
  Name: "a" @1:5 (kind=3)
  Type
-  NameType
-   Name: "bool" @1:7 (kind=25)
+  NamedType
+   Ident: "bool" @1:7 (kind=25)
  Eq: "=" @1:12 (kind=49)
  Init
   BoolLitExpr
@@ -165,12 +165,12 @@ func TestParser_parse_var(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseVarDecl()
-		result := `VarDeclStmt
+		result := `VarDecl
  Var: "var" @1:1 (kind=11)
  Name: "a" @1:5 (kind=3)
  Type
-  NameType
-   Name: "string" @1:7 (kind=24)
+  NamedType
+   Ident: "string" @1:7 (kind=24)
  Eq: "=" @1:14 (kind=49)
  Init
   StringLitExpr
@@ -187,12 +187,12 @@ func TestParser_parse_var(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseVarDecl()
-		result := `VarDeclStmt
+		result := `VarDecl
  Var: "var" @1:1 (kind=11)
  Name: "a" @1:5 (kind=3)
  Type
-  NameType
-   Name: "string" @1:7 (kind=24)
+  NamedType
+   Ident: "string" @1:7 (kind=24)
  Eq: "=" @1:14 (kind=49)
  Init
   IdentExpr

@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestParser_type_sum(t *testing.T) {
+func TestParser_type_sum_decl(t *testing.T) {
 	assert := assert.New(t)
 
 	t.Run("x1", func(t *testing.T) {
@@ -25,33 +25,33 @@ type test sum {
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Sums
-  Type: "type" @3:1 (kind=26)
-   Name: "test" @3:6 (kind=3)
-   Sum: "sum" @3:11 (kind=75)
+ Decls
+  SumDecl:
+   Type: "type" @3:1 (kind=26)
+    Name: "test" @3:6 (kind=3)
+    Sum: "sum" @3:11 (kind=75)
    LBrace: "{" @3:15 (kind=41)
     Variants
-     Ident: "None" @4:47 (kind=3)
-    VariantMethods
-     Methods: "Circle" @4:3 (kind=3)
+     SumVariant: "Circle" @4:3 (kind=3)
       Params
        Param
         Ident: "radius" @4:10 (kind=3)
         Type
-         NameType
-          Name: "float" @4:17 (kind=20)
-     Methods: "Rect" @4:24 (kind=3)
+         NamedType
+          Ident: "float" @4:17 (kind=20)
+     SumVariant: "Rect" @4:24 (kind=3)
       Params
        Param
         Ident: "w" @4:29 (kind=3)
         Type
-         NameType
-          Name: "float" @4:31 (kind=20)
+         NamedType
+          Ident: "float" @4:31 (kind=20)
        Param
         Ident: "h" @4:38 (kind=3)
         Type
-         NameType
-          Name: "float" @4:40 (kind=20)
+         NamedType
+          Ident: "float" @4:40 (kind=20)
+     SumVariant: "None" @4:47 (kind=3)
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -74,33 +74,33 @@ type test sum {
 		result := `File
  Package: "package" @1:1 (kind=8)
  Name: "main" @1:9 (kind=3)
- Sums
-  Type: "type" @3:1 (kind=26)
-   Name: "test" @3:6 (kind=3)
-   Sum: "sum" @3:11 (kind=75)
+ Decls
+  SumDecl:
+   Type: "type" @3:1 (kind=26)
+    Name: "test" @3:6 (kind=3)
+    Sum: "sum" @3:11 (kind=75)
    LBrace: "{" @3:15 (kind=41)
     Variants
-     Ident: "None" @6:2 (kind=3)
-    VariantMethods
-     Methods: "Circle" @4:3 (kind=3)
+     SumVariant: "Circle" @4:3 (kind=3)
       Params
        Param
         Ident: "radius" @4:10 (kind=3)
         Type
-         NameType
-          Name: "float" @4:17 (kind=20)
-     Methods: "Rect" @5:2 (kind=3)
+         NamedType
+          Ident: "float" @4:17 (kind=20)
+     SumVariant: "Rect" @5:2 (kind=3)
       Params
        Param
         Ident: "w" @5:7 (kind=3)
         Type
-         NameType
-          Name: "float" @5:9 (kind=20)
+         NamedType
+          Ident: "float" @5:9 (kind=20)
        Param
         Ident: "h" @5:16 (kind=3)
         Type
-         NameType
-          Name: "float" @5:18 (kind=20)
+         NamedType
+          Ident: "float" @5:18 (kind=20)
+     SumVariant: "None" @6:2 (kind=3)
    RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))

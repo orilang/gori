@@ -8,11 +8,11 @@ import (
 )
 
 // parseImplementsDecl is in charge of parsing interface "implements" requirements
-func (p *Parser) parseImplementsDecl() *ast.ImplementsDecl {
+func (p *Parser) parseImplementsDecl() ast.Decl {
 	kw := p.expectValidIdent(token.Ident, true, "expected 'ident'")
 	kwi := p.expect(token.KWImplements, "expected 'implements'")
 	id := &ast.ImplementsDecl{
-		Type:       kw,
+		TypeName:   kw,
 		Implements: kwi,
 	}
 

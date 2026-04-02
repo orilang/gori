@@ -512,7 +512,8 @@ func x(){
             Name: "b" @6:7 (kind=3)
           LParent: "(" @6:8 (kind=39)
           RParent: ")" @6:9 (kind=40)
-         FallThrough: "fallthrough" @7:7 (kind=37)
+         FallThroughStmt
+          FallThrough: "fallthrough" @7:7 (kind=37)
        Case: "case" @8:5 (kind=35)
         Values:
          IntLitExpr
@@ -577,7 +578,8 @@ func x(){
             Name: "b" @6:7 (kind=3)
           LParent: "(" @6:8 (kind=39)
           RParent: ")" @6:9 (kind=40)
-         FallThrough: "fallthrough" @7:7 (kind=37)
+         FallThroughStmt
+          FallThrough: "fallthrough" @7:7 (kind=37)
        Case: "case" @8:5 (kind=35)
         Values:
          IntLitExpr
@@ -646,7 +648,8 @@ func x(){
             Name: "b" @6:7 (kind=3)
           LParent: "(" @6:8 (kind=39)
           RParent: ")" @6:9 (kind=40)
-         FallThrough: "fallthrough" @7:7 (kind=37)
+         FallThroughStmt
+          FallThrough: "fallthrough" @7:7 (kind=37)
        Case: "case" @8:5 (kind=35)
         Values:
          IntLitExpr
