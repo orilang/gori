@@ -16,14 +16,7 @@ type dumper struct {
 type File struct {
 	PackageKW token.Token
 	Name      token.Token
-	// Const      []Stmt
-	Decls []Decl
-	// Structs    []*StructType
-	// Interfaces []*InterfaceType
-	// Implements []*ImplementsDecl
-	// Enums      []*EnumType
-	// Sums       []*SumType
-	// Comptime   []Stmt
+	Decls     []Decl
 }
 
 // FuncDecl holds function parsed content
