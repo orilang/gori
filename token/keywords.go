@@ -204,6 +204,20 @@ var validTypeDecl = map[Kind]bool{
 	KWStruct:    true,
 	KWEnum:      true,
 	KWSum:       true,
+	KWInt:       true,
+	KWInt8:      true,
+	KWInt32:     true,
+	KWInt64:     true,
+	KWUint:      true,
+	KWUint8:     true,
+	KWUint32:    true,
+	KWUint64:    true,
+	KWFloat:     true,
+	KWFloat32:   true,
+	KWFloat64:   true,
+	KWString:    true,
+	KWBool:      true,
+	KWFunc:      true,
 }
 
 var sliceTypes = map[Kind]bool{
@@ -255,4 +269,21 @@ var makeTypes = map[Kind]bool{
 	LBracket:  true,
 	KWMap:     true,
 	KWHashMap: true,
+}
+
+var definedTypes = map[Kind]bool{
+	KWInt:     true,
+	KWInt8:    true,
+	KWInt32:   true,
+	KWInt64:   true,
+	KWUint:    true,
+	KWUint8:   true,
+	KWUint32:  true,
+	KWUint64:  true,
+	KWFloat:   true,
+	KWFloat32: true,
+	KWFloat64: true,
+	KWString:  true,
+	KWBool:    true,
+	KWFunc:    true,
 }

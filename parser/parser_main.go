@@ -246,8 +246,10 @@ func (p *Parser) ParseFile() *ast.File {
 					f.Decls = append(f.Decls, p.parseInterfaceDecl())
 				} else if p.kindNext(p.position+2) == token.KWEnum {
 					f.Decls = append(f.Decls, p.parseEnumDecl())
-				} else {
+				} else if p.kindNext(p.position+2) == token.KWSum {
 					f.Decls = append(f.Decls, p.parseSumDecl())
+				} else {
+					f.Decls = append(f.Decls, p.parseDefinedDecl())
 				}
 			} else {
 				tok := p.peek()
@@ -345,9 +347,13 @@ func (p *Parser) parseStmt() ast.Stmt {
 				return &ast.DeclStmt{
 					Decl: p.parseEnumDecl(),
 				}
-			} else {
+			} else if p.kindNext(p.position+2) == token.KWSum {
 				return &ast.DeclStmt{
 					Decl: p.parseSumDecl(),
+				}
+			} else {
+				return &ast.DeclStmt{
+					Decl: p.parseDefinedDecl(),
 				}
 			}
 		}

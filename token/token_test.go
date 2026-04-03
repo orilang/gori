@@ -368,4 +368,24 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsMakeTypes(tc.input))
 		}
 	})
+
+	t.Run("is_defined_types_x2", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWInt,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsDefinedTypes(tc.input))
+		}
+	})
 }
