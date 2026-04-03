@@ -14,6 +14,7 @@ func (*EnumDecl) declNode()          {}
 func (*SumDecl) declNode()           {}
 func (*ComptimeBlockDecl) declNode() {}
 func (*ImplementsDecl) declNode()    {}
+func (*DefinedTypeDecl) declNode()   {}
 
 func (*dumpType) typeNode()  {}
 func (*BadType) typeNode()   {}
@@ -262,6 +263,14 @@ func (x *DeclStmt) Start() token.Token {
 func (x *DeclStmt) End() token.Token {
 	if x.Decl != nil {
 		return x.Decl.End()
+	}
+	return token.Token{}
+}
+
+func (x *DefinedTypeDecl) Start() token.Token { return x.TypeDecl }
+func (x *DefinedTypeDecl) End() token.Token {
+	if x.Type != nil {
+		return x.Type.End()
 	}
 	return token.Token{}
 }

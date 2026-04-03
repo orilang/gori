@@ -94,3 +94,8 @@ func IsMapTypes(k Kind) bool {
 func IsMakeTypes(k Kind) bool {
 	return makeTypes[k]
 }
+
+// IsDefinedTypes returns true when the provided kind found
+func IsDefinedTypes(k Kind) bool {
+	return definedTypes[k]
+}

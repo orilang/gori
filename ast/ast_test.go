@@ -24,18 +24,6 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(z, x.End())
 	})
 
-	// t.Run("name_type", func(t *testing.T) {
-	// 	z := token.Token{
-	// 		Kind:   token.KWInt,
-	// 		Value:  "int",
-	// 		Line:   1,
-	// 		Column: 1,
-	// 	}
-	// 	x := &NameType{z}
-	// 	assert.Equal(z, x.Start())
-	// 	assert.Equal(z, x.End())
-	// })
-
 	t.Run("int_lit_expr", func(t *testing.T) {
 		z := token.Token{
 			Kind:   token.IntLit,
@@ -999,5 +987,55 @@ func TestAst_position(t *testing.T) {
 
 		assert.Equal(name, x.Start())
 		assert.Equal(rb, x.End())
+	})
+
+	t.Run("defined_type_x1", func(t *testing.T) {
+		typ := token.Token{
+			Kind:  token.KWType,
+			Value: "type",
+		}
+
+		name := token.Token{
+			Kind:  token.Ident,
+			Value: "x",
+		}
+
+		tp := &NamedType{
+			Parts: []token.Token{
+				{
+					Kind:  token.KWInt,
+					Value: "int",
+				},
+			},
+		}
+
+		x := &DefinedTypeDecl{
+			TypeDecl: typ,
+			Name:     name,
+			Type:     tp,
+		}
+
+		assert.Equal(typ, x.Start())
+		assert.Equal(tp.Parts[0], x.End())
+	})
+
+	t.Run("defined_type_x2", func(t *testing.T) {
+		typ := token.Token{
+			Kind:  token.KWType,
+			Value: "type",
+		}
+
+		name := token.Token{
+			Kind:  token.Ident,
+			Value: "x",
+		}
+
+		x := &DefinedTypeDecl{
+			TypeDecl: typ,
+			Name:     name,
+		}
+
+		assert.Equal(typ, x.Start())
+		assert.Equal(token.Token{}, x.End())
 	})
 }

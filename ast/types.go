@@ -388,3 +388,9 @@ type MakeExpr struct {
 	Args   []Expr // optional
 	RParen token.Token
 }
+
+type DefinedTypeDecl struct {
+	TypeDecl token.Token
+	Name     token.Token
+	Type     Type
+}

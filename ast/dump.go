@@ -454,6 +454,13 @@ func (d *dumper) node(indent int, n any) {
 			d.node(indent+2, dec)
 		}
 
+	case *DefinedTypeDecl:
+		d.line(indent, "DefinedTypeDecl:")
+		d.kv(indent+1, "TypeDecl", v.TypeDecl)
+		d.kv(indent+2, "Name", v.Name)
+		d.line(indent+2, "Type")
+		d.node(indent+3, v.Type)
+
 	case *SliceExpr:
 		d.line(indent, "SliceExpr")
 		d.expr(indent+1, v.X)
@@ -590,7 +597,7 @@ func (d *dumper) decl(indent int, n Decl) {
 	case *FuncDecl, *BadDecl, *ConstDecl, *VarDecl, *InterfaceDecl, *EnumDecl, *SumDecl:
 		d.node(indent, v)
 
-	case *ComptimeBlockDecl, *StructDecl, *ImplementsDecl:
+	case *ComptimeBlockDecl, *StructDecl, *ImplementsDecl, *DefinedTypeDecl:
 		d.node(indent, v)
 
 	default:
