@@ -3,6 +3,7 @@ package semantics
 import (
 	"testing"
 
+	"github.com/orilang/gori/token"
 	"github.com/stretchr/testify/require"
 )
 
@@ -212,6 +213,21 @@ func TestSemantics_convert(t *testing.T) {
 
 		for _, tc := range tests {
 			require.Equal(t, tc.expected, IsConvertibleTo(tc.src, tc.dst))
+		}
+	})
+
+	t.Run("supports_binary_op", func(t *testing.T) {
+		tests := []struct {
+			src      Type
+			op       token.Kind
+			expected bool
+		}{
+			{src: TBool, op: token.And, expected: true},
+			{src: TInt, expected: false},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, SupportsBinaryOp(tc.src, tc.op))
 		}
 	})
 }

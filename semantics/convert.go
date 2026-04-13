@@ -1,5 +1,9 @@
 package semantics
 
+import (
+	"github.com/orilang/gori/token"
+)
+
 // IsIdentical returns whether both types are identical
 func IsIdentical(a, b Type) bool {
 	if a == nil || b == nil {
@@ -197,4 +201,9 @@ func IsString(src Type) bool {
 // IsConvertibleTo verifies if provided parameters are convertible
 func IsConvertibleTo(src, dst Type) bool {
 	return IsNumeric(src) && IsNumeric(dst)
+}
+
+// SupportsBinaryOp verifies if provided parameters supports binary operations
+func SupportsBinaryOp(src Type, op token.Kind) bool {
+	return IsBool(src) && token.IsBinaryType(op)
 }
