@@ -71,13 +71,6 @@ func IsIdentical(a, b Type) bool {
 			}
 		}
 
-	case *Param:
-		if t2, ok := b.(*Param); ok {
-			if t1.Name == t2.Name && t1.Type == t2.Type {
-				return true
-			}
-		}
-
 	case *FuncMethod:
 		if t2, ok := b.(*FuncMethod); ok {
 			if t1.Name == t2.Name {
@@ -123,14 +116,14 @@ func IsIdentical(a, b Type) bool {
 				for k := range t1.Variants {
 					if t1.Variants[k].Name == t2.Variants[k].Name && len(t1.Variants[k].Field) == len(t2.Variants[k].Field) {
 						for kv := range t1.Variants[k].Field {
-							if IsIdentical(&t1.Variants[k].Field[kv], &t2.Variants[k].Field[kv]) {
+							if t1.Variants[k].Field[kv].Name == t2.Variants[k].Field[kv].Name && IsIdentical(t1.Variants[k].Field[kv].Type, t2.Variants[k].Field[kv].Type) {
 								continue
 							} else {
 								return false
 							}
 						}
-						return true
 					}
+					return true
 				}
 			}
 		}
