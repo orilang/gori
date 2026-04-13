@@ -158,12 +158,24 @@ func IsNumeric(src Type) bool {
 	return false
 }
 
-// IsInteger verifies if provided parameters is an integer
+// IsInteger verifies if provided parameter is an integer
 func IsInteger(src Type) bool {
 	switch t1 := src.(type) {
 	case *BuiltinType:
 		switch t1.String() {
 		case "int", "int8", "int32", "int64", "uint", "uint8", "uint32", "uint64":
+			return true
+		}
+	}
+	return false
+}
+
+// IsBool verifies if provided parameter is a boolean
+func IsBool(src Type) bool {
+	switch t1 := src.(type) {
+	case *BuiltinType:
+		switch t1.String() {
+		case "bool":
 			return true
 		}
 	}
