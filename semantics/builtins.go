@@ -84,6 +84,11 @@ func (t *StructType) String() string {
 	return "struct"
 }
 
+func (t *FuncType) typeNode() {}
+func (t *FuncType) String() string {
+	return "funcType"
+}
+
 func (t *Param) typeNode() {}
 func (t *Param) String() string {
 	return "param"

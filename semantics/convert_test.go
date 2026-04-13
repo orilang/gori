@@ -21,6 +21,7 @@ func TestSemantics_convert(t *testing.T) {
 			{a: &NamedType{Name: "UserID", UnderlyingType: TInt}, b: &NamedType{Name: "UserID", UnderlyingType: TInt}, expected: true},
 			{a: &ArrayType{Len: 1, Elem: TInt}, b: TInt, expected: false},
 			{a: &ArrayType{Len: 1, Elem: TInt}, b: &ArrayType{Len: 1, Elem: TString}, expected: false},
+			{a: &ArrayType{Len: 1, Elem: TInt}, b: &ArrayType{Len: 2, Elem: TString}, expected: false},
 			{a: &ArrayType{Len: 1, Elem: TInt}, b: &ArrayType{Len: 1, Elem: TInt}, expected: true},
 			{a: &SliceType{Elem: TInt}, b: TInt, expected: false},
 			{a: &SliceType{Elem: TInt}, b: &SliceType{Elem: TString}, expected: false},
@@ -205,15 +206,34 @@ func TestSemantics_convert(t *testing.T) {
 		}
 	})
 
+	t.Run("is_invalid", func(t *testing.T) {
+		tests := []struct {
+			src, dst Type
+			expected bool
+		}{
+			{src: &InvalidType{}, expected: true},
+			{src: TBool, expected: false},
+			{src: TInt, expected: false},
+			{src: &ArrayType{Len: 1, Elem: TInt}, expected: false},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsInvalid(tc.src))
+		}
+	})
+
 	t.Run("is_convertible_to", func(t *testing.T) {
 		tests := []struct {
 			src, dst Type
 			expected bool
 		}{
+			{src: &InvalidType{}, dst: nil, expected: true},
 			{src: TBool, dst: TInt, expected: false},
 			{src: TInt, expected: false},
 			{src: TInt, dst: TFloat, expected: true},
-			{src: &NamedType{Name: "Age", UnderlyingType: TInt}, expected: true},
+			{src: TInt, dst: TInt, expected: true},
+			{src: TString, dst: TString, expected: true},
+			{src: &NamedType{Name: "Age", UnderlyingType: TInt}, expected: false},
 		}
 
 		for _, tc := range tests {
@@ -230,6 +250,8 @@ func TestSemantics_convert(t *testing.T) {
 			{src: TBool, op: token.And, expected: true},
 			{src: &NamedType{Name: "IsValid", UnderlyingType: TBool}, op: token.And, expected: true},
 			{src: TInt, expected: false},
+			{src: TInt, op: token.Plus, expected: true},
+			{src: TInt, op: token.Modulo, expected: true},
 		}
 
 		for _, tc := range tests {
@@ -243,9 +265,9 @@ func TestSemantics_convert(t *testing.T) {
 			op       token.Kind
 			expected bool
 		}{
-			{src: TInt, op: token.PPlus, expected: true},
+			{src: TInt, op: token.Plus, expected: true},
 			{src: TBool, op: token.Not, expected: true},
-			{src: &NamedType{Name: "UserID", UnderlyingType: TInt}, op: token.PPlus, expected: true},
+			{src: &NamedType{Name: "UserID", UnderlyingType: TInt}, op: token.Plus, expected: true},
 			{src: &NamedType{Name: "IsValid", UnderlyingType: TBool}, op: token.Not, expected: true},
 			{src: TString, expected: false},
 			{src: TString, op: token.PPlus, expected: false},

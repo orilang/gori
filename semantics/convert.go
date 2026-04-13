@@ -13,34 +13,55 @@ func IsIdentical(a, b Type) bool {
 	switch t1 := a.(type) {
 	case *BuiltinType:
 		if t2, ok := b.(*BuiltinType); ok {
-			return t1.String() == t2.String()
+			return t1 == t2
 		}
 
 	case *NamedType:
 		if t2, ok := b.(*NamedType); ok {
-			return t1.Name == t2.Name && t1.UnderlyingType.String() == t2.UnderlyingType.String()
+			return t1.Name == t2.Name && t1.UnderlyingType == t2.UnderlyingType
 		}
 
 	case *ArrayType:
 		if t2, ok := b.(*ArrayType); ok {
-			return t1.Elem.String() == t2.Elem.String()
+			return t1.Elem == t2.Elem && t1.Len == t2.Len
 		}
 
 	case *SliceType:
 		if t2, ok := b.(*SliceType); ok {
-			return t1.Elem.String() == t2.Elem.String()
+			return IsIdentical(t1.Elem, t2.Elem)
 		}
 
 	case *MapType:
 		if t2, ok := b.(*MapType); ok {
-			return t1.Kind == t2.Kind && t1.Key.String() == t2.Key.String() && t1.Value.String() == t2.Value.String()
+			return t1.Kind == t2.Kind && t1.Key == t2.Key && t1.Value == t2.Value
 		}
 
 	case *StructType:
 		if t2, ok := b.(*StructType); ok {
-			if t1.String() == t2.String() && len(t1.Fields) == len(t2.Fields) {
+			if len(t1.Fields) == len(t2.Fields) {
 				for k := range t1.Fields {
-					if t1.Fields[k].Name == t2.Fields[k].Name && t1.Fields[k].Type.String() == t2.Fields[k].Type.String() {
+					if t1.Fields[k].Name == t2.Fields[k].Name && IsIdentical(t1.Fields[k].Type, t2.Fields[k].Type) {
+						continue
+					} else {
+						return false
+					}
+				}
+				return true
+			}
+		}
+
+	case *FuncType:
+		if t2, ok := b.(*FuncType); ok {
+			if t1 != nil && t2 != nil && len(t1.Params) == len(t2.Params) && len(t1.Results) == len(t2.Results) {
+				for k := range t1.Params {
+					if t1.Params[k].Name == t2.Params[k].Name && IsIdentical(t1.Params[k].Type, t2.Params[k].Type) {
+						continue
+					} else {
+						return false
+					}
+				}
+				for k := range t1.Results {
+					if t1.Results[k].Name == t2.Results[k].Name && IsIdentical(t1.Results[k].Type, t2.Results[k].Type) {
 						continue
 					} else {
 						return false
@@ -52,30 +73,18 @@ func IsIdentical(a, b Type) bool {
 
 	case *Param:
 		if t2, ok := b.(*Param); ok {
-			if t1.Name == t2.Name && t1.Type.String() == t2.Type.String() {
+			if t1.Name == t2.Name && t1.Type == t2.Type {
 				return true
 			}
 		}
 
 	case *FuncMethod:
 		if t2, ok := b.(*FuncMethod); ok {
-			if t1.String() == t2.String() && t1.Name == t2.Name {
-				if t1.FuncType != nil && t2.FuncType != nil && len(t1.FuncType.Params) == len(t2.FuncType.Params) && len(t1.FuncType.Results) == len(t2.FuncType.Results) {
-					for k := range t1.FuncType.Params {
-						if IsIdentical(&t1.FuncType.Params[k], &t2.FuncType.Params[k]) {
-							continue
-						} else {
-							return false
-						}
-					}
-					for k := range t1.FuncType.Results {
-						if IsIdentical(&t1.FuncType.Results[k], &t2.FuncType.Results[k]) {
-							continue
-						} else {
-							return false
-						}
-					}
+			if t1.Name == t2.Name {
+				if IsIdentical(t1.FuncType, t2.FuncType) {
 					return true
+				} else {
+					return false
 				}
 			}
 		}
@@ -113,7 +122,7 @@ func IsIdentical(a, b Type) bool {
 			if t1.Name == t2.Name && len(t1.Variants) == len(t2.Variants) {
 				for k := range t1.Variants {
 					if t1.Variants[k].Name == t2.Variants[k].Name && len(t1.Variants[k].Field) == len(t2.Variants[k].Field) {
-						for kv := range t1.Variants {
+						for kv := range t1.Variants[k].Field {
 							if IsIdentical(&t1.Variants[k].Field[kv], &t2.Variants[k].Field[kv]) {
 								continue
 							} else {
@@ -151,11 +160,11 @@ func IsAssignableTo(src, dst Type) bool {
 }
 
 // IsNumeric verifies if provided parameters is numeric
-func IsNumeric(src Type) bool {
-	switch t1 := src.(type) {
+func IsNumeric(t Type) bool {
+	switch t1 := t.(type) {
 	case *BuiltinType:
-		switch t1.String() {
-		case "int", "int8", "int32", "int64", "uint", "uint8", "uint32", "uint64", "float", "float32", "float64":
+		switch t1 {
+		case TInt, TInt8, TInt32, TInt64, TUInt, TUInt8, TUInt32, TUInt64, TFloat, TFloat32, TFloat64:
 			return true
 		}
 
@@ -166,11 +175,11 @@ func IsNumeric(src Type) bool {
 }
 
 // IsInteger verifies if provided parameter is an integer
-func IsInteger(src Type) bool {
-	switch t1 := src.(type) {
+func IsInteger(t Type) bool {
+	switch t1 := t.(type) {
 	case *BuiltinType:
-		switch t1.String() {
-		case "int", "int8", "int32", "int64", "uint", "uint8", "uint32", "uint64":
+		switch t1 {
+		case TInt, TInt8, TInt32, TInt64, TUInt, TUInt8, TUInt32, TUInt64:
 			return true
 		}
 
@@ -181,10 +190,10 @@ func IsInteger(src Type) bool {
 }
 
 // IsBool verifies if provided parameter is a boolean
-func IsBool(src Type) bool {
-	switch t1 := src.(type) {
+func IsBool(t Type) bool {
+	switch t1 := t.(type) {
 	case *BuiltinType:
-		if t1.String() == "bool" {
+		if t1 == TBool {
 			return true
 		}
 
@@ -195,10 +204,10 @@ func IsBool(src Type) bool {
 }
 
 // IsString verifies if provided parameter is a string
-func IsString(src Type) bool {
-	switch t1 := src.(type) {
+func IsString(t Type) bool {
+	switch t1 := t.(type) {
 	case *BuiltinType:
-		if t1.String() == "string" {
+		if t1 == TString {
 			return true
 		}
 
@@ -208,41 +217,56 @@ func IsString(src Type) bool {
 	return false
 }
 
+// IsInvalid verifies if provided parameter is invalid
+func IsInvalid(t Type) bool {
+	switch t.(type) {
+	case *InvalidType:
+		return true
+	}
+	return false
+}
+
 // IsConvertibleTo verifies if provided parameters are convertible
 func IsConvertibleTo(src, dst Type) bool {
-	switch t1 := src.(type) {
-	case *BuiltinType:
-	case *NamedType:
-		if IsNumeric(t1.UnderlyingType) {
-			return true
-		}
+	if IsInvalid(src) || IsInvalid(dst) {
+		return true
 	}
-
-	return IsNumeric(src) && IsNumeric(dst)
+	if IsIdentical(src, dst) {
+		return true
+	}
+	if IsNumeric(src) && IsNumeric(dst) {
+		return true
+	}
+	return false
 }
 
 // SupportsBinaryOp verifies if provided parameters supports binary operations
-func SupportsBinaryOp(src Type, op token.Kind) bool {
-	return IsBool(src) && token.IsBinaryType(op)
+func SupportsBinaryOp(t Type, op token.Kind) bool {
+	switch op {
+	case token.Plus, token.Minus, token.Star, token.Slash:
+		return IsNumeric(t)
+
+	case token.Modulo:
+		return IsNumeric(t)
+
+	case token.And, token.Or:
+		return IsBool(t)
+
+	default:
+		return false
+	}
 }
 
 // SupportsUnaryOp verifies if provided parameters supports unary operations
-func SupportsUnaryOp(src Type, op token.Kind) bool {
-	switch t1 := src.(type) {
-	case *BuiltinType:
-		if t1.String() == "bool" && op == token.Not {
-			return true
-		}
+func SupportsUnaryOp(t Type, op token.Kind) bool {
+	switch op {
+	case token.Not:
+		return IsBool(t)
 
-	case *NamedType:
-		if IsBool(t1.UnderlyingType) && op == token.Not {
-			return true
-		}
+	case token.Plus, token.Minus:
+		return IsNumeric(t)
 
-		if IsNumeric(t1.UnderlyingType) && token.IsIncDec(op) {
-			return true
-		}
+	default:
+		return false
 	}
-
-	return IsNumeric(src) && token.IsIncDec(op)
 }
