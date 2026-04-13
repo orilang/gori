@@ -145,3 +145,15 @@ func IsAssignableTo(src, dst Type) bool {
 
 	return IsIdentical(src, dst)
 }
+
+// IsNumeric verifies if provided parameters numeric
+func IsNumeric(src Type) bool {
+	switch t1 := src.(type) {
+	case *BuiltinType:
+		switch t1.String() {
+		case "int", "int8", "int32", "int64", "uint", "uint8", "uint32", "uint64", "float", "float32", "float64":
+			return true
+		}
+	}
+	return false
+}

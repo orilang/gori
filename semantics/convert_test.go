@@ -138,4 +138,19 @@ func TestSemantics_convert(t *testing.T) {
 			require.Equal(t, tc.expected, IsAssignableTo(tc.src, tc.dst))
 		}
 	})
+
+	t.Run("is_numeric", func(t *testing.T) {
+		tests := []struct {
+			src, dst Type
+			expected bool
+		}{
+			{src: TBool, expected: false},
+			{src: TInt, expected: true},
+			{src: &ArrayType{Len: 1, Elem: TInt}, expected: false},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsNumeric(tc.src))
+		}
+	})
 }
