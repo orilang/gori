@@ -207,3 +207,8 @@ func IsConvertibleTo(src, dst Type) bool {
 func SupportsBinaryOp(src Type, op token.Kind) bool {
 	return IsBool(src) && token.IsBinaryType(op)
 }
+
+// SupportsUnaryOp verifies if provided parameters supports unary operations
+func SupportsUnaryOp(src Type, op token.Kind) bool {
+	return IsNumeric(src) && token.IsIncDec(op)
+}

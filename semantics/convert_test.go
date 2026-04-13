@@ -230,4 +230,20 @@ func TestSemantics_convert(t *testing.T) {
 			require.Equal(t, tc.expected, SupportsBinaryOp(tc.src, tc.op))
 		}
 	})
+
+	t.Run("supports_unary_op", func(t *testing.T) {
+		tests := []struct {
+			src      Type
+			op       token.Kind
+			expected bool
+		}{
+			{src: TInt, op: token.PPlus, expected: true},
+			{src: TString, expected: false},
+			{src: TString, op: token.PPlus, expected: false},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, SupportsUnaryOp(tc.src, tc.op))
+		}
+	})
 }
