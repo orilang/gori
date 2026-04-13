@@ -252,6 +252,9 @@ func SupportsBinaryOp(t Type, op token.Kind) bool {
 	case token.And, token.Or:
 		return IsBool(t)
 
+	case token.Eq, token.Neq:
+		return IsComparable(t)
+
 	default:
 		return false
 	}
@@ -269,4 +272,10 @@ func SupportsUnaryOp(t Type, op token.Kind) bool {
 	default:
 		return false
 	}
+}
+
+// IsComparable verifies if the provided parameter is comparable
+// like == or !=
+func IsComparable(t Type) bool {
+	return IsBool(t) || IsNumeric(t) || IsString(t)
 }

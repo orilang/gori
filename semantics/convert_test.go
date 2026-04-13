@@ -252,6 +252,7 @@ func TestSemantics_convert(t *testing.T) {
 			{src: TInt, expected: false},
 			{src: TInt, op: token.Plus, expected: true},
 			{src: TInt, op: token.Modulo, expected: true},
+			{src: TInt, op: token.Eq, expected: true},
 		}
 
 		for _, tc := range tests {
@@ -275,6 +276,23 @@ func TestSemantics_convert(t *testing.T) {
 
 		for _, tc := range tests {
 			require.Equal(t, tc.expected, SupportsUnaryOp(tc.src, tc.op))
+		}
+	})
+
+	t.Run("is_comparable", func(t *testing.T) {
+		tests := []struct {
+			src      Type
+			expected bool
+		}{
+			{src: TInt, expected: true},
+			{src: TBool, expected: true},
+			{src: &NamedType{Name: "UserID", UnderlyingType: TInt}, expected: true},
+			{src: &NamedType{Name: "IsValid", UnderlyingType: TBool}, expected: true},
+			{src: TString, expected: true},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsComparable(tc.src))
 		}
 	})
 }
