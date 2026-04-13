@@ -123,19 +123,19 @@ func TestSemantics_convert(t *testing.T) {
 			targetType, valueType Type
 			expected              bool
 		}{
-			{targetType: TBool, valueType: &UntypeNilType{}, expected: false},
+			{targetType: TBool, valueType: &UntypedNilType{}, expected: false},
 			{targetType: TBool, valueType: TBool, expected: true},
 			{targetType: &ArrayType{Len: 1, Elem: TInt}, valueType: TBool, expected: false},
 			{targetType: &ArrayType{Len: 1, Elem: TInt}, valueType: nil, expected: false},
 			{targetType: &SliceType{Elem: TInt}, valueType: TBool, expected: false},
-			{targetType: &SliceType{Elem: TInt}, valueType: &UntypeNilType{}, expected: true},
+			{targetType: &SliceType{Elem: TInt}, valueType: &UntypedNilType{}, expected: true},
 			{targetType: &MapType{Kind: MapHash, Key: TInt, Value: TString}, valueType: TBool, expected: false},
-			{targetType: &MapType{Kind: MapHash, Key: TInt, Value: TString}, valueType: &UntypeNilType{}, expected: true},
+			{targetType: &MapType{Kind: MapHash, Key: TInt, Value: TString}, valueType: &UntypedNilType{}, expected: true},
 			{targetType: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, valueType: TBool, expected: false},
-			{targetType: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, valueType: &UntypeNilType{}, expected: false},
+			{targetType: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, valueType: &UntypedNilType{}, expected: false},
 			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: TBool, expected: false},
-			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: &UntypeNilType{}, expected: false},
-			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &UntypeNilType{}, expected: false},
+			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: &UntypedNilType{}, expected: false},
+			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &UntypedNilType{}, expected: false},
 			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true},
 			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: nil, expected: false},
 			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true},
@@ -327,7 +327,7 @@ func TestSemantics_convert(t *testing.T) {
 			src      Type
 			expected bool
 		}{
-			{src: &UntypeNilType{}, expected: true},
+			{src: &UntypedNilType{}, expected: true},
 			{src: TBool, expected: false},
 		}
 

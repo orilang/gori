@@ -266,7 +266,7 @@ func IsOrdered(t Type) bool {
 
 // IsUntypedNilType verifies if the provided parameter is a nil type
 func IsUntypedNilType(t Type) bool {
-	if _, ok := t.(*UntypeNilType); ok {
+	if _, ok := t.(*UntypedNilType); ok {
 		return true
 	}
 	return false

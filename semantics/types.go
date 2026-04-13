@@ -106,4 +106,4 @@ type SumType struct {
 }
 
 type InvalidType struct{}
-type UntypeNilType struct{}
+type UntypedNilType struct{}

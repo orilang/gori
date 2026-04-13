@@ -21,8 +21,8 @@ var (
 func (t *InvalidType) typeNode()      {}
 func (t *InvalidType) String() string { return "<invalid>" }
 
-func (t *UntypeNilType) typeNode()      {}
-func (t *UntypeNilType) String() string { return "nil" }
+func (t *UntypedNilType) typeNode()      {}
+func (t *UntypedNilType) String() string { return "nil" }
 
 func (t *BuiltinType) typeNode() {}
 func (t *BuiltinType) String() string {
