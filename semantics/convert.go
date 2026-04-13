@@ -181,3 +181,15 @@ func IsBool(src Type) bool {
 	}
 	return false
 }
+
+// IsString verifies if provided parameter is a string
+func IsString(src Type) bool {
+	switch t1 := src.(type) {
+	case *BuiltinType:
+		switch t1.String() {
+		case "string":
+			return true
+		}
+	}
+	return false
+}

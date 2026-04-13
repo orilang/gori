@@ -183,4 +183,20 @@ func TestSemantics_convert(t *testing.T) {
 			require.Equal(t, tc.expected, IsBool(tc.src))
 		}
 	})
+
+	t.Run("is_string", func(t *testing.T) {
+		tests := []struct {
+			src, dst Type
+			expected bool
+		}{
+			{src: TString, expected: true},
+			{src: TBool, expected: false},
+			{src: TInt, expected: false},
+			{src: &ArrayType{Len: 1, Elem: TInt}, expected: false},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsString(tc.src))
+		}
+	})
 }
