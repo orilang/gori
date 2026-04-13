@@ -247,7 +247,7 @@ func SupportsBinaryOp(t Type, op token.Kind) bool {
 		return IsNumeric(t)
 
 	case token.Modulo:
-		return IsNumeric(t)
+		return IsInteger(t)
 
 	case token.And, token.Or:
 		return IsBool(t)

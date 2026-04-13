@@ -254,6 +254,8 @@ func TestSemantics_convert(t *testing.T) {
 			{src: TInt, op: token.Modulo, expected: true},
 			{src: TInt, op: token.Eq, expected: true},
 			{src: TInt, op: token.Lt, expected: true},
+			{src: TInt, op: token.Modulo, expected: true},
+			{src: TFloat, op: token.Modulo, expected: false},
 		}
 
 		for _, tc := range tests {
