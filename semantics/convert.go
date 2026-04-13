@@ -211,14 +211,14 @@ func IsInvalid(t Type) bool {
 }
 
 // IsConvertibleTo verifies if provided parameters are convertible
-func IsConvertibleTo(src, dst Type) bool {
-	if IsInvalid(src) || IsInvalid(dst) {
+func IsConvertibleTo(fromType, toType Type) bool {
+	if IsInvalid(fromType) || IsInvalid(toType) {
 		return true
 	}
-	if IsIdentical(src, dst) {
+	if IsIdentical(fromType, toType) {
 		return true
 	}
-	if IsNumeric(src) && IsNumeric(dst) {
+	if IsNumeric(fromType) && IsNumeric(toType) {
 		return true
 	}
 	return false
