@@ -287,3 +287,9 @@ var definedTypes = map[Kind]bool{
 	KWBool:    true,
 	KWFunc:    true,
 }
+
+var binaryTypes = map[Kind]bool{
+	And: true,
+	Or:  true,
+	Not: true,
+}

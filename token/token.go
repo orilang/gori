@@ -99,3 +99,8 @@ func IsMakeTypes(k Kind) bool {
 func IsDefinedTypes(k Kind) bool {
 	return definedTypes[k]
 }
+
+// IsBinaryType returns true when the provided kind found
+func IsBinaryType(k Kind) bool {
+	return binaryTypes[k]
+}

@@ -388,4 +388,24 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsDefinedTypes(tc.input))
 		}
 	})
+
+	t.Run("is_binary_type", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    And,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsBinaryType(tc.input))
+		}
+	})
 }
