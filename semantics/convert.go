@@ -54,14 +54,14 @@ func IsIdentical(a, b Type) bool {
 		if t2, ok := b.(*FuncType); ok {
 			if t1 != nil && t2 != nil && len(t1.Params) == len(t2.Params) && len(t1.Results) == len(t2.Results) {
 				for k := range t1.Params {
-					if t1.Params[k].Name == t2.Params[k].Name && IsIdentical(t1.Params[k].Type, t2.Params[k].Type) {
+					if IsIdentical(t1.Params[k].Type, t2.Params[k].Type) {
 						continue
 					} else {
 						return false
 					}
 				}
 				for k := range t1.Results {
-					if t1.Results[k].Name == t2.Results[k].Name && IsIdentical(t1.Results[k].Type, t2.Results[k].Type) {
+					if IsIdentical(t1.Results[k].Type, t2.Results[k].Type) {
 						continue
 					} else {
 						return false
