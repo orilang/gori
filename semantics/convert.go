@@ -255,6 +255,9 @@ func SupportsBinaryOp(t Type, op token.Kind) bool {
 	case token.Eq, token.Neq:
 		return IsComparable(t)
 
+	case token.Lt, token.Lte, token.Gt, token.Gte:
+		return IsOrdered(t)
+
 	default:
 		return false
 	}
@@ -278,4 +281,10 @@ func SupportsUnaryOp(t Type, op token.Kind) bool {
 // like == or !=
 func IsComparable(t Type) bool {
 	return IsBool(t) || IsNumeric(t) || IsString(t)
+}
+
+// IsOrdered verifies if the provided parameters is ordered
+// like < <= > >=
+func IsOrdered(t Type) bool {
+	return IsNumeric(t) || IsString(t)
 }

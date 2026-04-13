@@ -253,6 +253,7 @@ func TestSemantics_convert(t *testing.T) {
 			{src: TInt, op: token.Plus, expected: true},
 			{src: TInt, op: token.Modulo, expected: true},
 			{src: TInt, op: token.Eq, expected: true},
+			{src: TInt, op: token.Lt, expected: true},
 		}
 
 		for _, tc := range tests {
@@ -293,6 +294,23 @@ func TestSemantics_convert(t *testing.T) {
 
 		for _, tc := range tests {
 			require.Equal(t, tc.expected, IsComparable(tc.src))
+		}
+	})
+
+	t.Run("is_ordered", func(t *testing.T) {
+		tests := []struct {
+			src      Type
+			expected bool
+		}{
+			{src: TInt, expected: true},
+			{src: TBool, expected: false},
+			{src: &NamedType{Name: "UserID", UnderlyingType: TInt}, expected: true},
+			{src: &NamedType{Name: "IsValid", UnderlyingType: TBool}, expected: false},
+			{src: TString, expected: true},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsOrdered(tc.src))
 		}
 	})
 }
