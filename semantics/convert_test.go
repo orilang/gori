@@ -148,6 +148,7 @@ func TestSemantics_convert(t *testing.T) {
 			{src: TBool, expected: false},
 			{src: TInt, expected: true},
 			{src: &ArrayType{Len: 1, Elem: TInt}, expected: false},
+			{src: &NamedType{Name: "UserID", UnderlyingType: TInt}, expected: true},
 		}
 
 		for _, tc := range tests {
@@ -161,8 +162,9 @@ func TestSemantics_convert(t *testing.T) {
 			expected bool
 		}{
 			{src: TBool, expected: false},
-			{src: TInt, expected: true},
 			{src: &ArrayType{Len: 1, Elem: TInt}, expected: false},
+			{src: TInt, expected: true},
+			{src: &NamedType{Name: "UserID", UnderlyingType: TInt}, expected: true},
 		}
 
 		for _, tc := range tests {
@@ -178,6 +180,7 @@ func TestSemantics_convert(t *testing.T) {
 			{src: TBool, expected: true},
 			{src: TInt, expected: false},
 			{src: &ArrayType{Len: 1, Elem: TInt}, expected: false},
+			{src: &NamedType{Name: "old", UnderlyingType: TBool}, expected: true},
 		}
 
 		for _, tc := range tests {
@@ -194,6 +197,7 @@ func TestSemantics_convert(t *testing.T) {
 			{src: TBool, expected: false},
 			{src: TInt, expected: false},
 			{src: &ArrayType{Len: 1, Elem: TInt}, expected: false},
+			{src: &NamedType{Name: "Name", UnderlyingType: TString}, expected: true},
 		}
 
 		for _, tc := range tests {
@@ -209,6 +213,7 @@ func TestSemantics_convert(t *testing.T) {
 			{src: TBool, dst: TInt, expected: false},
 			{src: TInt, expected: false},
 			{src: TInt, dst: TFloat, expected: true},
+			{src: &NamedType{Name: "Age", UnderlyingType: TInt}, expected: true},
 		}
 
 		for _, tc := range tests {
@@ -223,6 +228,7 @@ func TestSemantics_convert(t *testing.T) {
 			expected bool
 		}{
 			{src: TBool, op: token.And, expected: true},
+			{src: &NamedType{Name: "IsValid", UnderlyingType: TBool}, op: token.And, expected: true},
 			{src: TInt, expected: false},
 		}
 
@@ -238,6 +244,9 @@ func TestSemantics_convert(t *testing.T) {
 			expected bool
 		}{
 			{src: TInt, op: token.PPlus, expected: true},
+			{src: TBool, op: token.Not, expected: true},
+			{src: &NamedType{Name: "UserID", UnderlyingType: TInt}, op: token.PPlus, expected: true},
+			{src: &NamedType{Name: "IsValid", UnderlyingType: TBool}, op: token.Not, expected: true},
 			{src: TString, expected: false},
 			{src: TString, op: token.PPlus, expected: false},
 		}

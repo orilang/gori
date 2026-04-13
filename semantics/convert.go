@@ -158,6 +158,9 @@ func IsNumeric(src Type) bool {
 		case "int", "int8", "int32", "int64", "uint", "uint8", "uint32", "uint64", "float", "float32", "float64":
 			return true
 		}
+
+	case *NamedType:
+		return IsNumeric(t1.UnderlyingType)
 	}
 	return false
 }
@@ -170,6 +173,9 @@ func IsInteger(src Type) bool {
 		case "int", "int8", "int32", "int64", "uint", "uint8", "uint32", "uint64":
 			return true
 		}
+
+	case *NamedType:
+		return IsInteger(t1.UnderlyingType)
 	}
 	return false
 }
@@ -178,10 +184,12 @@ func IsInteger(src Type) bool {
 func IsBool(src Type) bool {
 	switch t1 := src.(type) {
 	case *BuiltinType:
-		switch t1.String() {
-		case "bool":
+		if t1.String() == "bool" {
 			return true
 		}
+
+	case *NamedType:
+		return IsBool(t1.UnderlyingType)
 	}
 	return false
 }
@@ -190,16 +198,26 @@ func IsBool(src Type) bool {
 func IsString(src Type) bool {
 	switch t1 := src.(type) {
 	case *BuiltinType:
-		switch t1.String() {
-		case "string":
+		if t1.String() == "string" {
 			return true
 		}
+
+	case *NamedType:
+		return IsString(t1.UnderlyingType)
 	}
 	return false
 }
 
 // IsConvertibleTo verifies if provided parameters are convertible
 func IsConvertibleTo(src, dst Type) bool {
+	switch t1 := src.(type) {
+	case *BuiltinType:
+	case *NamedType:
+		if IsNumeric(t1.UnderlyingType) {
+			return true
+		}
+	}
+
 	return IsNumeric(src) && IsNumeric(dst)
 }
 
@@ -210,5 +228,21 @@ func SupportsBinaryOp(src Type, op token.Kind) bool {
 
 // SupportsUnaryOp verifies if provided parameters supports unary operations
 func SupportsUnaryOp(src Type, op token.Kind) bool {
+	switch t1 := src.(type) {
+	case *BuiltinType:
+		if t1.String() == "bool" && op == token.Not {
+			return true
+		}
+
+	case *NamedType:
+		if IsBool(t1.UnderlyingType) && op == token.Not {
+			return true
+		}
+
+		if IsNumeric(t1.UnderlyingType) && token.IsIncDec(op) {
+			return true
+		}
+	}
+
 	return IsNumeric(src) && token.IsIncDec(op)
 }
