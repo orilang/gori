@@ -141,7 +141,7 @@ func TestSemantics_convert(t *testing.T) {
 
 	t.Run("is_numeric", func(t *testing.T) {
 		tests := []struct {
-			src, dst Type
+			src      Type
 			expected bool
 		}{
 			{src: TBool, expected: false},
@@ -197,6 +197,21 @@ func TestSemantics_convert(t *testing.T) {
 
 		for _, tc := range tests {
 			require.Equal(t, tc.expected, IsString(tc.src))
+		}
+	})
+
+	t.Run("is_convertible_to", func(t *testing.T) {
+		tests := []struct {
+			src, dst Type
+			expected bool
+		}{
+			{src: TBool, dst: TInt, expected: false},
+			{src: TInt, expected: false},
+			{src: TInt, dst: TFloat, expected: true},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsConvertibleTo(tc.src, tc.dst))
 		}
 	})
 }

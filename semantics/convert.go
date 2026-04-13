@@ -193,3 +193,8 @@ func IsString(src Type) bool {
 	}
 	return false
 }
+
+// IsConvertibleTo verifies if provided parameters are convertible
+func IsConvertibleTo(src, dst Type) bool {
+	return IsNumeric(src) && IsNumeric(dst)
+}
