@@ -18,12 +18,12 @@ func IsIdentical(a, b Type) bool {
 
 	case *NamedType:
 		if t2, ok := b.(*NamedType); ok {
-			return t1.Name == t2.Name && t1.UnderlyingType == t2.UnderlyingType
+			return t1.Name == t2.Name && IsIdentical(t1.UnderlyingType, t2.UnderlyingType)
 		}
 
 	case *ArrayType:
 		if t2, ok := b.(*ArrayType); ok {
-			return t1.Elem == t2.Elem && t1.Len == t2.Len
+			return IsIdentical(t1.Elem, t2.Elem) && t1.Len == t2.Len
 		}
 
 	case *SliceType:
@@ -33,16 +33,14 @@ func IsIdentical(a, b Type) bool {
 
 	case *MapType:
 		if t2, ok := b.(*MapType); ok {
-			return t1.Kind == t2.Kind && t1.Key == t2.Key && t1.Value == t2.Value
+			return t1.Kind == t2.Kind && IsIdentical(t1.Key, t2.Key) && IsIdentical(t1.Value, t2.Value)
 		}
 
 	case *StructType:
 		if t2, ok := b.(*StructType); ok {
 			if len(t1.Fields) == len(t2.Fields) {
 				for k := range t1.Fields {
-					if t1.Fields[k].Name == t2.Fields[k].Name && IsIdentical(t1.Fields[k].Type, t2.Fields[k].Type) {
-						continue
-					} else {
+					if t1.Fields[k].Name != t2.Fields[k].Name || !IsIdentical(t1.Fields[k].Type, t2.Fields[k].Type) {
 						return false
 					}
 				}
@@ -54,16 +52,12 @@ func IsIdentical(a, b Type) bool {
 		if t2, ok := b.(*FuncType); ok {
 			if t1 != nil && t2 != nil && len(t1.Params) == len(t2.Params) && len(t1.Results) == len(t2.Results) {
 				for k := range t1.Params {
-					if IsIdentical(t1.Params[k].Type, t2.Params[k].Type) {
-						continue
-					} else {
+					if !IsIdentical(t1.Params[k].Type, t2.Params[k].Type) {
 						return false
 					}
 				}
 				for k := range t1.Results {
-					if IsIdentical(t1.Results[k].Type, t2.Results[k].Type) {
-						continue
-					} else {
+					if !IsIdentical(t1.Results[k].Type, t2.Results[k].Type) {
 						return false
 					}
 				}
@@ -74,11 +68,10 @@ func IsIdentical(a, b Type) bool {
 	case *FuncMethod:
 		if t2, ok := b.(*FuncMethod); ok {
 			if t1.Name == t2.Name {
-				if IsIdentical(t1.FuncType, t2.FuncType) {
-					return true
-				} else {
+				if !IsIdentical(t1.FuncType, t2.FuncType) {
 					return false
 				}
+				return true
 			}
 		}
 
@@ -86,9 +79,7 @@ func IsIdentical(a, b Type) bool {
 		if t2, ok := b.(*InterfaceType); ok {
 			if len(t1.Methods) == len(t2.Methods) {
 				for k := range t1.Methods {
-					if IsIdentical(&t1.Methods[k], &t2.Methods[k]) {
-						continue
-					} else {
+					if !IsIdentical(&t1.Methods[k], &t2.Methods[k]) {
 						return false
 					}
 				}
@@ -100,9 +91,7 @@ func IsIdentical(a, b Type) bool {
 		if t2, ok := b.(*Enum); ok {
 			if t1.Name == t2.Name && len(t1.Variants) == len(t2.Variants) {
 				for k := range t1.Variants {
-					if t1.Variants[k] == t2.Variants[k] {
-						continue
-					} else {
+					if t1.Variants[k] != t2.Variants[k] {
 						return false
 					}
 				}
@@ -114,17 +103,19 @@ func IsIdentical(a, b Type) bool {
 		if t2, ok := b.(*SumType); ok {
 			if t1.Name == t2.Name && len(t1.Variants) == len(t2.Variants) {
 				for k := range t1.Variants {
-					if t1.Variants[k].Name == t2.Variants[k].Name && len(t1.Variants[k].Field) == len(t2.Variants[k].Field) {
-						for kv := range t1.Variants[k].Field {
-							if t1.Variants[k].Field[kv].Name == t2.Variants[k].Field[kv].Name && IsIdentical(t1.Variants[k].Field[kv].Type, t2.Variants[k].Field[kv].Type) {
-								continue
-							} else {
-								return false
-							}
+					if t1.Variants[k].Name != t2.Variants[k].Name ||
+						len(t1.Variants[k].Field) != len(t2.Variants[k].Field) {
+						return false
+					}
+
+					for kv := range t1.Variants[k].Field {
+						if t1.Variants[k].Field[kv].Name != t2.Variants[k].Field[kv].Name ||
+							!IsIdentical(t1.Variants[k].Field[kv].Type, t2.Variants[k].Field[kv].Type) {
+							return false
 						}
 					}
-					return true
 				}
+				return true
 			}
 		}
 	}
@@ -137,7 +128,7 @@ func IsAssignableTo(targetType, valueType Type) bool {
 	if IsInvalid(targetType) || IsInvalid(valueType) {
 		return true
 	}
-	if IsUntypeNilType(valueType) {
+	if IsUntypedNilType(valueType) {
 		return IsNilAssignable(targetType)
 	}
 	return IsIdentical(targetType, valueType)
@@ -273,8 +264,8 @@ func IsOrdered(t Type) bool {
 	return IsNumeric(t) || IsString(t)
 }
 
-// IsUntypeNilType verifies if the provided parameter is a nil type
-func IsUntypeNilType(t Type) bool {
+// IsUntypedNilType verifies if the provided parameter is a nil type
+func IsUntypedNilType(t Type) bool {
 	if _, ok := t.(*UntypeNilType); ok {
 		return true
 	}

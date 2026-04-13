@@ -103,6 +103,11 @@ func TestSemantics_convert(t *testing.T) {
 			},
 			{
 				a:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
+				b:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}, {Name: "perimeter", Type: TFloat64}}}}},
+				expected: false,
+			},
+			{
+				a:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
 				b:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
 				expected: true,
 			},
@@ -327,7 +332,7 @@ func TestSemantics_convert(t *testing.T) {
 		}
 
 		for _, tc := range tests {
-			require.Equal(t, tc.expected, IsUntypeNilType(tc.src))
+			require.Equal(t, tc.expected, IsUntypedNilType(tc.src))
 		}
 	})
 
