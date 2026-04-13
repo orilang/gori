@@ -110,4 +110,32 @@ func TestSemantics_convert(t *testing.T) {
 			require.Equal(t, tc.expected, IsIdentical(tc.a, tc.b))
 		}
 	})
+
+	t.Run("is_assignable_to", func(t *testing.T) {
+		tests := []struct {
+			src, dst Type
+			expected bool
+		}{
+			{src: TBool, dst: nil, expected: false},
+			{src: TBool, dst: TBool, expected: true},
+			{src: &ArrayType{Len: 1, Elem: TInt}, dst: TBool, expected: false},
+			{src: &ArrayType{Len: 1, Elem: TInt}, dst: nil, expected: true},
+			{src: &SliceType{Elem: TInt}, dst: TBool, expected: false},
+			{src: &SliceType{Elem: TInt}, dst: nil, expected: true},
+			{src: &MapType{Kind: MapHash, Key: TInt, Value: TString}, dst: TBool, expected: false},
+			{src: &MapType{Kind: MapHash, Key: TInt, Value: TString}, dst: nil, expected: true},
+			{src: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, dst: TBool, expected: false},
+			{src: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, dst: nil, expected: true},
+			{src: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, dst: TBool, expected: false},
+			{src: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, dst: nil, expected: true},
+			{src: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, dst: nil, expected: false},
+			{src: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, dst: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true},
+			{src: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, dst: nil, expected: false},
+			{src: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, dst: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsAssignableTo(tc.src, tc.dst))
+		}
+	})
 }

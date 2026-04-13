@@ -124,3 +124,24 @@ func IsIdentical(a, b Type) bool {
 	}
 	return false
 }
+
+// IsAssignableTo verifies if provided parameters are assignable
+func IsAssignableTo(src, dst Type) bool {
+	switch src.(type) {
+	case *BuiltinType:
+		if dst == nil {
+			return false
+		}
+
+	case *ArrayType, *SliceType, *MapType, *FuncMethod, *InterfaceType, *InvalidType:
+		if dst == nil {
+			return true
+		}
+	}
+
+	if dst == nil {
+		return false
+	}
+
+	return IsIdentical(src, dst)
+}
