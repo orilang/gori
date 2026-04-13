@@ -315,4 +315,33 @@ func TestSemantics_convert(t *testing.T) {
 			require.Equal(t, tc.expected, IsOrdered(tc.src))
 		}
 	})
+
+	t.Run("is_untyped_nil_type", func(t *testing.T) {
+		tests := []struct {
+			src      Type
+			expected bool
+		}{
+			{src: &UntypeNilType{}, expected: true},
+			{src: TBool, expected: false},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsUntypeNilType(tc.src))
+		}
+	})
+
+	t.Run("is_nil_assignable", func(t *testing.T) {
+		tests := []struct {
+			src      Type
+			expected bool
+		}{
+			{src: &SliceType{}, expected: true},
+			{src: &MapType{}, expected: true},
+			{src: TBool, expected: false},
+		}
+
+		for _, tc := range tests {
+			require.Equal(t, tc.expected, IsNilAssignable(tc.src))
+		}
+	})
 }

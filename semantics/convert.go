@@ -276,8 +276,24 @@ func IsComparable(t Type) bool {
 	return IsBool(t) || IsNumeric(t) || IsString(t)
 }
 
-// IsOrdered verifies if the provided parameters is ordered
+// IsOrdered verifies if the provided parameter is ordered
 // like < <= > >=
 func IsOrdered(t Type) bool {
 	return IsNumeric(t) || IsString(t)
+}
+
+// IsUntypeNilType verifies if the provided parameter is a nil type
+func IsUntypeNilType(t Type) bool {
+	if _, ok := t.(*UntypeNilType); ok {
+		return true
+	}
+	return false
+}
+
+func IsNilAssignable(t Type) bool {
+	switch t.(type) {
+	case *SliceType, *MapType:
+		return true
+	}
+	return false
 }
