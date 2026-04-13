@@ -115,29 +115,30 @@ func TestSemantics_convert(t *testing.T) {
 
 	t.Run("is_assignable_to", func(t *testing.T) {
 		tests := []struct {
-			src, dst Type
-			expected bool
+			targetType, valueType Type
+			expected              bool
 		}{
-			{src: TBool, dst: nil, expected: false},
-			{src: TBool, dst: TBool, expected: true},
-			{src: &ArrayType{Len: 1, Elem: TInt}, dst: TBool, expected: false},
-			{src: &ArrayType{Len: 1, Elem: TInt}, dst: nil, expected: true},
-			{src: &SliceType{Elem: TInt}, dst: TBool, expected: false},
-			{src: &SliceType{Elem: TInt}, dst: nil, expected: true},
-			{src: &MapType{Kind: MapHash, Key: TInt, Value: TString}, dst: TBool, expected: false},
-			{src: &MapType{Kind: MapHash, Key: TInt, Value: TString}, dst: nil, expected: true},
-			{src: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, dst: TBool, expected: false},
-			{src: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, dst: nil, expected: true},
-			{src: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, dst: TBool, expected: false},
-			{src: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, dst: nil, expected: true},
-			{src: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, dst: nil, expected: false},
-			{src: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, dst: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true},
-			{src: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, dst: nil, expected: false},
-			{src: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, dst: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true},
+			{targetType: TBool, valueType: &UntypeNilType{}, expected: false},
+			{targetType: TBool, valueType: TBool, expected: true},
+			{targetType: &ArrayType{Len: 1, Elem: TInt}, valueType: TBool, expected: false},
+			{targetType: &ArrayType{Len: 1, Elem: TInt}, valueType: nil, expected: false},
+			{targetType: &SliceType{Elem: TInt}, valueType: TBool, expected: false},
+			{targetType: &SliceType{Elem: TInt}, valueType: &UntypeNilType{}, expected: true},
+			{targetType: &MapType{Kind: MapHash, Key: TInt, Value: TString}, valueType: TBool, expected: false},
+			{targetType: &MapType{Kind: MapHash, Key: TInt, Value: TString}, valueType: &UntypeNilType{}, expected: true},
+			{targetType: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, valueType: TBool, expected: false},
+			{targetType: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, valueType: &UntypeNilType{}, expected: false},
+			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: TBool, expected: false},
+			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: &UntypeNilType{}, expected: false},
+			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &UntypeNilType{}, expected: false},
+			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true},
+			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: nil, expected: false},
+			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true},
+			{targetType: &InvalidType{}, valueType: &InvalidType{}, expected: true},
 		}
 
 		for _, tc := range tests {
-			require.Equal(t, tc.expected, IsAssignableTo(tc.src, tc.dst))
+			require.Equal(t, tc.expected, IsAssignableTo(tc.targetType, tc.valueType))
 		}
 	})
 

@@ -131,25 +131,16 @@ func IsIdentical(a, b Type) bool {
 	return false
 }
 
-// IsAssignableTo verifies if provided parameters are assignable
-func IsAssignableTo(src, dst Type) bool {
-	switch src.(type) {
-	case *BuiltinType:
-		if dst == nil {
-			return false
-		}
-
-	case *ArrayType, *SliceType, *MapType, *FuncMethod, *InterfaceType, *InvalidType:
-		if dst == nil {
-			return true
-		}
+// IsAssignableTo verifies if provided parameters are assignable.
+// example targetType = SliceType{Elem: TInt} and valueType = nil
+func IsAssignableTo(targetType, valueType Type) bool {
+	if IsInvalid(targetType) || IsInvalid(valueType) {
+		return true
 	}
-
-	if dst == nil {
-		return false
+	if IsUntypeNilType(valueType) {
+		return IsNilAssignable(targetType)
 	}
-
-	return IsIdentical(src, dst)
+	return IsIdentical(targetType, valueType)
 }
 
 // IsNumeric verifies if provided parameters is numeric
