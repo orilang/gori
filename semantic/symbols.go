@@ -1,4 +1,4 @@
-package semantics
+package semantic
 
 import "github.com/orilang/gori/ast"
 
