@@ -92,9 +92,9 @@ func TestSemantics_convert(t *testing.T) {
 				expected:   true,
 				createDecl: "interface",
 			},
-			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: TBool, expected: false, createDecl: "enum"},
-			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: &Enum{Name: "Color", Variants: []string{"red", "Blue", "Green"}}, expected: false, createDecl: "enum"},
-			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true, createDecl: "enum"},
+			{a: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: TBool, expected: false, createDecl: "enum"},
+			{a: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: &EnumType{Name: "Color", Variants: []string{"red", "Blue", "Green"}}, expected: false, createDecl: "enum"},
+			{a: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true, createDecl: "enum"},
 			{
 				a:          &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
 				b:          TBool,
@@ -184,17 +184,17 @@ func TestSemantics_convert(t *testing.T) {
 				a := &ast.EnumDecl{}
 				b := &ast.EnumDecl{}
 				if tc.expected {
-					if v, ok := tc.a.(*Enum); ok {
+					if v, ok := tc.a.(*EnumType); ok {
 						v.Decl = a
 					}
-					if v, ok := tc.b.(*Enum); ok {
+					if v, ok := tc.b.(*EnumType); ok {
 						v.Decl = a
 					}
 				} else {
-					if v, ok := tc.a.(*Enum); ok {
+					if v, ok := tc.a.(*EnumType); ok {
 						v.Decl = a
 					}
-					if v, ok := tc.b.(*Enum); ok {
+					if v, ok := tc.b.(*EnumType); ok {
 						v.Decl = b
 					}
 				}
@@ -242,8 +242,8 @@ func TestSemantics_convert(t *testing.T) {
 			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: &UntypedNilType{}, expected: false, createDecl: "interface"},
 			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &UntypedNilType{}, expected: false, createDecl: "struct"},
 			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true, createDecl: "struct"},
-			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: nil, expected: false, createDecl: "enum"},
-			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true, createDecl: "enum"},
+			{targetType: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: nil, expected: false, createDecl: "enum"},
+			{targetType: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true, createDecl: "enum"},
 			{targetType: &InvalidType{}, valueType: &InvalidType{}, expected: true},
 		}
 
@@ -291,17 +291,17 @@ func TestSemantics_convert(t *testing.T) {
 				a := &ast.EnumDecl{}
 				b := &ast.EnumDecl{}
 				if tc.expected {
-					if v, ok := tc.targetType.(*Enum); ok {
+					if v, ok := tc.targetType.(*EnumType); ok {
 						v.Decl = a
 					}
-					if v, ok := tc.valueType.(*Enum); ok {
+					if v, ok := tc.valueType.(*EnumType); ok {
 						v.Decl = a
 					}
 				} else {
-					if v, ok := tc.targetType.(*Enum); ok {
+					if v, ok := tc.targetType.(*EnumType); ok {
 						v.Decl = a
 					}
-					if v, ok := tc.valueType.(*Enum); ok {
+					if v, ok := tc.valueType.(*EnumType); ok {
 						v.Decl = b
 					}
 				}

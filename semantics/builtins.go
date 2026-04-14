@@ -107,8 +107,8 @@ func (t *InterfaceType) String() string {
 	return "interface"
 }
 
-func (t *Enum) typeNode() {}
-func (t *Enum) String() string {
+func (t *EnumType) typeNode() {}
+func (t *EnumType) String() string {
 	return "enum"
 }
 

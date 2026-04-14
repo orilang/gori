@@ -46,7 +46,7 @@ func TestSemantics_builtins(t *testing.T) {
 			{tp: &Param{Name: "Age", Type: TInt}, expected: "param"},
 			{tp: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, expected: "funcMethod"},
 			{tp: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, expected: "interface"},
-			{tp: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: "enum"},
+			{tp: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: "enum"},
 			{tp: &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}}, expected: "sum"},
 			{tp: &InvalidType{}, expected: "<invalid>"},
 			{tp: &UntypedNilType{}, expected: "nil"},

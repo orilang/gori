@@ -73,8 +73,8 @@ func IsIdentical(a, b Type) bool {
 			return t1.Decl == t2.Decl
 		}
 
-	case *Enum:
-		if t2, ok := b.(*Enum); ok {
+	case *EnumType:
+		if t2, ok := b.(*EnumType); ok {
 			return t1.Decl == t2.Decl
 		}
 

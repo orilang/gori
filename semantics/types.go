@@ -88,7 +88,7 @@ type InterfaceType struct {
 	Decl    ast.TypeDecl
 }
 
-type Enum struct {
+type EnumType struct {
 	Name     string
 	Variants []string
 	Decl     ast.TypeDecl
