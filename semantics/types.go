@@ -33,7 +33,7 @@ type BuiltinType struct {
 type NamedType struct {
 	Name           string
 	UnderlyingType Type
-	Decl           ast.Position
+	Decl           ast.TypeDecl
 }
 
 type ArrayType struct {
@@ -65,7 +65,7 @@ type StructField struct {
 
 type StructType struct {
 	Fields []StructField
-	Decl   ast.Position
+	Decl   ast.TypeDecl
 }
 
 type Param struct {
@@ -85,13 +85,13 @@ type FuncMethod struct {
 
 type InterfaceType struct {
 	Methods []FuncMethod
-	Decl    ast.Position
+	Decl    ast.TypeDecl
 }
 
 type Enum struct {
 	Name     string
 	Variants []string
-	Decl     ast.Position
+	Decl     ast.TypeDecl
 }
 
 type SumVariant struct {
@@ -102,7 +102,7 @@ type SumVariant struct {
 type SumType struct {
 	Name     string
 	Variants []SumVariant
-	Decl     ast.Position
+	Decl     ast.TypeDecl
 }
 
 type InvalidType struct{}

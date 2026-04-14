@@ -3,6 +3,7 @@ package semantics
 import (
 	"testing"
 
+	"github.com/orilang/gori/ast"
 	"github.com/orilang/gori/token"
 	"github.com/stretchr/testify/require"
 )
@@ -10,15 +11,16 @@ import (
 func TestSemantics_convert(t *testing.T) {
 	t.Run("is_identical", func(t *testing.T) {
 		tests := []struct {
-			a, b     Type
-			expected bool
+			a, b       Type
+			expected   bool
+			createDecl string
 		}{
 			{a: TBool, b: nil, expected: false},
 			{a: TBool, b: TInt, expected: false},
 			{a: TInt, b: TInt, expected: true},
-			{a: &NamedType{Name: "UserID", UnderlyingType: TInt}, b: TInt, expected: false},
-			{a: &NamedType{Name: "UserID", UnderlyingType: TInt}, b: &NamedType{Name: "OrderID", UnderlyingType: TInt}, expected: false},
-			{a: &NamedType{Name: "UserID", UnderlyingType: TInt}, b: &NamedType{Name: "UserID", UnderlyingType: TInt}, expected: true},
+			{a: &NamedType{Name: "UserID", UnderlyingType: TInt}, b: TInt, expected: false, createDecl: "namedType"},
+			{a: &NamedType{Name: "UserID", UnderlyingType: TInt}, b: &NamedType{Name: "OrderID", UnderlyingType: TInt}, expected: false, createDecl: "namedType"},
+			{a: &NamedType{Name: "UserID", UnderlyingType: TInt}, b: &NamedType{Name: "UserID", UnderlyingType: TInt}, expected: true, createDecl: "namedType"},
 			{a: &ArrayType{Len: 1, Elem: TInt}, b: TInt, expected: false},
 			{a: &ArrayType{Len: 1, Elem: TInt}, b: &ArrayType{Len: 1, Elem: TString}, expected: false},
 			{a: &ArrayType{Len: 1, Elem: TInt}, b: &ArrayType{Len: 2, Elem: TString}, expected: false},
@@ -30,10 +32,10 @@ func TestSemantics_convert(t *testing.T) {
 			{a: &MapType{Kind: MapHash, Key: TInt, Value: TString}, b: &MapType{Kind: MapHash, Key: TInt, Value: TInt}, expected: false},
 			{a: &MapType{Kind: MapHash, Key: TInt, Value: TString}, b: &MapType{Kind: MapRegular, Key: TInt, Value: TString}, expected: false},
 			{a: &MapType{Kind: MapHash, Key: TInt, Value: TString}, b: &MapType{Kind: MapHash, Key: TInt, Value: TString}, expected: true},
-			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: TBool, expected: false},
-			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: &StructType{Fields: []StructField{{Name: "Name", Type: TString}, {Name: "Age", Type: TInt}}}, expected: false},
-			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: &StructType{Fields: []StructField{{Name: "Age", Type: TString}}}, expected: false},
-			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true},
+			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: TBool, expected: false, createDecl: "struct"},
+			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: &StructType{Fields: []StructField{{Name: "Name", Type: TString}, {Name: "Age", Type: TInt}}}, expected: false, createDecl: "struct"},
+			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: &StructType{Fields: []StructField{{Name: "Age", Type: TString}}}, expected: false, createDecl: "struct"},
+			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true, createDecl: "struct"},
 			{a: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, b: TInt, expected: false},
 			{
 				a: &FuncMethod{
@@ -79,41 +81,143 @@ func TestSemantics_convert(t *testing.T) {
 				expected: true,
 			},
 			{
-				a:        &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}},
-				b:        &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TString}}}}}},
-				expected: false,
+				a:          &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}},
+				b:          &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TString}}}}}},
+				expected:   false,
+				createDecl: "interface",
 			},
 			{
-				a:        &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}},
-				b:        &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}},
-				expected: true,
+				a:          &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}},
+				b:          &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}},
+				expected:   true,
+				createDecl: "interface",
 			},
-			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: TBool, expected: false},
-			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: &Enum{Name: "Color", Variants: []string{"red", "Blue", "Green"}}, expected: false},
-			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true},
+			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: TBool, expected: false, createDecl: "enum"},
+			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: &Enum{Name: "Color", Variants: []string{"red", "Blue", "Green"}}, expected: false, createDecl: "enum"},
+			{a: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, b: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true, createDecl: "enum"},
 			{
-				a:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
-				b:        TBool,
-				expected: false,
-			},
-			{
-				a:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
-				b:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat32}}}}},
-				expected: false,
+				a:          &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
+				b:          TBool,
+				expected:   false,
+				createDecl: "sum",
 			},
 			{
-				a:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
-				b:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}, {Name: "perimeter", Type: TFloat64}}}}},
-				expected: false,
+				a:          &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
+				b:          &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat32}}}}},
+				expected:   false,
+				createDecl: "sum",
 			},
 			{
-				a:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
-				b:        &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
-				expected: true,
+				a:          &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
+				b:          &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}, {Name: "perimeter", Type: TFloat64}}}}},
+				expected:   false,
+				createDecl: "sum",
+			},
+			{
+				a:          &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
+				b:          &SumType{Name: "Shape", Variants: []SumVariant{{Name: "Circle", Field: []Param{{Name: "radius", Type: TFloat64}}}}},
+				expected:   true,
+				createDecl: "sum",
 			},
 		}
 
 		for _, tc := range tests {
+			switch tc.createDecl {
+			case "namedType":
+				a := &ast.NamedType{}
+				b := &ast.NamedType{}
+				if tc.expected {
+					if v, ok := tc.a.(*NamedType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*NamedType); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.a.(*NamedType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*NamedType); ok {
+						v.Decl = b
+					}
+				}
+
+			case "struct":
+				a := &ast.StructDecl{}
+				b := &ast.StructDecl{}
+				if tc.expected {
+					if v, ok := tc.a.(*StructType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*StructType); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.a.(*StructType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*StructType); ok {
+						v.Decl = b
+					}
+				}
+
+			case "interface":
+				a := &ast.InterfaceDecl{}
+				b := &ast.InterfaceDecl{}
+				if tc.expected {
+					if v, ok := tc.a.(*InterfaceType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*InterfaceType); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.a.(*InterfaceType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*InterfaceType); ok {
+						v.Decl = b
+					}
+				}
+
+			case "enum":
+				a := &ast.EnumDecl{}
+				b := &ast.EnumDecl{}
+				if tc.expected {
+					if v, ok := tc.a.(*Enum); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*Enum); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.a.(*Enum); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*Enum); ok {
+						v.Decl = b
+					}
+				}
+
+			case "sum":
+				a := &ast.SumDecl{}
+				b := &ast.SumDecl{}
+				if tc.expected {
+					if v, ok := tc.a.(*SumType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*SumType); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.a.(*SumType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.b.(*SumType); ok {
+						v.Decl = b
+					}
+				}
+			}
 			require.Equal(t, tc.expected, IsIdentical(tc.a, tc.b))
 		}
 	})
@@ -122,6 +226,7 @@ func TestSemantics_convert(t *testing.T) {
 		tests := []struct {
 			targetType, valueType Type
 			expected              bool
+			createDecl            string
 		}{
 			{targetType: TBool, valueType: &UntypedNilType{}, expected: false},
 			{targetType: TBool, valueType: TBool, expected: true},
@@ -133,16 +238,93 @@ func TestSemantics_convert(t *testing.T) {
 			{targetType: &MapType{Kind: MapHash, Key: TInt, Value: TString}, valueType: &UntypedNilType{}, expected: true},
 			{targetType: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, valueType: TBool, expected: false},
 			{targetType: &FuncMethod{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}, valueType: &UntypedNilType{}, expected: false},
-			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: TBool, expected: false},
-			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: &UntypedNilType{}, expected: false},
-			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &UntypedNilType{}, expected: false},
-			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true},
-			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: nil, expected: false},
-			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true},
+			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: TBool, expected: false, createDecl: "interface"},
+			{targetType: &InterfaceType{Methods: []FuncMethod{{Name: "test", FuncType: &FuncType{Params: []Param{{Name: "a", Type: TInt}}}}}}, valueType: &UntypedNilType{}, expected: false, createDecl: "interface"},
+			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &UntypedNilType{}, expected: false, createDecl: "struct"},
+			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true, createDecl: "struct"},
+			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: nil, expected: false, createDecl: "enum"},
+			{targetType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: &Enum{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true, createDecl: "enum"},
 			{targetType: &InvalidType{}, valueType: &InvalidType{}, expected: true},
 		}
 
 		for _, tc := range tests {
+			switch tc.createDecl {
+			case "struct":
+				a := &ast.StructDecl{}
+				b := &ast.StructDecl{}
+				if tc.expected {
+					if v, ok := tc.targetType.(*StructType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.valueType.(*StructType); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.targetType.(*StructType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.valueType.(*StructType); ok {
+						v.Decl = b
+					}
+				}
+
+			case "interface":
+				a := &ast.InterfaceDecl{}
+				b := &ast.InterfaceDecl{}
+				if tc.expected {
+					if v, ok := tc.targetType.(*InterfaceType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.valueType.(*InterfaceType); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.targetType.(*InterfaceType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.valueType.(*InterfaceType); ok {
+						v.Decl = b
+					}
+				}
+
+			case "enum":
+				a := &ast.EnumDecl{}
+				b := &ast.EnumDecl{}
+				if tc.expected {
+					if v, ok := tc.targetType.(*Enum); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.valueType.(*Enum); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.targetType.(*Enum); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.valueType.(*Enum); ok {
+						v.Decl = b
+					}
+				}
+
+			case "sum":
+				a := &ast.SumDecl{}
+				b := &ast.SumDecl{}
+				if tc.expected {
+					if v, ok := tc.targetType.(*SumType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.valueType.(*SumType); ok {
+						v.Decl = a
+					}
+				} else {
+					if v, ok := tc.targetType.(*SumType); ok {
+						v.Decl = a
+					}
+					if v, ok := tc.valueType.(*SumType); ok {
+						v.Decl = b
+					}
+				}
+			}
 			require.Equal(t, tc.expected, IsAssignableTo(tc.targetType, tc.valueType))
 		}
 	})

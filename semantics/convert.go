@@ -18,7 +18,7 @@ func IsIdentical(a, b Type) bool {
 
 	case *NamedType:
 		if t2, ok := b.(*NamedType); ok {
-			return t1.Name == t2.Name && IsIdentical(t1.UnderlyingType, t2.UnderlyingType)
+			return t1.Decl == t2.Decl
 		}
 
 	case *ArrayType:
@@ -38,14 +38,7 @@ func IsIdentical(a, b Type) bool {
 
 	case *StructType:
 		if t2, ok := b.(*StructType); ok {
-			if len(t1.Fields) == len(t2.Fields) {
-				for k := range t1.Fields {
-					if t1.Fields[k].Name != t2.Fields[k].Name || !IsIdentical(t1.Fields[k].Type, t2.Fields[k].Type) {
-						return false
-					}
-				}
-				return true
-			}
+			return t1.Decl == t2.Decl
 		}
 
 	case *FuncType:
@@ -77,46 +70,17 @@ func IsIdentical(a, b Type) bool {
 
 	case *InterfaceType:
 		if t2, ok := b.(*InterfaceType); ok {
-			if len(t1.Methods) == len(t2.Methods) {
-				for k := range t1.Methods {
-					if !IsIdentical(&t1.Methods[k], &t2.Methods[k]) {
-						return false
-					}
-				}
-				return true
-			}
+			return t1.Decl == t2.Decl
 		}
 
 	case *Enum:
 		if t2, ok := b.(*Enum); ok {
-			if t1.Name == t2.Name && len(t1.Variants) == len(t2.Variants) {
-				for k := range t1.Variants {
-					if t1.Variants[k] != t2.Variants[k] {
-						return false
-					}
-				}
-				return true
-			}
+			return t1.Decl == t2.Decl
 		}
 
 	case *SumType:
 		if t2, ok := b.(*SumType); ok {
-			if t1.Name == t2.Name && len(t1.Variants) == len(t2.Variants) {
-				for k := range t1.Variants {
-					if t1.Variants[k].Name != t2.Variants[k].Name ||
-						len(t1.Variants[k].Field) != len(t2.Variants[k].Field) {
-						return false
-					}
-
-					for kv := range t1.Variants[k].Field {
-						if t1.Variants[k].Field[kv].Name != t2.Variants[k].Field[kv].Name ||
-							!IsIdentical(t1.Variants[k].Field[kv].Type, t2.Variants[k].Field[kv].Type) {
-							return false
-						}
-					}
-				}
-				return true
-			}
+			return t1.Decl == t2.Decl
 		}
 	}
 	return false
