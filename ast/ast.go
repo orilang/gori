@@ -15,6 +15,14 @@ func (*SumDecl) declNode()           {}
 func (*ComptimeBlockDecl) declNode() {}
 func (*ImplementsDecl) declNode()    {}
 func (*DefinedTypeDecl) declNode()   {}
+func (*NamedType) declNode()         {}
+
+func (*StructDecl) typeDeclNode()      {}
+func (*InterfaceDecl) typeDeclNode()   {}
+func (*EnumDecl) typeDeclNode()        {}
+func (*SumDecl) typeDeclNode()         {}
+func (*DefinedTypeDecl) typeDeclNode() {}
+func (*NamedType) typeDeclNode()       {}
 
 func (*dumpType) typeNode()  {}
 func (*BadType) typeNode()   {}

@@ -180,6 +180,11 @@ type DeclStmt struct {
 	Decl Decl
 }
 
+type TypeDecl interface {
+	Decl
+	typeDeclNode()
+}
+
 type Decl interface {
 	Position
 	declNode()
