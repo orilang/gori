@@ -3,6 +3,7 @@ package semantic
 import "strconv"
 
 var (
+	TInvalid = &InvalidType{}
 	TBool    = &BuiltinType{Kind: Bool}
 	TInt     = &BuiltinType{Kind: Bool}
 	TInt8    = &BuiltinType{Kind: Int8}
