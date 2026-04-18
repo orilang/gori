@@ -1,3 +1,5 @@
+// Symbol collection is when you walk top-level declarations
+// to register their names before checking their bodies
 package semantic
 
 import "github.com/orilang/gori/ast"
@@ -16,5 +18,5 @@ type Symbol struct {
 	Name string
 	Kind SymbolKind
 	Type Type
-	Decl ast.Position
+	Decl ast.Decl
 }

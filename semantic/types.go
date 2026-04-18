@@ -107,3 +107,18 @@ type SumType struct {
 
 type InvalidType struct{}
 type UntypedNilType struct{}
+
+type Scope struct {
+	Parent  *Scope
+	Symbols map[string]*Symbol
+}
+
+type Diagnostics struct {
+	Err error
+}
+type Checker struct {
+	pkgScope  *Scope
+	errors    []Diagnostics
+	typeDecls []ast.TypeDecl
+	funcDecls []*ast.FuncDecl
+}
