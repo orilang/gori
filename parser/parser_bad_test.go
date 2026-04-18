@@ -18,7 +18,7 @@ func TestParser_bad(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseFuncDecl()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("stmt", func(t *testing.T) {
@@ -29,7 +29,7 @@ func TestParser_bad(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseStmt()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("expr", func(t *testing.T) {
@@ -40,6 +40,6 @@ func TestParser_bad(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 }

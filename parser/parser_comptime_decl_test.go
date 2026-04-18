@@ -38,7 +38,7 @@ comptime const a float = 3.14
        Value: "3.14" @3:26 (kind=5)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("func_x1", func(t *testing.T) {
@@ -72,7 +72,7 @@ comptime func x()[]int{}
      Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("bad_x1", func(t *testing.T) {
@@ -85,7 +85,7 @@ comptime var a float = 3.14
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_x2", func(t *testing.T) {
@@ -98,6 +98,6 @@ const a float = comptime 3.14
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 }

@@ -42,7 +42,7 @@ func (p *Parser) parseStructDecl() ast.Decl {
 			continue
 		}
 
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ';' or newline after struct field, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ';' or newline after struct field, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 
 		p.consumeTo(token.RBrace)
 	}
@@ -63,7 +63,7 @@ func (p *Parser) parseStructTypeField() *ast.FieldDecl {
 
 	if !token.IsStructFieldTypes(tok.Kind) {
 		fd.Type = &ast.BadType{From: tok, Reason: "unexpected type name"}
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		p.consumeTo(token.EOF)
 		return fd
 	}

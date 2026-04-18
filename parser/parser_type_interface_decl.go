@@ -48,7 +48,7 @@ func (p *Parser) parseInterfaceDecl() ast.Decl {
 			continue
 		}
 
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ';' or newline after interface field, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ';' or newline after interface field, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 
 		p.consumeTo(token.RBrace)
 	}
@@ -70,14 +70,14 @@ func (p *Parser) parseFuncSignature() ast.InterfaceMethod {
 	for p.kind() != token.RParen && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			p.consumeTo(token.Comma)
 			return f
 		}
 		f.Params = append(f.Params, p.parseFuncSignatureParam())
 		if p.kind() != token.Comma && p.kind() != token.RParen && p.kind() != token.EOF {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			p.consumeTo(token.Comma)
 			return f
 		}
@@ -85,7 +85,7 @@ func (p *Parser) parseFuncSignature() ast.InterfaceMethod {
 		if p.kind() == token.Comma {
 			_ = p.next()
 			if p.kind() == token.RParen || p.kind() == token.EOF {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				p.consumeTo(token.Comma)
 				return f
 			}
@@ -112,7 +112,7 @@ func (p *Parser) parseFuncSignatureParamType() ast.Type {
 	if token.IsFuncParamTypes(tok.Kind) {
 		typ.Parts = append(typ.Parts, tok)
 	} else {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		p.consumeTo(token.RParen)
 	}
 	return typ
@@ -124,13 +124,13 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 	if p.kind() == token.LParen {
 		lp := p.expect(token.LParen, "expected '('")
 		if p.kind() == token.RParen {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected parameter(s) before ')', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected parameter(s) before ')', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			result.List = append(result.List, ast.Param{Type: p.parseFuncSignatureParamType()})
 			return result
 		}
 
 		if p.kind() == token.Comma {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected expression before ',', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected expression before ',', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 
 			result.List = append(result.List, ast.Param{Type: p.parseFuncSignatureParamType()})
 			return result
@@ -143,14 +143,14 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 				result.List = append(result.List, p.parseFuncSignatureParam())
 
 				if p.kind() != token.Comma && p.kind() != token.RParen {
-					p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ',' after parameter(s), got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+					p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ',' after parameter(s), got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 					return result
 				}
 
 				if p.kind() == token.Comma {
 					_ = p.expect(token.Comma, "expected ','")
 					if p.kind() == token.RParen {
-						p.errors = append(p.errors, fmt.Errorf("%d:%d: expected parameter(s) after ',', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+						p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected parameter(s) after ',', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 						return result
 					}
 				}
@@ -161,14 +161,14 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 				result.List = append(result.List, ast.Param{Type: p.parseFuncSignatureParamType()})
 
 				if p.kind() != token.Comma && p.kind() != token.RParen {
-					p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ',' after parameter(s), got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+					p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ',' after parameter(s), got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 					return result
 				}
 
 				if p.kind() == token.Comma {
 					_ = p.expect(token.Comma, "expected ','")
 					if p.kind() == token.RParen {
-						p.errors = append(p.errors, fmt.Errorf("%d:%d: expected parameter(s) after ',', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+						p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected parameter(s) after ',', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 						return result
 					}
 				}
@@ -181,7 +181,7 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 	}
 
 	if p.kind() == token.Comma {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected builtin type or ident, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected builtin type or ident, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		return result
 	}
 
@@ -198,7 +198,7 @@ func (p *Parser) parseInterfaceTypeEmbbed() ast.Type {
 	if p.kind() == token.Dot {
 		nt.Parts = append(nt.Parts, p.next())
 		if p.kind() != token.Ident {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ident after '.', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ident after '.', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.RBrace)
 			return nt
 		}

@@ -24,7 +24,7 @@ func TestParser_main_expr(t *testing.T) {
   Name: "a" @1:2 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("grouping_bad_expr_operator_indent", func(t *testing.T) {
@@ -35,7 +35,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("grouping_bad_expr_operator_int", func(t *testing.T) {
@@ -46,7 +46,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("error_unclosed", func(t *testing.T) {
@@ -57,7 +57,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("error_empty", func(t *testing.T) {
@@ -69,7 +69,7 @@ func TestParser_main_expr(t *testing.T) {
 		pr := parser.parseExpr(LOWEST)
 		assert.Contains(ast.Dump(pr), "BadExpr")
 		assert.Contains(ast.Dump(pr), "expected expression inside parentheses")
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("additive_plus", func(t *testing.T) {
@@ -87,7 +87,7 @@ func TestParser_main_expr(t *testing.T) {
   Value: "2" @1:3 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("additive_minus", func(t *testing.T) {
@@ -109,7 +109,7 @@ func TestParser_main_expr(t *testing.T) {
   Value: "3" @1:5 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("multiplicative", func(t *testing.T) {
@@ -127,7 +127,7 @@ func TestParser_main_expr(t *testing.T) {
   Value: "2" @1:3 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("multiplicative_precedence", func(t *testing.T) {
@@ -153,7 +153,7 @@ func TestParser_main_expr(t *testing.T) {
   Value: "5" @1:7 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("grouping_precedence_prefix", func(t *testing.T) {
@@ -176,7 +176,7 @@ func TestParser_main_expr(t *testing.T) {
     Value: "3" @1:6 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("grouping_precedence_postfix", func(t *testing.T) {
@@ -199,7 +199,7 @@ func TestParser_main_expr(t *testing.T) {
   Value: "3" @1:7 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("grouping_of_grouping", func(t *testing.T) {
@@ -227,7 +227,7 @@ func TestParser_main_expr(t *testing.T) {
     Value: "4" @1:10 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("divide", func(t *testing.T) {
@@ -249,7 +249,7 @@ func TestParser_main_expr(t *testing.T) {
   Value: "2" @1:5 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("grouping_binary", func(t *testing.T) {
@@ -268,7 +268,7 @@ func TestParser_main_expr(t *testing.T) {
    Name: "b" @1:4 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("grouping_binary_extended", func(t *testing.T) {
@@ -291,7 +291,7 @@ func TestParser_main_expr(t *testing.T) {
     Value: "1" @1:6 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("unary_minus", func(t *testing.T) {
@@ -311,7 +311,7 @@ func TestParser_main_expr(t *testing.T) {
   Value: "2" @1:4 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("unary_minus_grouping", func(t *testing.T) {
@@ -332,7 +332,7 @@ func TestParser_main_expr(t *testing.T) {
     Value: "2" @1:5 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("comparison_unary", func(t *testing.T) {
@@ -352,7 +352,7 @@ func TestParser_main_expr(t *testing.T) {
   Name: "b" @1:5 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("unary_one", func(t *testing.T) {
@@ -368,7 +368,7 @@ func TestParser_main_expr(t *testing.T) {
   Value: "1" @1:2 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("unary_minus_one", func(t *testing.T) {
@@ -385,11 +385,11 @@ func TestParser_main_expr(t *testing.T) {
   IntLitExpr
    Value: "1" @1:4 (kind=4)
 `
-		for _, v := range parser.errors {
+		for _, v := range parser.Errors {
 			fmt.Println(v.Error())
 		}
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("multiplicative_unary", func(t *testing.T) {
@@ -409,7 +409,7 @@ func TestParser_main_expr(t *testing.T) {
    Value: "2" @1:4 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("unary_not_not", func(t *testing.T) {
@@ -427,7 +427,7 @@ func TestParser_main_expr(t *testing.T) {
    Name: "a" @1:3 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("unary_not_selector", func(t *testing.T) {
@@ -448,7 +448,7 @@ func TestParser_main_expr(t *testing.T) {
    Selector: "b" @1:5 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("comparison_x1", func(t *testing.T) {
@@ -474,7 +474,7 @@ func TestParser_main_expr(t *testing.T) {
    Name: "d" @1:8 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("comparison_x2", func(t *testing.T) {
@@ -500,7 +500,7 @@ func TestParser_main_expr(t *testing.T) {
    Name: "d" @1:10 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("comparison_chaining_error", func(t *testing.T) {
@@ -511,7 +511,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(ast.Dump(pr))
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("comparison_chaining_ok", func(t *testing.T) {
@@ -539,7 +539,7 @@ func TestParser_main_expr(t *testing.T) {
    Name: "c" @1:6 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_selector_x1", func(t *testing.T) {
@@ -557,7 +557,7 @@ func TestParser_main_expr(t *testing.T) {
  Selector: "b" @1:3 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_selector_x2", func(t *testing.T) {
@@ -579,7 +579,7 @@ func TestParser_main_expr(t *testing.T) {
  Selector: "c" @1:5 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_index_selector_x1", func(t *testing.T) {
@@ -599,7 +599,7 @@ func TestParser_main_expr(t *testing.T) {
  RBracket: "]" @1:4 (kind=44)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_index_selector_x2", func(t *testing.T) {
@@ -619,7 +619,7 @@ func TestParser_main_expr(t *testing.T) {
  RBracket: "]" @1:4 (kind=44)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_index_selector_x3", func(t *testing.T) {
@@ -643,7 +643,7 @@ func TestParser_main_expr(t *testing.T) {
  RBracket: "]" @1:6 (kind=44)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_index_selector_error_x1", func(t *testing.T) {
@@ -654,7 +654,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(ast.Dump(pr))
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("postfix_func_x1", func(t *testing.T) {
@@ -672,7 +672,7 @@ func TestParser_main_expr(t *testing.T) {
  RParent: ")" @1:3 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_x2", func(t *testing.T) {
@@ -699,7 +699,7 @@ func TestParser_main_expr(t *testing.T) {
  RParent: ")" @1:8 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_x3", func(t *testing.T) {
@@ -710,7 +710,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(ast.Dump(pr))
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("postfix_func_x4", func(t *testing.T) {
@@ -721,7 +721,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(ast.Dump(pr))
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("postfix_func_selector_x1", func(t *testing.T) {
@@ -746,7 +746,7 @@ func TestParser_main_expr(t *testing.T) {
  RParent: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_selector_x2", func(t *testing.T) {
@@ -781,7 +781,7 @@ func TestParser_main_expr(t *testing.T) {
  Selector: "c" @1:11 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_selector_x3", func(t *testing.T) {
@@ -806,7 +806,7 @@ func TestParser_main_expr(t *testing.T) {
  RParent: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_selector_x4", func(t *testing.T) {
@@ -835,7 +835,7 @@ func TestParser_main_expr(t *testing.T) {
  RParent: ")" @1:8 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_selector_x5", func(t *testing.T) {
@@ -857,7 +857,7 @@ func TestParser_main_expr(t *testing.T) {
  RParent: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_selector_x6", func(t *testing.T) {
@@ -887,7 +887,7 @@ func TestParser_main_expr(t *testing.T) {
  RBracket: "]" @1:9 (kind=44)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_selector_x7", func(t *testing.T) {
@@ -898,7 +898,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("postfix_func_call_on_call", func(t *testing.T) {
@@ -926,7 +926,7 @@ func TestParser_main_expr(t *testing.T) {
  RParent: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("postfix_func_bad_x1", func(t *testing.T) {
@@ -937,7 +937,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("postfix_func_bad_x2", func(t *testing.T) {
@@ -948,7 +948,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("postfix_func_bad_x3", func(t *testing.T) {
@@ -959,7 +959,7 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("postfix_func_bad_x4", func(t *testing.T) {
@@ -970,6 +970,6 @@ func TestParser_main_expr(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 }

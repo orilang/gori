@@ -14,7 +14,7 @@ func (p *Parser) parseConstDecl() ast.Decl {
 
 	typ, btyp, bad := p.parseVarConstType()
 	if bad {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", btyp.From.Line, btyp.From.Column, btyp.From.Kind, btyp.From.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", btyp.From.Line, btyp.From.Column, btyp.From.Kind, btyp.From.Value))
 		return btyp
 	}
 	eq := p.expect(token.Assign, "expected '=")
@@ -92,7 +92,7 @@ func (p *Parser) parseVarConstType() (ast.Type, *ast.BadType, bool) {
 		typ.Parts = append(typ.Parts, p.next())
 	default:
 		tok := p.next()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		btyp.From = tok
 		btyp.Reason = "unexpected type name"
 		bad = true

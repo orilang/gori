@@ -24,7 +24,7 @@ func (p *Parser) parseEnumDecl() ast.Decl {
 
 	for p.kind() != token.RBrace && p.kind() != token.EOF {
 		if p.kind() != token.Ident {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected 'ident', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected 'ident', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.RBrace)
 			return ed
 		}
@@ -50,12 +50,12 @@ func (p *Parser) parseEnumDecl() ast.Decl {
 			continue
 		}
 
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ';' or newline after ident, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ';' or newline after ident, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		p.consumeTo(token.RBrace)
 	}
 
 	if len(ed.Variants) == 0 {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected 'ident' inside braces, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected 'ident' inside braces, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		p.consumeTo(token.RBrace)
 		return ed
 	}

@@ -34,7 +34,7 @@ func (p *Parser) parseSliceOrArrayType() ast.Type {
 
 		for !slices.Contains(kindList, p.kind()) {
 			if !token.IsSliceType(p.kind()) {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected array type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected array type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				p.consumeTo(token.EOF)
 				return &array
 			}
@@ -55,7 +55,7 @@ func (p *Parser) parseSliceOrArrayType() ast.Type {
 
 	for !slices.Contains(kindList, p.kind()) {
 		if !token.IsSliceType(p.kind()) {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected slice type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected slice type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.EOF)
 			return &slice
 		}

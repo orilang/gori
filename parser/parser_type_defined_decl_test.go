@@ -32,7 +32,7 @@ type a int
       Ident: "int" @3:8 (kind=12)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x2", func(t *testing.T) {
@@ -63,7 +63,7 @@ type b int
       Ident: "int" @4:8 (kind=12)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x3", func(t *testing.T) {
@@ -93,7 +93,7 @@ type a int;type b int
       Ident: "int" @3:19 (kind=12)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x4", func(t *testing.T) {
@@ -129,6 +129,6 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 }

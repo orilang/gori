@@ -50,7 +50,7 @@ func (p *Parser) parseSwitchCasesStmt(s ast.SwitchStmt) ast.Stmt {
 			if p.lookForInSwitchCaseHeader(token.Comma) {
 				for p.kind() != token.Colon && p.kind() != token.RBrace && p.kind() != token.EOF {
 					if p.kind() == token.Comma {
-						p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+						p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 						return &ast.BadStmt{From: s.Switch, To: p.peek(), Reason: "expected expression before ','"}
 					}
 
@@ -66,7 +66,7 @@ func (p *Parser) parseSwitchCasesStmt(s ast.SwitchStmt) ast.Stmt {
 					}
 
 					if p.kind() != token.Comma && p.kind() != token.Colon {
-						p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+						p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 						return &ast.BadStmt{From: s.Switch, To: p.peek(), Reason: "expected ','"}
 					}
 					_ = p.expect(token.Comma, "expected ','")
@@ -85,7 +85,7 @@ func (p *Parser) parseSwitchCasesStmt(s ast.SwitchStmt) ast.Stmt {
 					}
 
 					if p.kind() != token.Colon {
-						p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+						p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 						return &ast.BadStmt{From: s.Switch, To: p.peek(), Reason: "expected ','"}
 					}
 				}
@@ -95,7 +95,7 @@ func (p *Parser) parseSwitchCasesStmt(s ast.SwitchStmt) ast.Stmt {
 		case token.KWDefault:
 			dcount++
 			if dcount > 1 {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected 'default', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected 'default', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadStmt{From: s.Switch, To: p.peek(), Reason: "expected only one 'default' case"}
 			}
 
@@ -119,12 +119,12 @@ func (p *Parser) parseSwitchCasesStmt(s ast.SwitchStmt) ast.Stmt {
 			}
 
 			if p.kind() != token.KWDefault && p.kind() != token.KWCase && p.kind() != token.RBrace && p.kind() != token.EOF {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected ':', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected ':', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadStmt{From: s.Switch, To: p.peek(), Reason: "expected ':' after 'default'"}
 			}
 
 		default:
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			return &ast.BadStmt{From: s.Switch, To: p.peek(), Reason: "expected 'case' or 'default'"}
 		}
 	}
@@ -149,6 +149,6 @@ func (p *Parser) parseFallThroughStmt() ast.Stmt {
 		}
 	}
 
-	p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected statement after 'fallthrough', got %v %q", kw.Line, kw.Column, p.peek().Kind, p.peek().Value))
+	p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected statement after 'fallthrough', got %v %q", kw.Line, kw.Column, p.peek().Kind, p.peek().Value))
 	return &ast.BadStmt{From: p.peek(), Reason: "expected '}' or 'EOF' or new line"}
 }

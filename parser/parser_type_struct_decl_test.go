@@ -32,7 +32,7 @@ type test struct{}
    RBrace: "}" @3:18 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("empty_x2", func(t *testing.T) {
@@ -57,7 +57,7 @@ type Test struct{}
    RBrace: "}" @3:18 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x1", func(t *testing.T) {
@@ -87,7 +87,7 @@ type test struct{
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x2", func(t *testing.T) {
@@ -115,7 +115,7 @@ type test struct{x int}
    RBrace: "}" @3:23 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x3", func(t *testing.T) {
@@ -148,7 +148,7 @@ type test struct{x int;Y string}
    RBrace: "}" @3:32 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x4", func(t *testing.T) {
@@ -177,7 +177,7 @@ type test struct{x int
    RBrace: "}" @4:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x5", func(t *testing.T) {
@@ -206,7 +206,7 @@ type test struct { x int // comment
    RBrace: "}" @4:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x6", func(t *testing.T) {
@@ -237,7 +237,7 @@ type test struct{x int = 5}
    RBrace: "}" @3:27 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x7", func(t *testing.T) {
@@ -278,7 +278,7 @@ type test struct{
    RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("x8", func(t *testing.T) {
@@ -320,7 +320,7 @@ type test struct{
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("bad_type", func(t *testing.T) {
@@ -333,7 +333,7 @@ type test structt{}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_x1", func(t *testing.T) {
@@ -346,7 +346,7 @@ type test struct{x}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_x2", func(t *testing.T) {
@@ -359,7 +359,7 @@ type test struct{x int,}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_x3", func(t *testing.T) {
@@ -372,7 +372,7 @@ type test struct{x int;x}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_x4", func(t *testing.T) {
@@ -385,7 +385,7 @@ type test struct{x int =}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_x5", func(t *testing.T) {
@@ -398,6 +398,6 @@ type _test struct {}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 }

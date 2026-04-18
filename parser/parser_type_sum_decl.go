@@ -24,7 +24,7 @@ func (p *Parser) parseSumDecl() ast.Decl {
 
 	for p.kind() != token.RBrace && p.kind() != token.EOF {
 		if p.kind() != token.Ident {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: expected 'ident', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected 'ident', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.RBrace)
 			return st
 		}
@@ -54,13 +54,13 @@ func (p *Parser) parseSumDecl() ast.Decl {
 			continue
 		}
 
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ';' or newline after sum field, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ';' or newline after sum field, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 
 		p.consumeTo(token.RBrace)
 	}
 
 	if len(st.Variants) == 0 {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected variant(s) or variant method(s) inside braces, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected variant(s) or variant method(s) inside braces, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		p.consumeTo(token.RBrace)
 		return st
 	}
@@ -82,14 +82,14 @@ func (p *Parser) parseSumFuncSignature() ast.SumVariant {
 	for p.kind() != token.RParen && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			p.consumeTo(token.Comma)
 			return f
 		}
 		f.Params = append(f.Params, p.parseSumFuncSignatureParam())
 		if p.kind() != token.Comma && p.kind() != token.RParen && p.kind() != token.EOF {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			p.consumeTo(token.Comma)
 			return f
 		}
@@ -97,7 +97,7 @@ func (p *Parser) parseSumFuncSignature() ast.SumVariant {
 		if p.kind() == token.Comma {
 			_ = p.next()
 			if p.kind() == token.RParen || p.kind() == token.EOF {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				p.consumeTo(token.Comma)
 				return f
 			}
@@ -105,7 +105,7 @@ func (p *Parser) parseSumFuncSignature() ast.SumVariant {
 	}
 
 	if len(f.Params) == 0 {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected param(s) inside parenthesis, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected param(s) inside parenthesis, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		p.consumeTo(token.RBrace)
 		return f
 	}
@@ -132,7 +132,7 @@ func (p *Parser) parseSumFuncSignatureParamType() ast.Type {
 		}
 	} else {
 		tok := p.next()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported type with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		p.consumeTo(token.RParen)
 	}
 	return typ

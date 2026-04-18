@@ -15,14 +15,14 @@ func (p *Parser) parseIfStmtExpr() ast.Stmt {
 	}
 
 	if p.kind() == token.LBrace {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: missing condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: missing condition, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		return &ast.BadStmt{From: ifs, To: p.peek(), Reason: "missing condition after 'if'"}
 	}
 
 	stmt.Condition = p.parseExpr(LOWEST)
 	if token.IsAssignment(p.kind()) {
 		tok := p.next()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: assignment not allowed in if condition, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: assignment not allowed in if condition, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		return &ast.BadStmt{From: ifs, To: tok, Reason: "assignment not allowed in if condition; use =="}
 	}
 
@@ -36,7 +36,7 @@ func (p *Parser) parseIfStmtExpr() ast.Stmt {
 			stmt.Else = p.parseBlock()
 		} else {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadStmt{From: ifs, To: tok, Reason: "expected expression '{' or 'if' after 'else'"}
 		}
 	}

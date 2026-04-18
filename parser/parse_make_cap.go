@@ -18,7 +18,7 @@ func (p *Parser) parseMakeExpr() *ast.MakeExpr {
 	}
 
 	if !token.IsMakeTypes(p.kind()) {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected map/hashmap or slice, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected map/hashmap or slice, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		p.consumeTo(token.EOF)
 		return x
 	}
@@ -37,7 +37,7 @@ func (p *Parser) parseMakeExpr() *ast.MakeExpr {
 		}
 
 		if count > 2 {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected map/hashmap or slice, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected map/hashmap or slice, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.RParen)
 			return x
 		}
@@ -45,7 +45,7 @@ func (p *Parser) parseMakeExpr() *ast.MakeExpr {
 		if p.kind() != token.RParen {
 			k := p.parseExpr(LOWEST)
 			if k.Start().Kind != token.IntLit {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: expected intLit, got %v %q", k.Start().Line, k.Start().Column, k.Start().Kind, k.Start().Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected intLit, got %v %q", k.Start().Line, k.Start().Column, k.Start().Kind, k.Start().Value))
 				p.consumeTo(token.RParen)
 				return x
 			}

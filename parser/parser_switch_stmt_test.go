@@ -42,7 +42,7 @@ func x(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_empty_x1", func(t *testing.T) {
@@ -80,7 +80,7 @@ func x(){
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_empty_x2", func(t *testing.T) {
@@ -124,7 +124,7 @@ func x(){
      RBrace: "}" @8:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_empty_x3", func(t *testing.T) {
@@ -168,7 +168,7 @@ func x(){
      RBrace: "}" @8:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_default", func(t *testing.T) {
@@ -212,7 +212,7 @@ func x(){
      RBrace: "}" @8:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_cases_x1", func(t *testing.T) {
@@ -270,7 +270,7 @@ func x(){
      RBrace: "}" @10:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_cases_x2", func(t *testing.T) {
@@ -326,7 +326,7 @@ func x(){
      RBrace: "}" @10:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_cases_x3", func(t *testing.T) {
@@ -397,7 +397,7 @@ func x(){
      RBrace: "}" @12:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_cases_x4", func(t *testing.T) {
@@ -464,7 +464,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_cases_x5", func(t *testing.T) {
@@ -530,7 +530,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_cases_x6", func(t *testing.T) {
@@ -596,7 +596,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("no_tag_cases_x7", func(t *testing.T) {
@@ -666,7 +666,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("tag_cases_x1", func(t *testing.T) {
@@ -736,7 +736,7 @@ func x(){
      RBrace: "}" @10:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("tag_cases_x2", func(t *testing.T) {
@@ -812,7 +812,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("tag_cases_x3", func(t *testing.T) {
@@ -885,7 +885,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("tag_cases_x4", func(t *testing.T) {
@@ -960,7 +960,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("tag_cases_x5", func(t *testing.T) {
@@ -1018,7 +1018,7 @@ func x(){
      RBrace: "}" @8:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("tag_cases_x6", func(t *testing.T) {
@@ -1084,7 +1084,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("init_tag_cases_x1", func(t *testing.T) {
@@ -1167,7 +1167,7 @@ func x(){
      RBrace: "}" @10:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("init_tag_cases_x2", func(t *testing.T) {
@@ -1253,7 +1253,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("init_tag_cases_x3", func(t *testing.T) {
@@ -1339,7 +1339,7 @@ func x(){
      RBrace: "}" @11:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("init_tag_cases_x4", func(t *testing.T) {
@@ -1417,7 +1417,7 @@ func x(){
      RBrace: "}" @10:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("bad_no_tag_cases_x1", func(t *testing.T) {
@@ -1438,7 +1438,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x2", func(t *testing.T) {
@@ -1459,7 +1459,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x3", func(t *testing.T) {
@@ -1480,7 +1480,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x4", func(t *testing.T) {
@@ -1501,7 +1501,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x5", func(t *testing.T) {
@@ -1521,7 +1521,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x6", func(t *testing.T) {
@@ -1541,7 +1541,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x7", func(t *testing.T) {
@@ -1560,7 +1560,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("no_tag_cases_x8", func(t *testing.T) {
@@ -1582,7 +1582,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x9", func(t *testing.T) {
@@ -1602,7 +1602,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x10", func(t *testing.T) {
@@ -1622,7 +1622,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_no_tag_cases_x11", func(t *testing.T) {
@@ -1642,7 +1642,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_tag_cases_x1", func(t *testing.T) {
@@ -1662,7 +1662,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_init_tag_cases_x1", func(t *testing.T) {
@@ -1682,7 +1682,7 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_init_tag_cases_x2", func(t *testing.T) {
@@ -1702,6 +1702,6 @@ func x(){
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 }

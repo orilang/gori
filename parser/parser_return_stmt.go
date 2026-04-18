@@ -22,7 +22,7 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 	for p.kind() != token.RBrace && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadStmt{From: rn, To: tok, Reason: "expected expression not ','"}
 		}
 
@@ -33,14 +33,14 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 
 		if p.kind() != token.Comma && p.kind() != token.RBrace && p.kind() != token.EOF {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadStmt{From: rn, To: tok, Reason: "expected ',' or '}' after return value"}
 		}
 
 		if p.kind() == token.Comma {
 			_ = p.next()
 			if p.kind() == token.RBrace || p.kind() == token.EOF {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadStmt{From: rn, To: p.peek(), Reason: "expected expression after ','"}
 			}
 		}

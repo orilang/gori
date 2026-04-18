@@ -51,7 +51,7 @@ const x []int=[]int{1,2,3}
       RBrace: "}" @3:26 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("const_slice_x2", func(t *testing.T) {
@@ -132,7 +132,7 @@ func main(){
      RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_slice_x1", func(t *testing.T) {
@@ -208,7 +208,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_slice_x2", func(t *testing.T) {
@@ -263,7 +263,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_slice_x3", func(t *testing.T) {
@@ -320,7 +320,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_slice_x4", func(t *testing.T) {
@@ -393,7 +393,7 @@ func main(){
      RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_slice_x5", func(t *testing.T) {
@@ -497,7 +497,7 @@ func main(){
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_slice_x6", func(t *testing.T) {
@@ -547,7 +547,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_slice_x7", func(t *testing.T) {
@@ -596,7 +596,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("const_array_x1", func(t *testing.T) {
@@ -641,7 +641,7 @@ const x [3]int=[]int{1,2,3}
       RBrace: "}" @3:27 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("const_array_x2", func(t *testing.T) {
@@ -723,7 +723,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_array_x1", func(t *testing.T) {
@@ -780,7 +780,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_array_x2", func(t *testing.T) {
@@ -856,7 +856,7 @@ func main(){
      RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_array_x3", func(t *testing.T) {
@@ -964,7 +964,7 @@ func main(){
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_array_x4", func(t *testing.T) {
@@ -1016,7 +1016,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_array_x5", func(t *testing.T) {
@@ -1065,7 +1065,7 @@ func main(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("bad_slice_x1", func(t *testing.T) {
@@ -1079,7 +1079,7 @@ const x []int
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_slice_x2", func(t *testing.T) {
@@ -1093,7 +1093,7 @@ var x []int
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_slice_x3", func(t *testing.T) {
@@ -1107,7 +1107,7 @@ const x []struct=[]int{1,2,3}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_array_x1", func(t *testing.T) {
@@ -1121,7 +1121,7 @@ const x [5]int
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_array_x2", func(t *testing.T) {
@@ -1135,6 +1135,6 @@ const x [5]struct=[]int{1,2,3}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 }

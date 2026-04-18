@@ -59,7 +59,7 @@ func TestParser_parse_common(t *testing.T) {
 		parse := New(lex.Tokens)
 		_ = parse.expect(token.KWPackage, "ok")
 
-		assert.Nil(parse.errors)
+		assert.Nil(parse.Errors)
 	})
 
 	t.Run("expect_errors", func(t *testing.T) {
@@ -67,7 +67,7 @@ func TestParser_parse_common(t *testing.T) {
 		lex.Tokenize()
 		parse := New(lex.Tokens)
 		tok := parse.expect(token.Illegal, "nok")
-		assert.NotNil(parse.errors)
+		assert.NotNil(parse.Errors)
 		assert.Equal(token.KWPackage, tok.Kind)
 	})
 

@@ -107,7 +107,7 @@ func (p *Parser) match(k token.Kind) (token.Token, bool) {
 func (p *Parser) expect(k token.Kind, msg string) token.Token {
 	tok := p.peek()
 	if tok.Kind != k {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, msg, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, msg, tok.Kind, tok.Value))
 	}
 	return p.next()
 }
@@ -120,17 +120,17 @@ func (p *Parser) expect(k token.Kind, msg string) token.Token {
 func (p *Parser) expectValidIdent(k token.Kind, forbidBlankIdentifier bool, msg string) token.Token {
 	tok := p.peek()
 	if tok.Kind != k {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, msg, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, msg, tok.Kind, tok.Value))
 	}
 
 	if tok.Kind == token.Ident {
 		if forbidBlankIdentifier && tok.Value == "_" {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
 		} else {
 			ch := tok.Value[0]
 			// checking if ident starts with 123abcd
 			if len(tok.Value) > 1 && ch >= '0' && ch <= '9' {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d %s (got %v %q)", tok.Line, tok.Column, "invalid ident format", tok.Kind, tok.Value))
 			}
 		}
 	}
@@ -253,7 +253,7 @@ func (p *Parser) ParseFile() *ast.File {
 				}
 			} else {
 				tok := p.peek()
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 				p.consumeTo(token.RBrace)
 			}
 
@@ -265,7 +265,7 @@ func (p *Parser) ParseFile() *ast.File {
 				f.Decls = append(f.Decls, p.parseImplementsDecl())
 			} else {
 				tok := p.peek()
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 				_ = p.next()
 			}
 		}
@@ -373,14 +373,14 @@ func (p *Parser) parseStmt() ast.Stmt {
 	}
 	if token.IsIncDec(p.kind()) {
 		tok := p.next()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected statement starting with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected statement starting with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		return &ast.BadStmt{From: left.Start(), To: tok, Reason: "unexpected ++ or -- statement here"}
 	}
 
 	_, cok := left.(*ast.CallExpr)
 	_, bok := left.(*ast.BadExpr)
 	if !cok && !bok {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", left.Start().Line, left.Start().Column, left.Start().Kind, left.Start().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", left.Start().Line, left.Start().Column, left.Start().Kind, left.Start().Value))
 		return &ast.BadStmt{From: left.Start(), Reason: "unsupported statement"}
 	}
 	return &ast.ExprStmt{Expr: left}
@@ -402,14 +402,14 @@ func (p *Parser) parseSimpleStmt() ast.Stmt {
 	}
 	if token.IsIncDec(p.kind()) {
 		tok := p.next()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected statement starting with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected statement starting with %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		return &ast.BadStmt{From: left.Start(), To: tok, Reason: "unexpected ++ or -- statement here"}
 	}
 
 	_, cok := left.(*ast.CallExpr)
 	_, bok := left.(*ast.BadExpr)
 	if !cok && !bok {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", left.Start().Line, left.Start().Column, left.Start().Kind, left.Start().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported statement starting with %v %q", left.Start().Line, left.Start().Column, left.Start().Kind, left.Start().Value))
 		return &ast.BadStmt{From: left.Start(), Reason: "unsupported statement"}
 	}
 	return &ast.ExprStmt{Expr: left}
@@ -419,7 +419,7 @@ func (p *Parser) parseSimpleStmt() ast.Stmt {
 func (p *Parser) parseExpr(minPrecedence int) ast.Expr {
 	if !token.IsPrefix(p.kind()) {
 		tok := p.next()
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected prefix expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected prefix expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		return &ast.BadExpr{From: tok, Reason: "unexpected prefix expression"}
 	}
 
@@ -476,7 +476,7 @@ func (p *Parser) parseInfix(left ast.Expr) ast.Expr {
 
 	l, lok := expr.Left.(*ast.BinaryExpr)
 	if lok && token.IsChainingComparison(l.Operator.Kind) && token.IsChainingComparison(expr.Operator.Kind) {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected chaining comparison expression, got %v %q", expr.Operator.Line, expr.Operator.Column, expr.Operator.Kind, expr.Operator.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected chaining comparison expression, got %v %q", expr.Operator.Line, expr.Operator.Column, expr.Operator.Kind, expr.Operator.Value))
 		return &ast.BadExpr{From: l.Operator, To: expr.Operator, Reason: "unexpected chaining comparison expression, use && (e.g. a < b && b < c)"}
 	}
 
@@ -512,7 +512,7 @@ func (p *Parser) parseGroupExpr() *ast.ParenExpr {
 	if p.kind() == token.RParen {
 		to := p.expect(token.RParen, "expected ')'")
 		g.Right = to
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected expression inside parentheses, got %v %q", to.Line, to.Column, to.Kind, to.Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected expression inside parentheses, got %v %q", to.Line, to.Column, to.Kind, to.Value))
 		g.Inner = &ast.BadExpr{From: from, To: to, Reason: "expected expression inside parentheses"}
 		return g
 	}
@@ -571,21 +571,21 @@ func (p *Parser) parseCallExpr(left ast.Expr) ast.Expr {
 	for p.kind() != token.RParen && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadExpr{From: lb, To: tok, Reason: "expected expression not ','"}
 		}
 
 		args = append(args, p.parseExpr(LOWEST))
 		if p.kind() != token.Comma && p.kind() != token.RParen && p.kind() != token.EOF {
 			tok := p.next()
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadExpr{From: lb, To: tok, Reason: "expected ',' or ')'"}
 		}
 
 		if p.kind() == token.Comma {
 			_ = p.next()
 			if p.kind() == token.RParen || p.kind() == token.EOF {
-				p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadExpr{From: lb, To: p.peek(), Reason: "expected expression after ','"}
 			}
 		}

@@ -30,7 +30,7 @@ func TestParser_parse_const_decl(t *testing.T) {
    Value: "3.14" @1:17 (kind=5)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("const_bad_type", func(t *testing.T) {
@@ -41,7 +41,7 @@ func TestParser_parse_const_decl(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseConstDecl()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("const_bad_type_blank_identifier_x1", func(t *testing.T) {
@@ -52,7 +52,7 @@ func TestParser_parse_const_decl(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseConstDecl()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("const_bad_type_blank_identifier_x2", func(t *testing.T) {
@@ -63,7 +63,7 @@ func TestParser_parse_const_decl(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseConstDecl()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 }
 
@@ -89,7 +89,7 @@ func TestParser_parse_var_decl(t *testing.T) {
    Value: "0" @1:13 (kind=4)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("float_lit", func(t *testing.T) {
@@ -111,7 +111,7 @@ func TestParser_parse_var_decl(t *testing.T) {
    Value: "3.14" @1:15 (kind=5)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("var_bad_type", func(t *testing.T) {
@@ -122,7 +122,7 @@ func TestParser_parse_var_decl(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseVarDecl()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("var_bad_type_blank_identifier", func(t *testing.T) {
@@ -133,7 +133,7 @@ func TestParser_parse_var_decl(t *testing.T) {
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseVarDecl()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bool_lit", func(t *testing.T) {
@@ -155,7 +155,7 @@ func TestParser_parse_var_decl(t *testing.T) {
    Value: "true" @1:14 (kind=7)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("string_lit", func(t *testing.T) {
@@ -177,7 +177,7 @@ func TestParser_parse_var_decl(t *testing.T) {
    Value: "ok" @1:16 (kind=6)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("indent_lit", func(t *testing.T) {
@@ -199,6 +199,6 @@ func TestParser_parse_var_decl(t *testing.T) {
    Name: "x" @1:16 (kind=3)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 }

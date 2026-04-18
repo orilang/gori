@@ -26,7 +26,7 @@ func (p *Parser) parseComptimeBlockDecl() ast.Decl {
 		return c
 	}
 
-	p.errors = append(p.errors, fmt.Errorf("%d:%d: expected 'const' or 'func', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+	p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected 'const' or 'func', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 
 	p.consumeTo(token.EOF)
 	return nil

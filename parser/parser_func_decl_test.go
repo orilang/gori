@@ -38,7 +38,7 @@ func x()int{
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("return_types_x2", func(t *testing.T) {
@@ -74,7 +74,7 @@ func x()(int,int){
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("return_types_x3", func(t *testing.T) {
@@ -111,7 +111,7 @@ func x()(a int,b int){}
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("return_types_x4", func(t *testing.T) {
@@ -135,7 +135,7 @@ func x(){}
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("return_types_x5", func(t *testing.T) {
@@ -172,7 +172,7 @@ func x()(a z, b z){}
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("return_types_x6", func(t *testing.T) {
@@ -204,7 +204,7 @@ func x()(a z){}
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("return_types_x7", func(t *testing.T) {
@@ -239,7 +239,7 @@ func x()(a []int){}
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("return_types_x8", func(t *testing.T) {
@@ -271,7 +271,7 @@ func x()[]int{}
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("return_types_x9", func(t *testing.T) {
@@ -312,7 +312,7 @@ func x()([]int,[]string){}
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("struct_x1", func(t *testing.T) {
@@ -354,7 +354,7 @@ func x(){
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("interface_x1", func(t *testing.T) {
@@ -390,7 +390,7 @@ func x(){
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("enum_x1", func(t *testing.T) {
@@ -431,7 +431,7 @@ func x(){
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("sum_x1", func(t *testing.T) {
@@ -478,7 +478,7 @@ func x(){
      RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
-		assert.Equal(0, len(parser.errors))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("bad_return_types_x1", func(t *testing.T) {
@@ -491,7 +491,7 @@ func x(),int{}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x2", func(t *testing.T) {
@@ -504,7 +504,7 @@ func x()(int,,int){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x3", func(t *testing.T) {
@@ -517,7 +517,7 @@ func x()(a int,b){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x4", func(t *testing.T) {
@@ -530,7 +530,7 @@ func x()(){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x5", func(t *testing.T) {
@@ -543,7 +543,7 @@ func x()(,a int,b){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x6", func(t *testing.T) {
@@ -556,7 +556,7 @@ func x()int,{}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x7", func(t *testing.T) {
@@ -569,7 +569,7 @@ func x()(a int,b,){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x8", func(t *testing.T) {
@@ -582,7 +582,7 @@ func x()(a int,b b b){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x9", func(t *testing.T) {
@@ -595,7 +595,7 @@ func x()(a int,b b,){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x10", func(t *testing.T) {
@@ -608,7 +608,7 @@ func x()(a int,b return){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x11", func(t *testing.T) {
@@ -621,7 +621,7 @@ func x()(a int,b return){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x12", func(t *testing.T) {
@@ -634,7 +634,7 @@ func x()(a return,b return){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x13", func(t *testing.T) {
@@ -647,7 +647,7 @@ func x() struct {}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x14", func(t *testing.T) {
@@ -660,7 +660,7 @@ func x()(int, struct){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x15", func(t *testing.T) {
@@ -673,7 +673,7 @@ func x()(int struct){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x16", func(t *testing.T) {
@@ -686,7 +686,7 @@ func x()(int,int,){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x17", func(t *testing.T) {
@@ -699,7 +699,7 @@ func x()(a, b z){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x18", func(t *testing.T) {
@@ -712,7 +712,7 @@ func x()(_ b){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 
 	t.Run("bad_return_types_x19", func(t *testing.T) {
@@ -725,6 +725,6 @@ func x()(a _){}
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
 		assert.NotNil(pr)
-		assert.Greater(len(parser.errors), 0)
+		assert.Greater(len(parser.Errors), 0)
 	})
 }

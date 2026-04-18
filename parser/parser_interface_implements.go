@@ -17,7 +17,7 @@ func (p *Parser) parseImplementsDecl() ast.Decl {
 	}
 
 	if p.kind() != token.Ident {
-		p.errors = append(p.errors, fmt.Errorf("%d:%d: expected ident after 'implements', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ident after 'implements', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		p.consumeTo(token.RBrace)
 		return id
 	}

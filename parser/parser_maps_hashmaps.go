@@ -25,7 +25,7 @@ func (p *Parser) parseMapsHashMapsDecl() ast.Type {
 	var keyType ast.NamedType
 	for p.kind() != token.RBracket && p.kind() != token.RParen && p.kind() != token.EOF {
 		if !token.IsMapTypes(p.kind()) {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected map/hashmap key type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected map/hashmap key type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.EOF)
 			return x
 		}
@@ -42,7 +42,7 @@ func (p *Parser) parseMapsHashMapsDecl() ast.Type {
 	var valueType ast.NamedType
 	for p.kind() != token.Assign && p.kind() != token.EOF {
 		if !token.IsMapTypes(p.kind()) {
-			p.errors = append(p.errors, fmt.Errorf("%d:%d: unexpected map/hashmap key type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected map/hashmap key type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.EOF)
 			return x
 		}

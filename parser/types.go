@@ -29,7 +29,7 @@ type Files struct {
 // build the Abstract Syntax Tree (AST)
 type Parser struct {
 	Tokens    []token.Token
-	errors    []error
+	Errors    []error
 	size      int
 	position  int
 	loopDepth int
