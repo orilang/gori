@@ -62,6 +62,7 @@ func (c *Checker) Check(file *ast.File) []Diagnostics {
 	c.collectTopLevelSymbols(file)
 	c.createTypeObjects()
 	c.resolveTypeDecls()
+	c.resolveFuncSignatures()
 	return c.errors
 }
 
@@ -74,6 +75,8 @@ func (c *Checker) collectTopLevelSymbols(file *ast.File) {
 		switch d := decl.(type) {
 		case ast.TypeDecl:
 			c.declareTypeSymbol(d)
+		case *ast.FuncDecl:
+			c.declareFuncSymbol(d)
 		}
 	}
 }
@@ -116,6 +119,23 @@ func (c *Checker) declareTypeSymbol(decl ast.TypeDecl) {
 	}
 
 	c.typeDecls = append(c.typeDecls, decl)
+}
+
+// declareFuncSymbol declares new type symbol with its name
+// and append diagnostics errors when already exists
+func (c *Checker) declareFuncSymbol(fn *ast.FuncDecl) {
+	sym := &Symbol{
+		Name: fn.Name.Value,
+		Kind: SymFunc,
+		Decl: fn,
+	}
+
+	if !c.pkgScope.Declare(sym) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("symbol %q already declared", fn.Name.Value)})
+		return
+	}
+
+	c.funcDecls = append(c.funcDecls, fn)
 }
 
 // createTypeObjects create structured type objects
@@ -301,15 +321,20 @@ func (c *Checker) resolveInterfaceMethod(m ast.InterfaceMethod) FuncMethod {
 
 // resolveFuncSignatures resolves the ast FuncDecl declaration to return
 // the semantic view of the FuncMethod. A diagnostic is emitted when duplicates found
-// func (c *Checker) resolveFuncSignatures(fn *ast.FuncDecl) FuncMethod {
-// 	return FuncMethod{
-// 		Name: fn.Name.Value,
-// 		FuncType: &FuncType{
-// 			Params:  c.resolveParams("param", fn.Params),
-// 			Results: c.resolveParams("result", fn.Results.List),
-// 		},
-// 	}
-// }
+func (c *Checker) resolveFuncSignatures() {
+	for _, fn := range c.funcDecls {
+		sym := c.pkgScope.Lookup(fn.Name.Value)
+		if sym != nil {
+			sym.Type = &FuncMethod{
+				Name: fn.Name.Value,
+				FuncType: &FuncType{
+					Params:  c.resolveParams("param", fn.Params),
+					Results: c.resolveParams("result", fn.Results.List),
+				},
+			}
+		}
+	}
+}
 
 // resolveParams resolves the ast FuncDecl declaration to return
 // the semantic view of the Param list. A diagnostic is emitted when duplicates found

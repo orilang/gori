@@ -379,4 +379,99 @@ type test sum {
 		}
 		assert.Equal(t, TInvalid, check.resolveNamedType(&ast.NamedType{Parts: p}))
 	})
+
+	t.Run("x5", func(t *testing.T) {
+		data :=
+			`package main
+type UserID int
+
+func ok(a UserID, b UserID) UserID {
+	return a + b
+}
+`
+		scope := &Scope{
+			Parent: nil,
+			Symbols: map[string]*Symbol{
+				"UserID": {
+					Name: "UserID",
+					Kind: SymType,
+					Type: &NamedType{
+						UnderlyingType: TInt,
+					},
+				},
+				"ok": {
+					Name: "ok",
+					Kind: SymFunc,
+					Type: &FuncMethod{
+						Name: "ok",
+						FuncType: &FuncType{
+							Params: []Param{
+								{Name: "a", Type: &NamedType{Name: "UserID", UnderlyingType: TInt}},
+								{Name: "b", Type: &NamedType{Name: "UserID", UnderlyingType: TInt}},
+							},
+							Results: []Param{
+								{Type: &NamedType{Name: "UserID", UnderlyingType: TInt}},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
+		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
+		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
+		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)
+		assert.Equal(t, TInt, xx.UnderlyingType)
+
+		assert.Equal(t, scope.Symbols["ok"].Name, check.pkgScope.Symbols["ok"].Name)
+		assert.Equal(t, scope.Symbols["ok"].Kind, check.pkgScope.Symbols["ok"].Kind)
+		src := scope.Symbols["ok"].Type.(*FuncMethod)
+		dst := check.pkgScope.Symbols["ok"].Type.(*FuncMethod)
+		assert.Equal(t, src.Name, dst.Name)
+
+		src2 := src.FuncType.Params[0].Type.(*NamedType)
+		dst2 := dst.FuncType.Params[0].Type.(*NamedType)
+		// assert.Equal(t, src2.Name, dst2.Name)
+		assert.Equal(t, src2.UnderlyingType, dst2.UnderlyingType)
+
+		src3 := src.FuncType.Params[1].Type.(*NamedType)
+		dst3 := dst.FuncType.Params[1].Type.(*NamedType)
+		// assert.Equal(t, src3.Name, dst3.Name)
+		assert.Equal(t, src3.UnderlyingType, dst3.UnderlyingType)
+
+		rsrc1 := src.FuncType.Results[0].Type.(*NamedType)
+		rdst1 := dst.FuncType.Results[0].Type.(*NamedType)
+		assert.Equal(t, rsrc1.UnderlyingType, rdst1.UnderlyingType)
+	})
+
+	t.Run("x5_duplicate", func(t *testing.T) {
+		data :=
+			`package main
+type UserID int
+
+func ok(a UserID, b UserID, b UserID) UserID {
+	return a + b
+}
+func ok(a UserID, b UserID) UserID {
+	return a + b
+}
+`
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+		assert.Greater(t, len(check.Check(pr)), 0)
+	})
+
 }
