@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -474,4 +475,55 @@ func ok(a UserID, b UserID) UserID {
 		assert.Greater(t, len(check.Check(pr)), 0)
 	})
 
+	t.Run("x6", func(t *testing.T) {
+		data :=
+			`package main
+type User struct {
+	ids []int
+}
+`
+		scope := &Scope{
+			Parent: nil,
+			Symbols: map[string]*Symbol{
+				"User": {
+					Name: "User",
+					Kind: SymType,
+					Type: &StructType{
+						Fields: []StructField{
+							{
+								Name: "ids",
+								Type: &SliceType{
+									Elem: TInt,
+								},
+							},
+						},
+					},
+				},
+			},
+		}
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		fmt.Printf("%#v\n", pr)
+		fmt.Printf("%s\n", ast.Dump(pr))
+		for _, v := range parser.Errors {
+			fmt.Println(v.Error())
+		}
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
+		assert.Equal(t, scope.Symbols["User"].Name, check.pkgScope.Symbols["User"].Name)
+		assert.Equal(t, scope.Symbols["User"].Kind, check.pkgScope.Symbols["User"].Kind)
+		src := scope.Symbols["User"].Type.(*StructType)
+		dst := check.pkgScope.Symbols["User"].Type.(*StructType)
+		assert.Equal(t, src.Fields[0].Name, dst.Fields[0].Name)
+		fsrc := src.Fields[0].Type.(*SliceType)
+		fdst := src.Fields[0].Type.(*SliceType)
+		assert.Equal(t, fsrc.Elem, fdst.Elem)
+
+	})
 }

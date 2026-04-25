@@ -218,6 +218,14 @@ func (c *Checker) resolveType(t ast.Type) Type {
 	switch v := t.(type) {
 	case *ast.NamedType:
 		return c.resolveNamedType(v)
+
+	case *ast.SliceType:
+		elem := c.resolveType(v.Elem)
+		// temporary keeping this
+		if elem == nil {
+			return TInvalid
+		}
+		return &SliceType{Elem: elem}
 	}
 	return nil
 }
