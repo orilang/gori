@@ -234,6 +234,24 @@ func (c *Checker) resolveType(t ast.Type) Type {
 			return TInvalid
 		}
 		return &SliceType{Elem: elem}
+
+	case *ast.MapType:
+		key := c.resolveType(v.KeyType)
+		if key == nil {
+			return TInvalid
+		}
+		value := c.resolveType(v.ValueType)
+		if value == nil {
+			return TInvalid
+		}
+		m := &MapType{
+			Key:   key,
+			Value: value,
+		}
+		if v.KindKW.Kind == token.KWHashMap {
+			m.Kind = MapHash
+		}
+		return m
 	}
 	return nil
 }

@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -480,6 +481,8 @@ func ok(a UserID, b UserID) UserID {
 type User struct {
 	ids []int
 	ar  [5]int
+  mp  map[string]string
+  hmp hashmap[string]string
 }
 `
 		scope := &Scope{
@@ -503,6 +506,21 @@ type User struct {
 									Elem: TInt,
 								},
 							},
+							{
+								Name: "mp",
+								Type: &MapType{
+									Key:   TString,
+									Value: TString,
+								},
+							},
+							{
+								Name: "hmp",
+								Type: &MapType{
+									Kind:  MapHash,
+									Key:   TString,
+									Value: TString,
+								},
+							},
 						},
 					},
 				},
@@ -513,6 +531,11 @@ type User struct {
 		require.NoError(t, err)
 		parser := parser.New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
+		fmt.Printf("%#v\n", pr)
+		fmt.Printf("%s\n", ast.Dump(pr))
+		for _, v := range parser.Errors {
+			fmt.Println(v.Error())
+		}
 		assert.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
 
@@ -535,5 +558,11 @@ type User struct {
 		// assert.Equal(t, asrc.Len, adst.Elem)
 		assert.Equal(t, asrc.Elem, adst.Elem)
 
+		assert.Equal(t, src.Fields[2].Name, dst.Fields[2].Name)
+		mpsrc := src.Fields[2].Type.(*MapType)
+		mpdst := src.Fields[2].Type.(*MapType)
+		assert.Equal(t, mpsrc.Kind, mpdst.Kind)
+		assert.Equal(t, mpsrc.Key, mpdst.Key)
+		assert.Equal(t, mpsrc.Value, mpdst.Value)
 	})
 }
