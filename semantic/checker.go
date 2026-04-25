@@ -485,16 +485,58 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 }
 
 // checkExpr return the type of the expression
-func (c *Checker) checkExpr(ex ast.Expr) Type {
-	switch ex.(type) {
+func (c *Checker) checkExpr(expr ast.Expr) Type {
+	switch t := expr.(type) {
 	case *ast.IntLitExpr:
 		return TInt
+
 	case *ast.FloatLitExpr:
 		return TFloat
+
 	case *ast.BoolLitExpr:
 		return TBool
+
 	case *ast.StringLitExpr:
 		return TString
+
+	case *ast.IdentExpr:
+		sym := c.pkgScope.LookupLocal(t.Name.Value)
+		if sym == nil || sym.Type == nil {
+			return TInvalid
+		}
+		return sym.Type
+
+	case *ast.UnaryExpr:
+		return c.checkExpr(t.Right)
+
+	case *ast.BinaryExpr:
+		left := c.checkExpr(t.Left)
+		right := c.checkExpr(t.Right)
+
+		if x, ok := right.(*FuncMethod); ok {
+			if len(x.FuncType.Results) == 0 || len(x.FuncType.Results) > 1 {
+				return TInvalid
+			}
+			if left == x.FuncType.Results[0].Type {
+				return left
+			}
+			return TInvalid
+		}
+
+		if left == c.checkExpr(t.Right) {
+			return left
+		}
+		return TInvalid
+
+	case *ast.CallExpr:
+		calle := c.checkExpr(t.Callee)
+		for _, v := range t.Args {
+			if c.checkExpr(v) != calle {
+				return TInvalid
+			}
+		}
+		return calle
+
 	default:
 		return TInvalid
 	}

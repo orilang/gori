@@ -566,30 +566,28 @@ const a int = 1
 const b float = 1.0
 const c bool = true
 const d string = "test"
+const e int = 1+1
+const f int = -1*2
+const g int = 1
+const h int = 1+g
+func x() int {
+  return 1
+}
+const i int = 1+x()
 `
 		scope := &Scope{
 			Parent: nil,
 			Symbols: map[string]*Symbol{
-				"a": {
-					Name: "a",
-					Kind: SymConst,
-					Type: TInt,
-				},
-				"b": {
-					Name: "b",
-					Kind: SymConst,
-					Type: TFloat,
-				},
-				"c": {
-					Name: "c",
-					Kind: SymConst,
-					Type: TBool,
-				},
-				"d": {
-					Name: "d",
-					Kind: SymConst,
-					Type: TString,
-				},
+				"a": {Name: "a", Kind: SymConst, Type: TInt},
+				"b": {Name: "b", Kind: SymConst, Type: TFloat},
+				"c": {Name: "c", Kind: SymConst, Type: TBool},
+				"d": {Name: "d", Kind: SymConst, Type: TString},
+				"e": {Name: "e", Kind: SymConst, Type: TInt},
+				"f": {Name: "f", Kind: SymConst, Type: TInt},
+				"g": {Name: "g", Kind: SymConst, Type: TInt},
+				"h": {Name: "h", Kind: SymConst, Type: TInt},
+				"x": {Name: "x", Kind: SymFunc, Type: &FuncMethod{Name: "x", FuncType: &FuncType{Results: []Param{{Type: TInt}}}}},
+				"i": {Name: "i", Kind: SymConst, Type: TInt},
 			},
 		}
 
@@ -617,12 +615,54 @@ const d string = "test"
 		assert.Equal(t, scope.Symbols["d"].Name, check.pkgScope.Symbols["d"].Name)
 		assert.Equal(t, scope.Symbols["d"].Kind, check.pkgScope.Symbols["d"].Kind)
 		assert.Equal(t, scope.Symbols["d"].Type, check.pkgScope.Symbols["d"].Type)
+
+		assert.Equal(t, scope.Symbols["e"].Name, check.pkgScope.Symbols["e"].Name)
+		assert.Equal(t, scope.Symbols["e"].Kind, check.pkgScope.Symbols["e"].Kind)
+		assert.Equal(t, scope.Symbols["e"].Type, check.pkgScope.Symbols["e"].Type)
+
+		assert.Equal(t, scope.Symbols["f"].Name, check.pkgScope.Symbols["f"].Name)
+		assert.Equal(t, scope.Symbols["f"].Kind, check.pkgScope.Symbols["f"].Kind)
+		assert.Equal(t, scope.Symbols["f"].Type, check.pkgScope.Symbols["f"].Type)
+
+		assert.Equal(t, scope.Symbols["g"].Name, check.pkgScope.Symbols["g"].Name)
+		assert.Equal(t, scope.Symbols["g"].Kind, check.pkgScope.Symbols["g"].Kind)
+		assert.Equal(t, scope.Symbols["g"].Type, check.pkgScope.Symbols["g"].Type)
+
+		assert.Equal(t, scope.Symbols["h"].Name, check.pkgScope.Symbols["h"].Name)
+		assert.Equal(t, scope.Symbols["h"].Kind, check.pkgScope.Symbols["h"].Kind)
+		assert.Equal(t, scope.Symbols["h"].Type, check.pkgScope.Symbols["h"].Type)
+
+		assert.Equal(t, scope.Symbols["x"].Name, check.pkgScope.Symbols["x"].Name)
+		assert.Equal(t, scope.Symbols["x"].Kind, check.pkgScope.Symbols["x"].Kind)
+		fsrc := scope.Symbols["x"].Type.(*FuncMethod)
+		fdst := check.pkgScope.Symbols["x"].Type.(*FuncMethod)
+		assert.Equal(t, fsrc.Name, fdst.Name)
+		assert.Equal(t, fsrc.FuncType.Params, fdst.FuncType.Params)
+		assert.Equal(t, fsrc.FuncType.Results[0].Type, fdst.FuncType.Results[0].Type)
+
+		assert.Equal(t, scope.Symbols["i"].Name, check.pkgScope.Symbols["i"].Name)
+		assert.Equal(t, scope.Symbols["i"].Kind, check.pkgScope.Symbols["i"].Kind)
+		assert.Equal(t, scope.Symbols["i"].Type, check.pkgScope.Symbols["i"].Type)
 	})
 
 	t.Run("x7_error", func(t *testing.T) {
 		data :=
 			`package main
 const a float = "test"
+const b string = "test"
+const c int = 1+g
+func x() string {
+  return "string"
+}
+func y() (int,string) {
+  return 1
+}
+func y(a int, b int) int {
+  return a+b
+}
+const d int = 1+x()
+const e int = 1+y()
+const f int = z(1,"a"+1)
 `
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		require.NoError(t, err)
