@@ -68,13 +68,11 @@ func (p *Parser) parseStructTypeField() *ast.FieldDecl {
 		return fd
 	}
 
-	switch p.peek().Value {
-	case "[":
-		if p.peek().Value == "[" {
-			fd.Type = p.parseSliceOrArrayType()
-		}
+	switch {
+	case tok.Value == "[":
+		fd.Type = p.parseSliceOrArrayType()
 
-	case "map":
+	case token.IsMapType(tok.Kind):
 		fd.Type = p.parseMapsHashMapsDecl()
 
 	default:
