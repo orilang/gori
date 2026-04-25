@@ -219,6 +219,14 @@ func (c *Checker) resolveType(t ast.Type) Type {
 	case *ast.NamedType:
 		return c.resolveNamedType(v)
 
+	case *ast.ArrayType:
+		elem := c.resolveType(v.Elem)
+		// temporary keeping this
+		if elem == nil {
+			return TInvalid
+		}
+		return &ArrayType{Elem: elem}
+
 	case *ast.SliceType:
 		elem := c.resolveType(v.Elem)
 		// temporary keeping this

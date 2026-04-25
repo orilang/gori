@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -480,6 +479,7 @@ func ok(a UserID, b UserID) UserID {
 			`package main
 type User struct {
 	ids []int
+	ar  [5]int
 }
 `
 		scope := &Scope{
@@ -496,6 +496,13 @@ type User struct {
 									Elem: TInt,
 								},
 							},
+							{
+								Name: "ar",
+								Type: &ArrayType{
+									Len:  5,
+									Elem: TInt,
+								},
+							},
 						},
 					},
 				},
@@ -506,11 +513,6 @@ type User struct {
 		require.NoError(t, err)
 		parser := parser.New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
-		fmt.Printf("%#v\n", pr)
-		fmt.Printf("%s\n", ast.Dump(pr))
-		for _, v := range parser.Errors {
-			fmt.Println(v.Error())
-		}
 		assert.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
 
@@ -520,10 +522,18 @@ type User struct {
 		assert.Equal(t, scope.Symbols["User"].Kind, check.pkgScope.Symbols["User"].Kind)
 		src := scope.Symbols["User"].Type.(*StructType)
 		dst := check.pkgScope.Symbols["User"].Type.(*StructType)
+
 		assert.Equal(t, src.Fields[0].Name, dst.Fields[0].Name)
-		fsrc := src.Fields[0].Type.(*SliceType)
-		fdst := src.Fields[0].Type.(*SliceType)
-		assert.Equal(t, fsrc.Elem, fdst.Elem)
+		ssrc := src.Fields[0].Type.(*SliceType)
+		sdst := src.Fields[0].Type.(*SliceType)
+		assert.Equal(t, ssrc.Elem, sdst.Elem)
+
+		assert.Equal(t, src.Fields[1].Name, dst.Fields[1].Name)
+		asrc := src.Fields[1].Type.(*ArrayType)
+		adst := src.Fields[1].Type.(*ArrayType)
+		// TODO: we need to manage the length of the array
+		// assert.Equal(t, asrc.Len, adst.Elem)
+		assert.Equal(t, asrc.Elem, adst.Elem)
 
 	})
 }
