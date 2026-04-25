@@ -530,9 +530,18 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 
 	case *ast.CallExpr:
 		calle := c.checkExpr(t.Callee)
-		for _, v := range t.Args {
-			if c.checkExpr(v) != calle {
-				return TInvalid
+		if x, ok := calle.(*NamedType); ok {
+			for _, v := range t.Args {
+				if c.checkExpr(v) != x.UnderlyingType {
+					return TInvalid
+				}
+			}
+			return x
+		} else {
+			for _, v := range t.Args {
+				if c.checkExpr(v) != calle {
+					return TInvalid
+				}
 			}
 		}
 		return calle

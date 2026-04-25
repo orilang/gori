@@ -574,6 +574,8 @@ func x() int {
   return 1
 }
 const i int = 1+x()
+type UserID int
+const j UserID = UserID(1)
 `
 		scope := &Scope{
 			Parent: nil,
@@ -588,6 +590,14 @@ const i int = 1+x()
 				"h": {Name: "h", Kind: SymConst, Type: TInt},
 				"x": {Name: "x", Kind: SymFunc, Type: &FuncMethod{Name: "x", FuncType: &FuncType{Results: []Param{{Type: TInt}}}}},
 				"i": {Name: "i", Kind: SymConst, Type: TInt},
+				"UserID": {
+					Name: "UserID",
+					Kind: SymType,
+					Type: &NamedType{
+						UnderlyingType: TInt,
+					},
+				},
+				"j": {Name: "j", Kind: SymConst, Type: &NamedType{UnderlyingType: TInt}},
 			},
 		}
 
@@ -643,6 +653,18 @@ const i int = 1+x()
 		assert.Equal(t, scope.Symbols["i"].Name, check.pkgScope.Symbols["i"].Name)
 		assert.Equal(t, scope.Symbols["i"].Kind, check.pkgScope.Symbols["i"].Kind)
 		assert.Equal(t, scope.Symbols["i"].Type, check.pkgScope.Symbols["i"].Type)
+
+		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
+		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
+		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)
+		assert.Equal(t, TInt, xx.UnderlyingType)
+
+		assert.Equal(t, scope.Symbols["j"].Name, check.pkgScope.Symbols["j"].Name)
+		assert.Equal(t, scope.Symbols["j"].Kind, check.pkgScope.Symbols["j"].Kind)
+
+		src := scope.Symbols["j"].Type.(*NamedType)
+		dst := check.pkgScope.Symbols["j"].Type.(*NamedType)
+		assert.Equal(t, src.UnderlyingType, dst.UnderlyingType)
 	})
 
 	t.Run("x7_error", func(t *testing.T) {
@@ -663,6 +685,9 @@ func y(a int, b int) int {
 const d int = 1+x()
 const e int = 1+y()
 const f int = z(1,"a"+1)
+type UserID int
+const j UserID = 1
+const k string = UserID("1")
 `
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		require.NoError(t, err)
