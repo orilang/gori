@@ -117,8 +117,9 @@ type Diagnostics struct {
 	Err error
 }
 type Checker struct {
-	pkgScope  *Scope
-	errors    []Diagnostics
-	typeDecls []ast.TypeDecl
-	funcDecls []*ast.FuncDecl
+	pkgScope   *Scope
+	errors     []Diagnostics
+	typeDecls  []ast.TypeDecl
+	funcDecls  []*ast.FuncDecl
+	constDecls []*ast.ConstDecl
 }

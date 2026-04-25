@@ -497,32 +497,16 @@ type User struct {
 					Type: &StructType{
 						Fields: []StructField{
 							{
-								Name: "ids",
-								Type: &SliceType{
-									Elem: TInt,
-								},
+								Name: "ids", Type: &SliceType{Elem: TInt},
 							},
 							{
-								Name: "ar",
-								Type: &ArrayType{
-									Len:  5,
-									Elem: TInt,
-								},
+								Name: "ar", Type: &ArrayType{Len: 5, Elem: TInt},
 							},
 							{
-								Name: "mp",
-								Type: &MapType{
-									Key:   TString,
-									Value: TString,
-								},
+								Name: "mp", Type: &MapType{Key: TString, Value: TString},
 							},
 							{
-								Name: "hmp",
-								Type: &MapType{
-									Kind:  MapHash,
-									Key:   TString,
-									Value: TString,
-								},
+								Name: "hmp", Type: &MapType{Kind: MapHash, Key: TString, Value: TString},
 							},
 						},
 					},
@@ -562,5 +546,105 @@ type User struct {
 		assert.Equal(t, mpsrc.Kind, mpdst.Kind)
 		assert.Equal(t, mpsrc.Key, mpdst.Key)
 		assert.Equal(t, mpsrc.Value, mpdst.Value)
+	})
+
+	t.Run("declare_const_symbol", func(t *testing.T) {
+		check := NewChecker()
+		x := &ast.ConstDecl{}
+		check.declareConstSymbol(x)
+	})
+
+	t.Run("check_expr", func(t *testing.T) {
+		check := NewChecker()
+		check.checkExpr(nil)
+	})
+
+	t.Run("x7", func(t *testing.T) {
+		data :=
+			`package main
+const a int = 1
+const b float = 1.0
+const c bool = true
+const d string = "test"
+`
+		scope := &Scope{
+			Parent: nil,
+			Symbols: map[string]*Symbol{
+				"a": {
+					Name: "a",
+					Kind: SymConst,
+					Type: TInt,
+				},
+				"b": {
+					Name: "b",
+					Kind: SymConst,
+					Type: TFloat,
+				},
+				"c": {
+					Name: "c",
+					Kind: SymConst,
+					Type: TBool,
+				},
+				"d": {
+					Name: "d",
+					Kind: SymConst,
+					Type: TString,
+				},
+			},
+		}
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
+		assert.Equal(t, scope.Symbols["a"].Name, check.pkgScope.Symbols["a"].Name)
+		assert.Equal(t, scope.Symbols["a"].Kind, check.pkgScope.Symbols["a"].Kind)
+		assert.Equal(t, scope.Symbols["a"].Type, check.pkgScope.Symbols["a"].Type)
+
+		assert.Equal(t, scope.Symbols["b"].Name, check.pkgScope.Symbols["b"].Name)
+		assert.Equal(t, scope.Symbols["b"].Kind, check.pkgScope.Symbols["b"].Kind)
+		assert.Equal(t, scope.Symbols["b"].Type, check.pkgScope.Symbols["b"].Type)
+
+		assert.Equal(t, scope.Symbols["c"].Name, check.pkgScope.Symbols["c"].Name)
+		assert.Equal(t, scope.Symbols["c"].Kind, check.pkgScope.Symbols["c"].Kind)
+		assert.Equal(t, scope.Symbols["c"].Type, check.pkgScope.Symbols["c"].Type)
+
+		assert.Equal(t, scope.Symbols["d"].Name, check.pkgScope.Symbols["d"].Name)
+		assert.Equal(t, scope.Symbols["d"].Kind, check.pkgScope.Symbols["d"].Kind)
+		assert.Equal(t, scope.Symbols["d"].Type, check.pkgScope.Symbols["d"].Type)
+	})
+
+	t.Run("x7_error", func(t *testing.T) {
+		data :=
+			`package main
+const a float = "test"
+`
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+		assert.Greater(t, len(check.Check(pr)), 0)
+	})
+
+	t.Run("x7_duplicate", func(t *testing.T) {
+		data :=
+			`package main
+const a int = 1
+const a float = 1.0
+`
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+		assert.Greater(t, len(check.Check(pr)), 0)
 	})
 }

@@ -63,6 +63,7 @@ func (c *Checker) Check(file *ast.File) []Diagnostics {
 	c.createTypeObjects()
 	c.resolveTypeDecls()
 	c.resolveFuncSignatures()
+	c.checkTopLevelValues(file)
 	return c.errors
 }
 
@@ -77,6 +78,8 @@ func (c *Checker) collectTopLevelSymbols(file *ast.File) {
 			c.declareTypeSymbol(d)
 		case *ast.FuncDecl:
 			c.declareFuncSymbol(d)
+		case *ast.ConstDecl:
+			c.declareConstSymbol(d)
 		}
 	}
 }
@@ -93,6 +96,8 @@ func typeDeclName(decl ast.Decl) string {
 	case *ast.EnumDecl:
 		return d.Name.Value
 	case *ast.SumDecl:
+		return d.Name.Value
+	case *ast.ConstDecl:
 		return d.Name.Value
 	default:
 		return ""
@@ -136,6 +141,28 @@ func (c *Checker) declareFuncSymbol(fn *ast.FuncDecl) {
 	}
 
 	c.funcDecls = append(c.funcDecls, fn)
+}
+
+// declareConstSymbol declares new type symbol with its name
+// and append diagnostics errors when already exists
+func (c *Checker) declareConstSymbol(decl *ast.ConstDecl) {
+	name := typeDeclName(decl)
+	if name == "" {
+		return
+	}
+
+	sym := &Symbol{
+		Name: name,
+		Kind: SymConst,
+		Decl: decl,
+	}
+
+	if !c.pkgScope.Declare(sym) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("symbol %q already declared", name)})
+		return
+	}
+
+	c.constDecls = append(c.constDecls, decl)
 }
 
 // createTypeObjects create structured type objects
@@ -430,4 +457,45 @@ func (c *Checker) resolveSumVariants(variants []ast.SumVariant) []SumVariant {
 		})
 	}
 	return out
+}
+
+// checkTopLevelValues checks const values
+func (c *Checker) checkTopLevelValues(file *ast.File) {
+	for _, decl := range file.Decls {
+		switch d := decl.(type) {
+		case *ast.ConstDecl:
+			c.checkConstDecl(d)
+		}
+	}
+}
+
+// checkConstDecl validates constant targetType and valueType.
+// An error is emitted if any
+func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
+	targetType := c.resolveType(decl.Type)
+	valueType := c.checkExpr(decl.Init)
+
+	if !IsAssignableTo(targetType, valueType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", valueType, targetType)})
+		return
+	}
+	name := typeDeclName(decl)
+	sym := c.pkgScope.Lookup(name)
+	sym.Type = valueType
+}
+
+// checkExpr return the type of the expression
+func (c *Checker) checkExpr(ex ast.Expr) Type {
+	switch ex.(type) {
+	case *ast.IntLitExpr:
+		return TInt
+	case *ast.FloatLitExpr:
+		return TFloat
+	case *ast.BoolLitExpr:
+		return TBool
+	case *ast.StringLitExpr:
+		return TString
+	default:
+		return TInvalid
+	}
 }
