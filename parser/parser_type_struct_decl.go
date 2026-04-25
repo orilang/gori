@@ -67,10 +67,22 @@ func (p *Parser) parseStructTypeField() *ast.FieldDecl {
 		p.consumeTo(token.EOF)
 		return fd
 	}
-	x := &ast.NamedType{}
-	x.Parts = append(x.Parts, tok)
-	fd.Type = x
-	_ = p.next()
+
+	switch p.peek().Value {
+	case "[":
+		if p.peek().Value == "[" {
+			fd.Type = p.parseSliceOrArrayType()
+		}
+
+	case "map":
+		fd.Type = p.parseMapsHashMapsDecl()
+
+	default:
+		x := &ast.NamedType{}
+		x.Parts = append(x.Parts, tok)
+		fd.Type = x
+		_ = p.next()
+	}
 
 	if p.kind() == token.Assign {
 		kwa := p.expect(token.Assign, "expected '='")

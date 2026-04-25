@@ -248,6 +248,8 @@ type test struct{x int = 5}
 type test struct{
   x int = 5
   y int = 5
+	a []int
+	b map[string]string
 }
 `
 		parser := New(lex.FetchTokensFromString(data))
@@ -275,7 +277,26 @@ type test struct{
     Eq: "=" @5:9 (kind=49)
     IntLitExpr
      Value: "5" @5:11 (kind=4)
-   RBrace: "}" @6:1 (kind=42)
+    Name: "a" @6:2 (kind=3)
+    Type:
+     SliceType:
+      LBracket: "[" @6:4 (kind=43)
+      RBracket: "]" @6:5 (kind=44)
+      NamedType
+       Ident: "int" @6:6 (kind=12)
+    Name: "b" @7:2 (kind=3)
+    Type:
+     MapType:
+      Map: "map" @7:4 (kind=79)
+      LBracket: "[" @7:7 (kind=43)
+      KeyType:
+       NamedType
+        Ident: "string" @7:8 (kind=24)
+      RBracket: "]" @7:14 (kind=44)
+      ValueType:
+       NamedType
+        Ident: "string" @7:15 (kind=24)
+   RBrace: "}" @8:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
