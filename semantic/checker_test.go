@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -363,6 +362,10 @@ type test sum {
 	t.Run("resolve_type", func(t *testing.T) {
 		check := NewChecker()
 		assert.Nil(t, check.resolveType(nil))
+		assert.Equal(t, TInvalid, check.resolveType(&ast.ArrayType{}))
+		assert.Equal(t, TInvalid, check.resolveType(&ast.SliceType{}))
+		assert.Equal(t, TInvalid, check.resolveType(&ast.MapType{}))
+		assert.Equal(t, TInvalid, check.resolveType(&ast.MapType{KeyType: &ast.NamedType{Parts: []token.Token{{Kind: token.Ident, Value: "string"}}}}))
 	})
 
 	t.Run("resolve_named_type", func(t *testing.T) {
@@ -531,11 +534,6 @@ type User struct {
 		require.NoError(t, err)
 		parser := parser.New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
-		fmt.Printf("%#v\n", pr)
-		fmt.Printf("%s\n", ast.Dump(pr))
-		for _, v := range parser.Errors {
-			fmt.Println(v.Error())
-		}
 		assert.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
 
