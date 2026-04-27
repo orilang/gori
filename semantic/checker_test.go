@@ -685,8 +685,9 @@ const cc int = x()+1
 const d int = 1+y()
 const dd int = y()+1
 const e int = z(1,"a"+1)
-const ee int = z(1,"a"+1,5)
-const eee int = z(1,1.1)
+const e1 int = z(1,"a"+1,5)
+const e2 int = z(1,1.1)
+const e3 int = zz()
 type UserID int
 type User int
 const l UserID = User(1)
