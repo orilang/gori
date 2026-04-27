@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"fmt"
+	"strconv"
 
 	"github.com/orilang/gori/ast"
 	"github.com/orilang/gori/token"
@@ -252,7 +253,9 @@ func (c *Checker) resolveType(t ast.Type) Type {
 		if elem == nil {
 			return TInvalid
 		}
-		return &ArrayType{Elem: elem}
+		len := v.Len.(*ast.IntLitExpr)
+		l, _ := strconv.Atoi(len.Name.Value)
+		return &ArrayType{Len: int64(l), Elem: elem}
 
 	case *ast.SliceType:
 		elem := c.resolveType(v.Elem)

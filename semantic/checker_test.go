@@ -536,8 +536,7 @@ type User struct {
 		assert.Equal(t, src.Fields[1].Name, dst.Fields[1].Name)
 		asrc := src.Fields[1].Type.(*ArrayType)
 		adst := src.Fields[1].Type.(*ArrayType)
-		// TODO: we need to manage the length of the array
-		// assert.Equal(t, asrc.Len, adst.Elem)
+		assert.Equal(t, asrc.Len, adst.Len)
 		assert.Equal(t, asrc.Elem, adst.Elem)
 
 		assert.Equal(t, src.Fields[2].Name, dst.Fields[2].Name)
