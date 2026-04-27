@@ -671,23 +671,31 @@ const j UserID = UserID(1)
 		data :=
 			`package main
 const a float = "test"
-const b string = "test"
-const c int = 1+g
+const b int = 1+g
 func x() string {
-  return "string"
+	return "string"
 }
 func y() (int,string) {
-  return 1
+	return 1
 }
-func y(a int, b int) int {
-  return a+b
+func z(a int, b int) int {
+	return a+b
 }
-const d int = 1+x()
-const e int = 1+y()
-const f int = z(1,"a"+1)
+const c int = 1+x()
+const cc int = x()+1
+const d int = 1+y()
+const dd int = y()+1
+const e int = z(1,"a"+1)
+const ee int = z(1,"a"+1,5)
+const eee int = z(1,1.1)
 type UserID int
-const j UserID = 1
-const k string = UserID("1")
+type User int
+const l UserID = User(1)
+const l1 UserID = User(1,1)
+const l2 UserID = User(UserID(1))
+const l3 UserID = UserID(1) + User(1)
+const l4 UserID = UserID(true)
+const m int = !1
 `
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		require.NoError(t, err)

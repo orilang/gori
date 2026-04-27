@@ -481,7 +481,7 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	}
 	name := typeDeclName(decl)
 	sym := c.pkgScope.Lookup(name)
-	sym.Type = valueType
+	sym.Type = targetType
 }
 
 // checkExpr return the type of the expression
@@ -507,44 +507,57 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 		return sym.Type
 
 	case *ast.UnaryExpr:
-		return c.checkExpr(t.Right)
+		right := c.checkExpr(t.Right)
+		if SupportsUnaryOp(right, t.Operator.Kind) {
+			return right
+		}
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid unary operatation %s with type %s", t.Operator.Value, right.String())})
+		return TInvalid
 
 	case *ast.BinaryExpr:
 		left := c.checkExpr(t.Left)
 		right := c.checkExpr(t.Right)
 
-		if x, ok := right.(*FuncMethod); ok {
-			if len(x.FuncType.Results) == 0 || len(x.FuncType.Results) > 1 {
-				return TInvalid
-			}
-			if left == x.FuncType.Results[0].Type {
-				return left
-			}
-			return TInvalid
-		}
-
-		if left == c.checkExpr(t.Right) {
+		if IsIdentical(left, right) && SupportsBinaryOp(left, t.Operator.Kind) {
 			return left
 		}
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid binary operation %q of type %s with type %s", t.Operator.Value, left.String(), right.String())})
 		return TInvalid
 
 	case *ast.CallExpr:
-		calle := c.checkExpr(t.Callee)
-		if x, ok := calle.(*NamedType); ok {
-			for _, v := range t.Args {
-				if c.checkExpr(v) != x.UnderlyingType {
-					return TInvalid
-				}
+		calleeType := c.checkExpr(t.Callee)
+		if named, ok := calleeType.(*NamedType); ok {
+			if len(t.Args) != 1 {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments in %s", named.Name)})
+				return TInvalid
 			}
-			return x
-		} else {
-			for _, v := range t.Args {
-				if c.checkExpr(v) != calle {
-					return TInvalid
-				}
+			if IsConvertibleTo(named, c.checkExpr(t.Args[0])) {
+				return named
+			}
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert in %s", named.Name)})
+			return TInvalid
+		}
+
+		fn, ok := calleeType.(*FuncMethod)
+		if !ok {
+			return TInvalid
+		}
+		if len(t.Args) != len(fn.FuncType.Params) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments %s func params required %d got %d", fn.Name, len(fn.FuncType.Params), len(t.Args))})
+			return TInvalid
+		}
+		for k, v := range fn.FuncType.Params {
+			x := c.checkExpr(t.Args[k])
+			if !IsAssignableTo(v.Type, x) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", v.Type, x)})
+				return TInvalid
 			}
 		}
-		return calle
+		if len(fn.FuncType.Results) == 0 || len(fn.FuncType.Results) > 1 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %s func", fn.Name)})
+			return TInvalid
+		}
+		return fn.FuncType.Results[0].Type
 
 	default:
 		return TInvalid
