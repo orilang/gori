@@ -63,4 +63,5 @@ var precedence = map[token.Kind]int{
 	token.Modulo:   MULTIPLICATIVE,
 	token.Dot:      POSTFIX,
 	token.LBracket: POSTFIX,
+	token.LParen:   POSTFIX,
 }

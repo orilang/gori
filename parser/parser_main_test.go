@@ -791,19 +791,19 @@ func TestParser_main_expr(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
-		result := `CallExpr
- Callee
-  BinaryExpr
-   IdentExpr
-    Name: "x" @1:1 (kind=3)
-   Operator: "+" @1:2 (kind=51)
+		result := `BinaryExpr
+ IdentExpr
+  Name: "x" @1:1 (kind=3)
+ Operator: "+" @1:2 (kind=51)
+ CallExpr
+  Callee
    IdentExpr
     Name: "f" @1:3 (kind=3)
- LParent: "(" @1:4 (kind=39)
- Args:
-  IntLitExpr
-   Value: "1" @1:5 (kind=4)
- RParent: ")" @1:6 (kind=40)
+  LParent: "(" @1:4 (kind=39)
+  Args:
+   IntLitExpr
+    Value: "1" @1:5 (kind=4)
+  RParent: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -816,23 +816,23 @@ func TestParser_main_expr(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
-		result := `CallExpr
- Callee
-  BinaryExpr
-   IdentExpr
-    Name: "x" @1:1 (kind=3)
-   Operator: "*" @1:2 (kind=57)
+		result := `BinaryExpr
+ IdentExpr
+  Name: "x" @1:1 (kind=3)
+ Operator: "*" @1:2 (kind=57)
+ CallExpr
+  Callee
    SelectorExpr
     X:
      IdentExpr
       Name: "a" @1:3 (kind=3)
     Dot: "." @1:4 (kind=48)
     Selector: "b" @1:5 (kind=3)
- LParent: "(" @1:6 (kind=39)
- Args:
-  IntLitExpr
-   Value: "1" @1:7 (kind=4)
- RParent: ")" @1:8 (kind=40)
+  LParent: "(" @1:6 (kind=39)
+  Args:
+   IntLitExpr
+    Value: "1" @1:7 (kind=4)
+  RParent: ")" @1:8 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -845,16 +845,16 @@ func TestParser_main_expr(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
-		result := `CallExpr
- Callee
-  BinaryExpr
-   IdentExpr
-    Name: "a" @1:1 (kind=3)
-   Operator: "&&" @1:2 (kind=68)
+		result := `BinaryExpr
+ IdentExpr
+  Name: "a" @1:1 (kind=3)
+ Operator: "&&" @1:2 (kind=68)
+ CallExpr
+  Callee
    IdentExpr
     Name: "f" @1:4 (kind=3)
- LParent: "(" @1:5 (kind=39)
- RParent: ")" @1:6 (kind=40)
+  LParent: "(" @1:5 (kind=39)
+  RParent: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -867,24 +867,24 @@ func TestParser_main_expr(t *testing.T) {
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseExpr(LOWEST)
-		result := `IndexExpr
- X:
- CallExpr
-  Callee
-   UnaryExpr
-    Operator: "-" @1:1 (kind=54)
+		result := `UnaryExpr
+ Operator: "-" @1:1 (kind=54)
+ IndexExpr
+  X:
+  CallExpr
+   Callee
     SelectorExpr
      X:
       IdentExpr
        Name: "a" @1:2 (kind=3)
      Dot: "." @1:3 (kind=48)
      Selector: "b" @1:4 (kind=3)
-  LParent: "(" @1:5 (kind=39)
-  RParent: ")" @1:6 (kind=40)
- LBracket: "[" @1:7 (kind=43)
-  IntLitExpr
-   Value: "0" @1:8 (kind=4)
- RBracket: "]" @1:9 (kind=44)
+   LParent: "(" @1:5 (kind=39)
+   RParent: ")" @1:6 (kind=40)
+  LBracket: "[" @1:7 (kind=43)
+   IntLitExpr
+    Value: "0" @1:8 (kind=4)
+  RBracket: "]" @1:9 (kind=44)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
