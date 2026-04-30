@@ -5,7 +5,7 @@ import "strconv"
 var (
 	TInvalid = &InvalidType{}
 	TBool    = &BuiltinType{Kind: Bool}
-	TInt     = &BuiltinType{Kind: Bool}
+	TInt     = &BuiltinType{Kind: Int}
 	TInt8    = &BuiltinType{Kind: Int8}
 	TInt32   = &BuiltinType{Kind: Int32}
 	TInt64   = &BuiltinType{Kind: Int64}
