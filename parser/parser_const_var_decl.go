@@ -58,7 +58,7 @@ func (p *Parser) parseVarDecl() ast.Decl {
 		init = p.parseSliceElements()
 	default:
 		// x[1:]
-		if p.lookForInSliceHeader(token.LBracket) {
+		if p.kind() == token.Ident && p.peekNext(p.position+1).Kind == token.LBracket {
 			init = p.parseSliceExpr(p.parsePrefix())
 		} else {
 			init = p.parseExpr(LOWEST)

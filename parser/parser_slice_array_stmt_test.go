@@ -1025,6 +1025,7 @@ func main(){
 		data := `package main
 
 func main(){
+  var a string = "test"
 	var y view []int=x[6]
 }
 `
@@ -1044,25 +1045,35 @@ func main(){
      LBrace: "{" @3:12 (kind=41)
      Stmts
       VarDecl
-       Var: "var" @4:2 (kind=11)
-       Name: "y" @4:6 (kind=3)
-       View: "view" @4:8 (kind=76)
+       Var: "var" @4:3 (kind=11)
+       Name: "a" @4:7 (kind=3)
+       Type
+        NamedType
+         Ident: "string" @4:9 (kind=24)
+       Eq: "=" @4:16 (kind=49)
+       Init
+        StringLitExpr
+         Value: "test" @4:18 (kind=6)
+      VarDecl
+       Var: "var" @5:2 (kind=11)
+       Name: "y" @5:6 (kind=3)
+       View: "view" @5:8 (kind=76)
        Type
         SliceType:
-         LBracket: "[" @4:13 (kind=43)
-         RBracket: "]" @4:14 (kind=44)
+         LBracket: "[" @5:13 (kind=43)
+         RBracket: "]" @5:14 (kind=44)
          NamedType
-          Ident: "int" @4:15 (kind=12)
-       Eq: "=" @4:18 (kind=49)
+          Ident: "int" @5:15 (kind=12)
+       Eq: "=" @5:18 (kind=49)
        Init
         SliceExpr
          IdentExpr
-          Name: "x" @4:19 (kind=3)
-         LBracket: "[" @4:20 (kind=43)
+          Name: "x" @5:19 (kind=3)
+         LBracket: "[" @5:20 (kind=43)
          IntLitExpr
-          Value: "6" @4:21 (kind=4)
-         RBracket: "]" @4:22 (kind=44)
-     RBrace: "}" @5:1 (kind=42)
+          Value: "6" @5:21 (kind=4)
+         RBracket: "]" @5:22 (kind=44)
+     RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
