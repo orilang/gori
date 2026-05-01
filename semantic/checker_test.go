@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -390,7 +391,7 @@ type test sum {
 type UserID int
 
 func ok(a UserID, b UserID) UserID {
-	return a + b
+	return a
 }
 `
 		scope := &Scope{
@@ -444,12 +445,10 @@ func ok(a UserID, b UserID) UserID {
 
 		src2 := src.FuncType.Params[0].Type.(*NamedType)
 		dst2 := dst.FuncType.Params[0].Type.(*NamedType)
-		// assert.Equal(t, src2.Name, dst2.Name)
 		assert.Equal(t, src2.UnderlyingType, dst2.UnderlyingType)
 
 		src3 := src.FuncType.Params[1].Type.(*NamedType)
 		dst3 := dst.FuncType.Params[1].Type.(*NamedType)
-		// assert.Equal(t, src3.Name, dst3.Name)
 		assert.Equal(t, src3.UnderlyingType, dst3.UnderlyingType)
 
 		rsrc1 := src.FuncType.Results[0].Type.(*NamedType)
@@ -467,6 +466,9 @@ func ok(a UserID, b UserID, b UserID) UserID {
 }
 func ok(a UserID, b UserID) UserID {
 	return a + b
+}
+func okk(a UserID, b UserID) UserID {
+	return c
 }
 `
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
@@ -592,9 +594,7 @@ const j UserID = UserID(1)
 				"UserID": {
 					Name: "UserID",
 					Kind: SymType,
-					Type: &NamedType{
-						UnderlyingType: TInt,
-					},
+					Type: &NamedType{UnderlyingType: TInt},
 				},
 				"j": {Name: "j", Kind: SymConst, Type: &NamedType{UnderlyingType: TInt}},
 			},
@@ -719,5 +719,299 @@ const a float = 1.0
 		assert.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
 		assert.Greater(t, len(check.Check(pr)), 0)
+	})
+
+	t.Run("x8", func(t *testing.T) {
+		data :=
+			`package main
+func fa() {
+	const a int = 0
+	var b int = 0
+	b = 1
+	x := b+1
+	x++
+	x = x*(b+10)
+	var s string = ""
+	const sl []string = []string{"a","b","c"}
+	s = sl[0]
+	s = sl[b]
+	ss := sl[0]
+	const ar [5]int = [5]int{1,2,3}
+	b = ar[0]
+	type User int
+	const l User = User(1)
+	ll := User(1)
+	type test sum {
+		Circle(radius float);Rect(w float, h float);None
+	}
+	type Color enum {
+		Red;Blue;Green;Yellow
+	}
+	type testi interface{
+		x(a string, b bool) (c float64, d float32, e uint, f uint32, g uint64 )
+	}
+	type UserID struct {
+		id string
+	}
+	sstring := "ori"
+	ssbool := true
+	fempty()
+}
+func fempty() {}
+`
+		scope := &Scope{
+			Parent: nil,
+			Symbols: map[string]*Symbol{
+				"fa": {
+					Name: "fa",
+					Kind: SymFunc,
+					Type: &FuncMethod{
+						Name:     "fa",
+						FuncType: &FuncType{},
+					},
+				},
+				"a": {Name: "a", Kind: SymConst, Type: TInt},
+				"b": {Name: "b", Kind: SymVar, Type: TInt},
+				"x": {Name: "x", Kind: SymVar, Type: TInt},
+				"s": {Name: "s", Kind: SymVar, Type: TString},
+				"sl": {
+					Name: "sl",
+					Kind: SymConst,
+					Type: &SliceType{Elem: TString},
+				},
+				"ar": {
+					Name: "ar",
+					Kind: SymConst,
+					Type: &SliceType{Elem: TString},
+				},
+				"j": {Name: "j", Kind: SymConst, Type: &NamedType{UnderlyingType: TInt}},
+				"fempty": {
+					Name: "fempty",
+					Kind: SymFunc,
+					Type: &FuncMethod{
+						Name:     "fempty",
+						FuncType: &FuncType{},
+					},
+				},
+			},
+		}
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		x := check.Check(pr)
+		for _, v := range x {
+			fmt.Println("BBBB", v.Err.Error())
+		}
+		assert.Equal(t, 0, len(x))
+		// assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
+		fmt.Printf("check.pkgScope.Symbols %#v\n", check.pkgScope.Symbols)
+
+		assert.Equal(t, scope.Symbols["fa"].Name, check.pkgScope.Symbols["fa"].Name)
+		assert.Equal(t, scope.Symbols["fa"].Kind, check.pkgScope.Symbols["fa"].Kind)
+		fsrc := scope.Symbols["fa"].Type.(*FuncMethod)
+		fdst := check.pkgScope.Symbols["fa"].Type.(*FuncMethod)
+		assert.Equal(t, fsrc.Name, fdst.Name)
+		assert.Equal(t, len(fsrc.FuncType.Params), len(fdst.FuncType.Params))
+		assert.Equal(t, len(fdst.FuncType.Results), len(fdst.FuncType.Results))
+
+		assert.Equal(t, scope.Symbols["fempty"].Name, check.pkgScope.Symbols["fempty"].Name)
+		assert.Equal(t, scope.Symbols["fempty"].Kind, check.pkgScope.Symbols["fempty"].Kind)
+		f2src := scope.Symbols["fempty"].Type.(*FuncMethod)
+		f2dst := check.pkgScope.Symbols["fempty"].Type.(*FuncMethod)
+		assert.Equal(t, f2src.Name, f2dst.Name)
+		assert.Equal(t, len(f2src.FuncType.Params), len(f2dst.FuncType.Params))
+		assert.Equal(t, len(f2dst.FuncType.Results), len(f2dst.FuncType.Results))
+	})
+
+	t.Run("x8_error", func(t *testing.T) {
+		// 		tests := []struct {
+		// 			data string
+		// 			err  bool
+		// 		}{
+		// 			{
+		// 				data: `package main
+		// func fa() {
+		// 	const a int = 0
+		// 	var b int = 0
+		// 	b = 1
+		// 	x := b+1
+		// 	x++
+		// }`,
+		// 			},
+		// 			{
+		// 				data: `package main
+		// func fa() {
+		// 	var s string = ""
+		// 	const sl []string = []string{"a","b","c"}
+		// 	s = sl[0]
+		// 	s = sl[b]
+		// 	ss := sl[0]
+		// 	const ar [5]int = [5]int{1,2,3}
+		// 	b = ar[0]
+		// }`,
+		// 			},
+		// 		}
+
+		// 		for _, tc := range tests {
+		// 			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		// 			require.NoError(t, err)
+		// 			parser := parser.New(lex.FetchTokensFromString(tc.data))
+		// 			pr := parser.ParseFile()
+		// 			assert.Equal(t, 0, len(parser.Errors))
+		// 			check := NewChecker()
+		// 			assert.Greater(t, len(check.Check(pr)), 0)
+		// 		}
+
+		data :=
+			`package main
+const zz int = 0
+func yy() (int, int){
+  return 2,3
+}
+func y() {
+	const a int = 0
+	a++
+	a = 5
+  var b int = 0
+	b = true
+	bb := b
+	bb := b
+	z = 1
+	x := 1
+	x := xx
+	xx++
+	var s string = "a"
+	s++
+	const sl []string = []string{"a","b","c"}
+	s = sl[s]
+	const ar [5]int = [5]int{1,2,3}
+	b = ar[s]
+	y3 := yy()
+	y4 := 1+2
+	y5 := (1 + 2) + 3
+	y6 := 1 + (2 + 3)
+	y7 := -1
+	y8 := (1)
+	type User int
+	y9 := User(1) + 1
+  b := y9 + User(1)
+	User(1)
+	z1.b := "c"
+}
+`
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+		assert.Greater(t, len(check.Check(pr)), 0)
+		check.checkFuncBody(&ast.FuncDecl{Name: token.Token{Value: "zz"}})
+	})
+
+	t.Run("x8_duplicate", func(t *testing.T) {
+		data :=
+			`package main
+func y() {
+  const a int = 0
+  const a int = 0
+  const aa int = true
+  var b int = 0
+  var b int = 0
+  var c int = true
+	type User int
+	type User int
+	type Color enum {
+    Red;Blue;Green;Yellow
+  }
+	type Color enum {
+		Red;Blue;Green;Yellow
+	}
+	type test interface{
+		x(a string, b bool) (c float64, d float32, e uint, f uint32, g uint64 )
+	}
+	type test interface{
+		x(a string, b bool) (c float64, d float32, e uint, f uint32, g uint64 )
+	}
+	type test sum {
+		Circle(radius float);Rect(w float, h float);None
+	}
+	type test sum {
+		Circle(radius float);Rect(w float, h float);None
+	}
+	type UserID struct {
+		id string
+	}
+	type UserID struct {
+		id string
+	}
+}
+`
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+		assert.Greater(t, len(check.Check(pr)), 0)
+	})
+
+	t.Run("check_block_stmt", func(t *testing.T) {
+		check := NewChecker()
+		check.checkBlockStmt(nil)
+	})
+
+	t.Run("check_func_body", func(t *testing.T) {
+		check := NewChecker()
+		check.checkFuncBody(&ast.FuncDecl{})
+		check.checkReturnStmt(nil)
+		check.checkExprStmt(&ast.ExprStmt{
+			Expr: &ast.IntLitExpr{
+				Name: token.Token{
+					Value: "0",
+				},
+			},
+		})
+
+		check.checkSimpleAssignStmt(
+			&ast.AssignStmt{
+				Left: &ast.IntLitExpr{
+					Name: token.Token{
+						Value: "0",
+					},
+				},
+				Right: &ast.StringLitExpr{
+					Name: token.Token{
+						Value: "test",
+					},
+				},
+			},
+		)
+
+		check.checkBlockStmt(&ast.BlockStmt{
+			Stmts: []ast.Stmt{
+				&ast.BadStmt{},
+				&ast.DeclStmt{
+					Decl: &ast.BadDecl{},
+				},
+			},
+		})
+
+		check.checkExpr(&ast.IndexExpr{
+			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
+			Index: &ast.BadExpr{},
+		})
+
+		check.typeDecls = append(check.typeDecls, &ast.StructDecl{})
+		check.createTypeObjects()
+		check.resolveTypeDecls()
+
+		check.checkIncDecStmt(&ast.IncDecStmt{X: &ast.BadExpr{}})
 	})
 }

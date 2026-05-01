@@ -65,6 +65,7 @@ func (c *Checker) Check(file *ast.File) []Diagnostics {
 	c.resolveTypeDecls()
 	c.resolveFuncSignatures()
 	c.checkTopLevelValues(file)
+	c.checkFuncBodies()
 	return c.errors
 }
 
@@ -192,6 +193,7 @@ func (c *Checker) createTypeObjects() {
 			sym.Type = &InterfaceType{
 				Decl: d,
 			}
+
 		case
 			*ast.EnumDecl:
 			sym.Type = &EnumType{
@@ -322,7 +324,12 @@ func (c *Checker) resolveNamedType(t *ast.NamedType) Type {
 	case token.KWString:
 		return TString
 	case token.Ident:
-		sym := c.pkgScope.LookupLocal(part.Value)
+		var sym *Symbol
+		if c.useScope {
+			sym = c.scope.Lookup(part.Value)
+		} else {
+			sym = c.pkgScope.LookupLocal(part.Value)
+		}
 		if sym == nil || sym.Kind != SymType {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unknown %q type", part.Value)})
 			return TInvalid
@@ -387,8 +394,7 @@ func (c *Checker) resolveInterfaceMethod(m ast.InterfaceMethod) FuncMethod {
 // the semantic view of the FuncMethod. A diagnostic is emitted when duplicates found
 func (c *Checker) resolveFuncSignatures() {
 	for _, fn := range c.funcDecls {
-		sym := c.pkgScope.Lookup(fn.Name.Value)
-		if sym != nil {
+		if sym := c.pkgScope.Lookup(fn.Name.Value); sym != nil {
 			sym.Type = &FuncMethod{
 				Name: fn.Name.Value,
 				FuncType: &FuncType{
@@ -487,7 +493,7 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	sym.Type = targetType
 }
 
-// checkExpr return the type of the expression
+// checkExpr returns the type of the expression
 func (c *Checker) checkExpr(expr ast.Expr) Type {
 	switch t := expr.(type) {
 	case *ast.IntLitExpr:
@@ -503,7 +509,12 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 		return TString
 
 	case *ast.IdentExpr:
-		sym := c.pkgScope.LookupLocal(t.Name.Value)
+		var sym *Symbol
+		if c.useScope {
+			sym = c.scope.Lookup(t.Name.Value)
+		} else {
+			sym = c.pkgScope.LookupLocal(t.Name.Value)
+		}
 		if sym == nil || sym.Type == nil {
 			return TInvalid
 		}
@@ -556,13 +567,452 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 				return TInvalid
 			}
 		}
-		if len(fn.FuncType.Results) == 0 || len(fn.FuncType.Results) > 1 {
+		if len(fn.FuncType.Results) == 0 {
+			return nil
+		}
+		if len(fn.FuncType.Results) > 1 {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %s func", fn.Name)})
 			return TInvalid
 		}
 		return fn.FuncType.Results[0].Type
 
+	case *ast.ParenExpr:
+		return c.checkExpr(t.Inner)
+
+	case *ast.IndexExpr:
+		x := c.checkExpr(t.X)
+		index := c.checkExpr(t.Index)
+
+		switch decl := x.(type) {
+		case *SliceType:
+			if !IsIdentical(index, TInt) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid index expression of type %#v", index)})
+				return TInvalid
+			}
+			return decl.Elem
+
+		case *ArrayType:
+			if !IsIdentical(index, TInt) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid index expression of type %#v", index)})
+				return TInvalid
+			}
+			return decl.Elem
+
+		// case *MapType:
+		// 	if !IsIdentical(decl.Key, TInt) {
+		// 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid index expression of type %#v", index)})
+		// 		return TInvalid
+		// 	}
+		// 	return decl.Value
+
+		default:
+			return TInvalid
+		}
+
 	default:
 		return TInvalid
 	}
+}
+
+// checkFuncBodies validates functions bodies.
+// An error is emitted if any
+func (c *Checker) checkFuncBodies() {
+	for _, fn := range c.funcDecls {
+		c.checkFuncBody(fn)
+	}
+}
+
+func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
+	oldScope := c.scope
+	oldFunc := c.currentFunc
+	defer func() {
+		c.scope = oldScope
+		c.currentFunc = oldFunc
+		c.useScope = false
+	}()
+
+	sym := c.pkgScope.Lookup(fn.Name.Value)
+	if sym == nil {
+		return
+	}
+
+	fnType, ok := sym.Type.(*FuncMethod)
+	if !ok {
+		return
+	}
+
+	c.currentFunc = fnType.FuncType
+	c.scope = NewScope(c.pkgScope)
+	c.useScope = true
+
+	for _, p := range fnType.FuncType.Params {
+		c.scope.Declare(&Symbol{
+			Name: p.Name,
+			Kind: SymVar,
+			Type: p.Type,
+		})
+	}
+
+	c.checkBlockStmt(fn.Body)
+}
+
+func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
+	if block == nil {
+		return
+	}
+
+	oldScope := c.scope
+	defer func() {
+		c.scope = oldScope
+	}()
+
+	blockScope := NewScope(c.scope)
+	c.scope = blockScope
+
+	for _, stmt := range block.Stmts {
+		switch t := stmt.(type) {
+		case *ast.DeclStmt:
+			switch decl := t.Decl.(type) {
+			case *ast.ConstDecl:
+				c.checkScopeConstDecl(decl)
+
+			case *ast.VarDecl:
+				c.checkScopeVarDecl(decl)
+
+			case *ast.DefinedTypeDecl:
+				c.checkDefinedTypeDecl(decl)
+
+			case *ast.StructDecl:
+				c.checkStructDecl(decl)
+
+			case *ast.EnumDecl:
+				c.checkEnumDecl(decl)
+
+			case *ast.SumDecl:
+				c.checkSumDecl(decl)
+
+			case *ast.InterfaceDecl:
+				c.checkInterfaceDecl(decl)
+
+			default:
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("declaration %#v not managed", decl)})
+			}
+
+		case *ast.AssignStmt:
+			switch t.Operator.Kind {
+			case token.Assign:
+				c.checkSimpleAssignStmt(t)
+
+			case token.Define:
+				c.checkDefineAssignStmt(t)
+			}
+
+		case *ast.ReturnStmt:
+			c.checkReturnStmt(t)
+
+		case *ast.IncDecStmt:
+			c.checkIncDecStmt(t)
+
+		case *ast.ExprStmt:
+			c.checkExprStmt(t)
+
+		default:
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("statement %#v not managed", stmt)})
+		}
+	}
+}
+
+// checkScopeConstDecl validates constant targetType and valueType.
+// An error is emitted if any
+func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) {
+	sym := c.scope.Lookup(decl.Name.Value)
+	if sym != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("const %s already declared", decl.Name.Value)})
+		return
+	}
+
+	targetType := c.resolveType(decl.Type)
+	valueType := c.checkExpr(decl.Init)
+
+	if !IsAssignableTo(targetType, valueType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType, targetType)})
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: decl.Name.Value,
+		Kind: SymConst,
+		Type: targetType,
+		Decl: decl,
+	})
+}
+
+// checkScopeVarDecl validates constant targetType and valueType.
+// An error is emitted if any
+func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) {
+	sym := c.scope.Lookup(decl.Name.Value)
+	if sym != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %s already declared", decl.Name.Value)})
+		return
+	}
+
+	targetType := c.resolveType(decl.Type)
+	valueType := c.checkExpr(decl.Init)
+
+	if !IsAssignableTo(targetType, valueType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType, targetType)})
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: decl.Name.Value,
+		Kind: SymVar,
+		Type: targetType,
+		Decl: decl,
+	})
+}
+
+// checkSimpleAssignStmt validates simple assigment statements like x = 1 where x has already been defined.
+// An error is emitted if any
+func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt) {
+	x, ok := decl.Left.(*ast.IdentExpr)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %#v is not an identifier", decl)})
+		return
+	}
+
+	sym := c.scope.Lookup(x.Name.Value)
+	if sym == nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", x.Name.Value)})
+		return
+	}
+
+	if sym.Kind == SymConst {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", x.Name.Value)})
+		return
+	}
+
+	targetType := c.checkExpr(decl.Left)
+	valueType := c.checkExpr(decl.Right)
+
+	if !IsAssignableTo(targetType, valueType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType, targetType)})
+		return
+	}
+
+	sym.Type = targetType
+}
+
+// isNumericExpr detects if expression is a numeric only expression
+func isNumericExpr(expr ast.Expr) bool {
+	switch t := expr.(type) {
+	case *ast.IntLitExpr, *ast.FloatLitExpr:
+		return true
+
+	case *ast.ParenExpr:
+		return isNumericExpr(t.Inner)
+
+	case *ast.BinaryExpr:
+		return isNumericExpr(t.Left) && isNumericExpr(t.Right)
+
+	case *ast.UnaryExpr:
+		return isNumericExpr(t.Right)
+
+	default:
+		return false
+	}
+}
+
+// checkDefineAssignStmt defines new assigment statement where x := y and y has already been defined.
+// define assigment like x = 1 is forbidden as we cannot infer the value type.
+// An error is emitted if any
+func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
+	valueType := c.checkExpr(decl.Right)
+	if IsInvalid(valueType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("expression %#v is invalid", decl.Right)})
+		return
+	}
+
+	if isNumericExpr(decl.Right) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot use numeric only expression in := declaration")})
+		return
+	}
+
+	x, ok := decl.Left.(*ast.IdentExpr)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %#v is not an identifier", decl)})
+		return
+	}
+
+	sym := c.scope.Lookup(x.Name.Value)
+	if sym != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %s is already defined", x.Name.Value)})
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: x.Name.Value,
+		Kind: SymVar,
+		Type: valueType,
+	})
+}
+
+// checkReturnStmt checks returned values statement types and length.
+// An error is emitted if any
+func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt) {
+	if decl == nil {
+		return
+	}
+
+	if len(c.currentFunc.Results) != len(decl.Values) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("number of returned values is invalid, wanted %d got %d", len(c.currentFunc.Results), len(decl.Values))})
+		return
+	}
+
+	for k, v := range decl.Values {
+		expr := c.checkExpr(v)
+		if !IsIdentical(c.currentFunc.Results[k].Type, expr) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot use a value of type %T as %T in return statement", expr, c.currentFunc.Results[k].Type)})
+			return
+		}
+	}
+}
+
+// checkIncDecStmt validates increment/decrement statement.
+// An error is emitted if any
+func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) {
+	x, ok := decl.X.(*ast.IdentExpr)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %#v is not an identifier", decl)})
+		return
+	}
+
+	sym := c.scope.Lookup(x.Name.Value)
+	if sym == nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", x.Name.Value)})
+		return
+	}
+
+	if sym.Kind == SymConst {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("const %s cannot be modified", x.Name.Value)})
+		return
+	}
+
+	if !IsNumeric(sym.Type) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %s is a non-numeric type", x.Name.Value)})
+		return
+	}
+}
+
+// checkDefinedTypeDecl validates struct statement.
+// An error is emitted if any
+func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) {
+	sym := c.scope.Lookup(decl.Name.Value)
+	if sym != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: decl.Name.Value,
+		Kind: SymType,
+		Type: &NamedType{
+			Decl:           decl,
+			UnderlyingType: c.resolveType(decl.Type),
+		},
+	})
+}
+
+// checkDefinedTypeDecl validates struct statement.
+// An error is emitted if any
+func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
+	sym := c.scope.Lookup(decl.Name.Value)
+	if sym != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: decl.Name.Value,
+		Kind: SymType,
+		Type: &StructType{
+			Decl:   decl,
+			Fields: c.resolveStructFields(decl.Fields),
+		},
+	})
+}
+
+// checkEnumDecl validates struct statement.
+// An error is emitted if any
+func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) {
+	sym := c.scope.Lookup(decl.Name.Value)
+	if sym != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: decl.Name.Value,
+		Kind: SymType,
+		Type: &EnumType{
+			Decl:     decl,
+			Variants: c.resolveEnumVariants(decl.Variants),
+		},
+	})
+}
+
+// checkSumDecl validates struct statement.
+// An error is emitted if any
+func (c *Checker) checkSumDecl(decl *ast.SumDecl) {
+	sym := c.scope.Lookup(decl.Name.Value)
+	if sym != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: decl.Name.Value,
+		Kind: SymType,
+		Type: &SumType{
+			Decl:     decl,
+			Variants: c.resolveSumVariants(decl.Variants),
+		},
+	})
+}
+
+// checkSumDecl validates struct statement.
+// An error is emitted if any
+func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
+	sym := c.scope.Lookup(decl.Name.Value)
+	if sym != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: decl.Name.Value,
+		Kind: SymType,
+		Type: &InterfaceType{
+			Decl:    decl,
+			Methods: c.resolveInterfaceMethods(decl.Methods),
+		},
+	})
+}
+
+// checkExprStmt validates expression statement.
+// An error is emitted if any
+func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
+	call, ok := stmt.Expr.(*ast.CallExpr)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("expression statement must be a function call")})
+		return
+	}
+
+	calleType := c.checkExpr(call.Callee)
+	if _, ok := calleType.(*FuncMethod); !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("expression statement must be a function call")})
+		return
+	}
+
+	_ = c.checkExpr(stmt.Expr)
 }
