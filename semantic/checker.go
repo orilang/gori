@@ -106,6 +106,20 @@ func typeDeclName(decl ast.Decl) string {
 	}
 }
 
+// exprName returns the name of the expression declaration
+func exprName(decl ast.Expr) string {
+	switch d := decl.(type) {
+	case *ast.IdentExpr:
+		return d.Name.Value
+	case *ast.IndexExpr:
+		return exprName(d.X)
+	case *ast.SelectorExpr:
+		return exprName(d.X)
+	default:
+		return ""
+	}
+}
+
 // declareTypeSymbol declares new type symbol with its name
 // and append diagnostics errors when already exists
 func (c *Checker) declareTypeSymbol(decl ast.TypeDecl) {
@@ -185,24 +199,32 @@ func (c *Checker) createTypeObjects() {
 			}
 
 		case *ast.StructDecl:
-			sym.Type = &StructType{
-				Decl: d,
+			sym.Type = &NamedType{
+				UnderlyingType: &StructType{
+					Decl: d,
+				},
 			}
 
 		case *ast.InterfaceDecl:
-			sym.Type = &InterfaceType{
-				Decl: d,
+			sym.Type = &NamedType{
+				UnderlyingType: &InterfaceType{
+					Decl: d,
+				},
 			}
 
 		case
 			*ast.EnumDecl:
-			sym.Type = &EnumType{
-				Decl: d,
+			sym.Type = &NamedType{
+				UnderlyingType: &EnumType{
+					Decl: d,
+				},
 			}
 
 		case *ast.SumDecl:
-			sym.Type = &SumType{
-				Decl: d,
+			sym.Type = &NamedType{
+				UnderlyingType: &SumType{
+					Decl: d,
+				},
 			}
 		}
 	}
@@ -224,20 +246,24 @@ func (c *Checker) resolveTypeDecls() {
 			t.UnderlyingType = c.resolveType(d.Type)
 
 		case *ast.StructDecl:
-			t := sym.Type.(*StructType)
-			t.Fields = c.resolveStructFields(d.Fields)
+			t := sym.Type.(*NamedType)
+			st := t.UnderlyingType.(*StructType)
+			st.Fields = c.resolveStructFields(d.Fields)
 
 		case *ast.InterfaceDecl:
-			t := sym.Type.(*InterfaceType)
-			t.Methods = c.resolveInterfaceMethods(d.Methods)
+			t := sym.Type.(*NamedType)
+			it := t.UnderlyingType.(*InterfaceType)
+			it.Methods = c.resolveInterfaceMethods(d.Methods)
 
 		case *ast.EnumDecl:
-			t := sym.Type.(*EnumType)
-			t.Variants = c.resolveEnumVariants(d.Variants)
+			t := sym.Type.(*NamedType)
+			et := t.UnderlyingType.(*EnumType)
+			et.Variants = c.resolveEnumVariants(d.Variants)
 
 		case *ast.SumDecl:
-			t := sym.Type.(*SumType)
-			t.Variants = c.resolveSumVariants(d.Variants)
+			t := sym.Type.(*NamedType)
+			st := t.UnderlyingType.(*SumType)
+			st.Variants = c.resolveSumVariants(d.Variants)
 		}
 	}
 }
@@ -251,7 +277,7 @@ func (c *Checker) resolveType(t ast.Type) Type {
 
 	case *ast.ArrayType:
 		elem := c.resolveType(v.Elem)
-		// temporary keeping this
+		// TODO: temporary keeping this
 		if elem == nil {
 			return TInvalid
 		}
@@ -261,7 +287,7 @@ func (c *Checker) resolveType(t ast.Type) Type {
 
 	case *ast.SliceType:
 		elem := c.resolveType(v.Elem)
-		// temporary keeping this
+		// TODO: temporary keeping this
 		if elem == nil {
 			return TInvalid
 		}
@@ -609,6 +635,9 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 			return TInvalid
 		}
 
+	case *ast.SelectorExpr:
+		return c.checkSelectorExpr(t)
+
 	default:
 		return TInvalid
 	}
@@ -772,31 +801,45 @@ func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) {
 	})
 }
 
+// checkAssignableExpr returns valid assignable expression.
+// An error is emitted if any
+func (c *Checker) checkAssignableExpr(expr ast.Expr) Type {
+	switch t := expr.(type) {
+	case *ast.IdentExpr:
+		return c.checkExpr(t)
+
+	case *ast.IndexExpr:
+		return c.checkExpr(t)
+
+	case *ast.SelectorExpr:
+		return c.checkSelectorExpr(t)
+
+	default:
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported expression %#v", expr)})
+		return TInvalid
+	}
+}
+
 // checkSimpleAssignStmt validates simple assigment statements like x = 1 where x has already been defined.
 // An error is emitted if any
 func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt) {
-	x, ok := decl.Left.(*ast.IdentExpr)
-	if !ok {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %#v is not an identifier", decl)})
-		return
-	}
-
-	sym := c.scope.Lookup(x.Name.Value)
+	name := exprName(decl.Left)
+	sym := c.scope.Lookup(name)
 	if sym == nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
 		return
 	}
 
 	if sym.Kind == SymConst {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
 		return
 	}
 
-	targetType := c.checkExpr(decl.Left)
+	targetType := c.checkAssignableExpr(decl.Left)
 	valueType := c.checkExpr(decl.Right)
 
 	if !IsAssignableTo(targetType, valueType) {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType, targetType)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})
 		return
 	}
 
@@ -935,9 +978,11 @@ func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
 	c.scope.Declare(&Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
-		Type: &StructType{
-			Decl:   decl,
-			Fields: c.resolveStructFields(decl.Fields),
+		Type: &NamedType{
+			UnderlyingType: &StructType{
+				Decl:   decl,
+				Fields: c.resolveStructFields(decl.Fields),
+			},
 		},
 	})
 }
@@ -954,9 +999,11 @@ func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) {
 	c.scope.Declare(&Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
-		Type: &EnumType{
-			Decl:     decl,
-			Variants: c.resolveEnumVariants(decl.Variants),
+		Type: &NamedType{
+			UnderlyingType: &EnumType{
+				Decl:     decl,
+				Variants: c.resolveEnumVariants(decl.Variants),
+			},
 		},
 	})
 }
@@ -973,9 +1020,11 @@ func (c *Checker) checkSumDecl(decl *ast.SumDecl) {
 	c.scope.Declare(&Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
-		Type: &SumType{
-			Decl:     decl,
-			Variants: c.resolveSumVariants(decl.Variants),
+		Type: &NamedType{
+			UnderlyingType: &SumType{
+				Decl:     decl,
+				Variants: c.resolveSumVariants(decl.Variants),
+			},
 		},
 	})
 }
@@ -992,9 +1041,11 @@ func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
 	c.scope.Declare(&Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
-		Type: &InterfaceType{
-			Decl:    decl,
-			Methods: c.resolveInterfaceMethods(decl.Methods),
+		Type: &NamedType{
+			UnderlyingType: &InterfaceType{
+				Decl:    decl,
+				Methods: c.resolveInterfaceMethods(decl.Methods),
+			},
 		},
 	})
 }
@@ -1015,4 +1066,48 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	}
 
 	_ = c.checkExpr(stmt.Expr)
+}
+
+// checkSelectorExpr validates selector expression and return its type.
+// An error is emitted if any
+func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
+	baseType := c.checkExpr(expr.X)
+	underlying := unwrapNamed(baseType)
+
+	xst, ok := underlying.(*StructType)
+	if !ok {
+		// TODO: this is temporary, more types will be added later
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid type")})
+		return TInvalid
+	}
+
+	t, ok := lookupStructField(xst, expr.Selector.Value)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unknown field %s", expr.Selector.Value)})
+		return TInvalid
+	}
+
+	return t
+}
+
+// unwrapNamed returns underlying type if it's a named type otherwise the initial type
+func unwrapNamed(t Type) Type {
+	for {
+		named, ok := t.(*NamedType)
+		if !ok {
+			return t
+		}
+		t = named.UnderlyingType
+	}
+}
+
+// lookupStructField loops into struct field to match provided name.
+// It returns its type and true when found
+func lookupStructField(st *StructType, name string) (Type, bool) {
+	for _, f := range st.Fields {
+		if f.Name == name {
+			return f.Type, true
+		}
+	}
+	return nil, false
 }

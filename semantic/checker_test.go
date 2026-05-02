@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -66,7 +65,8 @@ type User struct {
 
 		assert.Equal(t, scope.Symbols["User"].Name, check.pkgScope.Symbols["User"].Name)
 		assert.Equal(t, scope.Symbols["User"].Kind, check.pkgScope.Symbols["User"].Kind)
-		st := check.pkgScope.Symbols["User"].Type.(*StructType)
+		stn := check.pkgScope.Symbols["User"].Type.(*NamedType)
+		st := stn.UnderlyingType.(*StructType)
 		xy := st.Fields[0].Type.(*NamedType)
 		assert.Equal(t, TInt, TInt, xy.UnderlyingType)
 	})
@@ -184,7 +184,8 @@ type test interface{
 
 		assert.Equal(t, scope.Symbols["test"].Name, check.pkgScope.Symbols["test"].Name)
 		source := scope.Symbols["test"].Type.(*InterfaceType)
-		destination := check.pkgScope.Symbols["test"].Type.(*InterfaceType)
+		destinationN := check.pkgScope.Symbols["test"].Type.(*NamedType)
+		destination := destinationN.UnderlyingType.(*InterfaceType)
 		assert.Equal(t, len(source.Methods), len(destination.Methods))
 
 		for k := range len(source.Methods) {
@@ -254,7 +255,8 @@ type Color enum {
 		assert.Equal(t, 0, len(check.Check(pr)))
 		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
 		src := scope.Symbols["Color"].Type.(*EnumType)
-		dst := check.pkgScope.Symbols["Color"].Type.(*EnumType)
+		dstE := check.pkgScope.Symbols["Color"].Type.(*NamedType)
+		dst := dstE.UnderlyingType.(*EnumType)
 		assert.Equal(t, src.Variants, dst.Variants)
 	})
 
@@ -323,7 +325,8 @@ type test sum {
 		assert.Equal(t, scope.Symbols["test"].Kind, check.pkgScope.Symbols["test"].Kind)
 
 		src := scope.Symbols["test"].Type.(*SumType)
-		dst := check.pkgScope.Symbols["test"].Type.(*SumType)
+		dstS := check.pkgScope.Symbols["test"].Type.(*NamedType)
+		dst := dstS.UnderlyingType.(*SumType)
 		assert.Equal(t, len(src.Variants), len(dst.Variants))
 		for k := range len(src.Variants) {
 			assert.Equal(t, src.Variants[k], dst.Variants[k])
@@ -528,7 +531,8 @@ type User struct {
 		assert.Equal(t, scope.Symbols["User"].Name, check.pkgScope.Symbols["User"].Name)
 		assert.Equal(t, scope.Symbols["User"].Kind, check.pkgScope.Symbols["User"].Kind)
 		src := scope.Symbols["User"].Type.(*StructType)
-		dst := check.pkgScope.Symbols["User"].Type.(*StructType)
+		dstS := check.pkgScope.Symbols["User"].Type.(*NamedType)
+		dst := dstS.UnderlyingType.(*StructType)
 
 		assert.Equal(t, src.Fields[0].Name, dst.Fields[0].Name)
 		ssrc := src.Fields[0].Type.(*SliceType)
@@ -803,14 +807,8 @@ func fempty() {}
 		assert.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
 
-		x := check.Check(pr)
-		for _, v := range x {
-			fmt.Println("BBBB", v.Err.Error())
-		}
-		assert.Equal(t, 0, len(x))
-		// assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(check.Check(pr)))
 		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
-		fmt.Printf("check.pkgScope.Symbols %#v\n", check.pkgScope.Symbols)
 
 		assert.Equal(t, scope.Symbols["fa"].Name, check.pkgScope.Symbols["fa"].Name)
 		assert.Equal(t, scope.Symbols["fa"].Kind, check.pkgScope.Symbols["fa"].Kind)
@@ -830,44 +828,6 @@ func fempty() {}
 	})
 
 	t.Run("x8_error", func(t *testing.T) {
-		// 		tests := []struct {
-		// 			data string
-		// 			err  bool
-		// 		}{
-		// 			{
-		// 				data: `package main
-		// func fa() {
-		// 	const a int = 0
-		// 	var b int = 0
-		// 	b = 1
-		// 	x := b+1
-		// 	x++
-		// }`,
-		// 			},
-		// 			{
-		// 				data: `package main
-		// func fa() {
-		// 	var s string = ""
-		// 	const sl []string = []string{"a","b","c"}
-		// 	s = sl[0]
-		// 	s = sl[b]
-		// 	ss := sl[0]
-		// 	const ar [5]int = [5]int{1,2,3}
-		// 	b = ar[0]
-		// }`,
-		// 			},
-		// 		}
-
-		// 		for _, tc := range tests {
-		// 			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
-		// 			require.NoError(t, err)
-		// 			parser := parser.New(lex.FetchTokensFromString(tc.data))
-		// 			pr := parser.ParseFile()
-		// 			assert.Equal(t, 0, len(parser.Errors))
-		// 			check := NewChecker()
-		// 			assert.Greater(t, len(check.Check(pr)), 0)
-		// 		}
-
 		data :=
 			`package main
 const zz int = 0
@@ -1013,5 +973,84 @@ func y() {
 		check.resolveTypeDecls()
 
 		check.checkIncDecStmt(&ast.IncDecStmt{X: &ast.BadExpr{}})
+	})
+
+	t.Run("x9", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+type User struct {
+	name string
+	age  int
+}
+func f(u User) string {
+	return u.name
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {
+	name string
+	age  int
+}
+func age(u User) {
+	u.age = 10
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+    name string
+}
+func bad(u User) {
+    u.name = 1
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+    name string
+}
+func bad(u User) string {
+    return u.age
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+    name string
+}
+func bad(u User) string {
+    return u.unknown
+}
+`,
+			},
+		}
+
+		for _, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0)
+			} else {
+				assert.Equal(t, 0, len(result))
+			}
+		}
 	})
 }
