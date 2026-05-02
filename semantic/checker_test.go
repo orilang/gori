@@ -982,56 +982,127 @@ func y() {
 		}{
 			{
 				data: `package main
-type User struct {
-	name string
-	age  int
-}
-func f(u User) string {
-	return u.name
-}
-`,
+			type User struct {
+				name string
+				age  int
+			}
+			func f(u User) string {
+				return u.name
+			}
+			`,
 			},
 			{
 				data: `package main
-type User struct {
-	name string
-	age  int
+			type User struct {
+				name string
+				age  int
+			}
+			func age(u User) {
+				u.age = 10
+			}
+			`,
+			},
+			{
+				err: true,
+				data: `package main
+			type User struct {
+			    name string
+			}
+			func bad(u User) {
+			    u.name = 1
+			}
+			`,
+			},
+			{
+				err: true,
+				data: `package main
+			type User struct {
+			    name string
+			}
+			func bad(u User) string {
+			    return u.age
+			}
+			`,
+			},
+			{
+				err: true,
+				data: `package main
+			type User struct {
+			    name string
+			}
+			func bad(u User) string {
+			    return u.unknown
+			}
+			`,
+			},
+			{
+				data: `package main
+type test interface {
+	foo() string
 }
-func age(u User) {
-	u.age = 10
+func f(u test) string {
+	return u.foo()
+}
+			`,
+			},
+			{
+				data: `package main
+type test interface {
+	foo() string
+}
+func f(u test) {
+  u.foo()
 }
 `,
 			},
 			{
 				err: true,
 				data: `package main
-type User struct {
-    name string
+type test interface {
+	foo() string
 }
-func bad(u User) {
-    u.name = 1
+func f(u test) string {
+	return u.unknown()
+}
+			`,
+			},
+			{
+				err: true,
+				data: `package main
+type test interface {
+	foo() (string,string)
+}
+func f(u test) string {
+	return u.foo()
+}
+			`,
+			},
+			{
+				err: true,
+				data: `package main
+type test interface {
+	foo() string
+}
+func f(u test) {
+  u.unknown()
+}
+`,
+			},
+			{
+				data: `package main
+func foo() string {
+	return "foo"
+}
+func bar() string {
+  return foo()
 }
 `,
 			},
 			{
 				err: true,
 				data: `package main
-type User struct {
-    name string
-}
-func bad(u User) string {
-    return u.age
-}
-`,
-			},
-			{
-				err: true,
-				data: `package main
-type User struct {
-    name string
-}
-func bad(u User) string {
-    return u.unknown
+func bar() string {
+  return foo()
 }
 `,
 			},

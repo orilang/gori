@@ -947,7 +947,7 @@ func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) {
 	}
 }
 
-// checkDefinedTypeDecl validates struct statement.
+// checkDefinedTypeDecl validates type declaration statement.
 // An error is emitted if any
 func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) {
 	sym := c.scope.Lookup(decl.Name.Value)
@@ -966,7 +966,7 @@ func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) {
 	})
 }
 
-// checkDefinedTypeDecl validates struct statement.
+// checkStructDecl validates struct statement.
 // An error is emitted if any
 func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
 	sym := c.scope.Lookup(decl.Name.Value)
@@ -1029,7 +1029,7 @@ func (c *Checker) checkSumDecl(decl *ast.SumDecl) {
 	})
 }
 
-// checkSumDecl validates struct statement.
+// checkInterfaceDecl validates interface declaration statement.
 // An error is emitted if any
 func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
 	sym := c.scope.Lookup(decl.Name.Value)
@@ -1074,20 +1074,27 @@ func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
 	baseType := c.checkExpr(expr.X)
 	underlying := unwrapNamed(baseType)
 
-	xst, ok := underlying.(*StructType)
-	if !ok {
-		// TODO: this is temporary, more types will be added later
+	switch t := underlying.(type) {
+	case *StructType:
+		tp, ok := lookupStructField(t, expr.Selector.Value)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unknown field %q", expr.Selector.Value)})
+			return TInvalid
+		}
+		return tp
+
+	case *InterfaceType:
+		tp, ok := lookupInterfaceMethods(t, expr.Selector.Value)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unknown method %q", expr.Selector.Value)})
+			return TInvalid
+		}
+		return tp
+
+	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid type")})
 		return TInvalid
 	}
-
-	t, ok := lookupStructField(xst, expr.Selector.Value)
-	if !ok {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unknown field %s", expr.Selector.Value)})
-		return TInvalid
-	}
-
-	return t
 }
 
 // unwrapNamed returns underlying type if it's a named type otherwise the initial type
@@ -1107,6 +1114,17 @@ func lookupStructField(st *StructType, name string) (Type, bool) {
 	for _, f := range st.Fields {
 		if f.Name == name {
 			return f.Type, true
+		}
+	}
+	return nil, false
+}
+
+// lookupInterfaceMethods loops into interface methods to match provided name.
+// It returns its type and true when found
+func lookupInterfaceMethods(it *InterfaceType, name string) (Type, bool) {
+	for i := range it.Methods {
+		if it.Methods[i].Name == name {
+			return &it.Methods[i], true
 		}
 	}
 	return nil, false
