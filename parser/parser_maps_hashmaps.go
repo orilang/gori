@@ -8,6 +8,7 @@ import (
 )
 
 // parseMapsHashMapsDecl parses maps or hashmaps declarations
+// TODO: Add support for map of maps
 func (p *Parser) parseMapsHashMapsDecl() ast.Type {
 	var kw token.Token
 	if p.kind() == token.KWMap {
@@ -40,7 +41,7 @@ func (p *Parser) parseMapsHashMapsDecl() ast.Type {
 	x.RBracket = p.expect(token.RBracket, "expected ']'")
 
 	var valueType ast.NamedType
-	for p.kind() != token.Assign && p.kind() != token.EOF {
+	for p.kind() != token.Assign && p.kind() != token.LBrace && p.kind() != token.EOF {
 		if !token.IsMapTypes(p.kind()) {
 			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected map/hashmap key type, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			p.consumeTo(token.EOF)

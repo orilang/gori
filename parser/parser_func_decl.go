@@ -59,6 +59,10 @@ func (p *Parser) parseFuncParam(forbidBlankIdentifier bool) ast.Param {
 		return ast.Param{Name: name, Type: p.parseSliceOrArrayType()}
 	}
 
+	if token.IsMapType(p.kind()) {
+		return ast.Param{Name: name, Type: p.parseMapsHashMapsDecl()}
+	}
+
 	typ, btyp, bad := p.parseFuncParamType(true)
 	if bad {
 		return ast.Param{Name: name, Type: btyp}
@@ -161,7 +165,9 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 		} else {
 			// entering into kind: (type, type)
 			for p.kind() != token.RParen && p.kind() != token.LBrace && p.kind() != token.EOF {
-				if p.kind() == token.LBracket {
+				if token.IsMapType(p.kind()) {
+					result.List = append(result.List, ast.Param{Type: p.parseMapsHashMapsDecl()})
+				} else if p.kind() == token.LBracket {
 					result.List = append(result.List, ast.Param{Type: p.parseSliceOrArrayType()})
 				} else {
 					typ, btyp, bad := p.parseFuncParamType(true)
@@ -214,7 +220,9 @@ func (p *Parser) parseFuncReturnTypes() ast.ReturnTypes {
 		return result
 	}
 
-	if p.kind() == token.LBracket {
+	if token.IsMapType(p.kind()) {
+		result.List = append(result.List, ast.Param{Type: p.parseMapsHashMapsDecl()})
+	} else if p.kind() == token.LBracket {
 		result.List = append(result.List, ast.Param{Type: p.parseSliceOrArrayType()})
 	} else {
 		typ, btyp, bad := p.parseFuncParamType(true)

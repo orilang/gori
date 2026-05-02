@@ -315,6 +315,171 @@ func x()([]int,[]string){}
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("return_types_x10", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func x1(m map[string]string)([]int,map[string]string){}
+func x2(m map[string]string)(a []int, b map[string]string){}
+func x3(m map[string]string) map[string]string {}
+func x4(m map[string]string) map[string]string {}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x1" @3:6 (kind=3)
+   Params
+    Param
+     Ident: "m" @3:9 (kind=3)
+     Type
+      MapType:
+       Map: "map" @3:11 (kind=79)
+       LBracket: "[" @3:14 (kind=43)
+       KeyType:
+        NamedType
+         Ident: "string" @3:15 (kind=24)
+       RBracket: "]" @3:21 (kind=44)
+       ValueType:
+        NamedType
+         Ident: "string" @3:22 (kind=24)
+   Results
+    LParent: "(" @3:29 (kind=39)
+     Param
+      Type
+       SliceType:
+        LBracket: "[" @3:30 (kind=43)
+        RBracket: "]" @3:31 (kind=44)
+        NamedType
+         Ident: "int" @3:32 (kind=12)
+     Param
+      Type
+       MapType:
+        Map: "map" @3:36 (kind=79)
+        LBracket: "[" @3:39 (kind=43)
+        KeyType:
+         NamedType
+          Ident: "string" @3:40 (kind=24)
+        RBracket: "]" @3:46 (kind=44)
+        ValueType:
+         NamedType
+          Ident: "string" @3:47 (kind=24)
+    RParent: ")" @3:53 (kind=40)
+   Body
+  FuncDecl
+   Function: "func" @4:1 (kind=10)
+   Name: "x2" @4:6 (kind=3)
+   Params
+    Param
+     Ident: "m" @4:9 (kind=3)
+     Type
+      MapType:
+       Map: "map" @4:11 (kind=79)
+       LBracket: "[" @4:14 (kind=43)
+       KeyType:
+        NamedType
+         Ident: "string" @4:15 (kind=24)
+       RBracket: "]" @4:21 (kind=44)
+       ValueType:
+        NamedType
+         Ident: "string" @4:22 (kind=24)
+   Results
+    LParent: "(" @4:29 (kind=39)
+     Param
+      Ident: "a" @4:30 (kind=3)
+      Type
+       SliceType:
+        LBracket: "[" @4:32 (kind=43)
+        RBracket: "]" @4:33 (kind=44)
+        NamedType
+         Ident: "int" @4:34 (kind=12)
+     Param
+      Ident: "b" @4:39 (kind=3)
+      Type
+       MapType:
+        Map: "map" @4:41 (kind=79)
+        LBracket: "[" @4:44 (kind=43)
+        KeyType:
+         NamedType
+          Ident: "string" @4:45 (kind=24)
+        RBracket: "]" @4:51 (kind=44)
+        ValueType:
+         NamedType
+          Ident: "string" @4:52 (kind=24)
+    RParent: ")" @4:58 (kind=40)
+   Body
+  FuncDecl
+   Function: "func" @5:1 (kind=10)
+   Name: "x3" @5:6 (kind=3)
+   Params
+    Param
+     Ident: "m" @5:9 (kind=3)
+     Type
+      MapType:
+       Map: "map" @5:11 (kind=79)
+       LBracket: "[" @5:14 (kind=43)
+       KeyType:
+        NamedType
+         Ident: "string" @5:15 (kind=24)
+       RBracket: "]" @5:21 (kind=44)
+       ValueType:
+        NamedType
+         Ident: "string" @5:22 (kind=24)
+   Results
+     Param
+      Type
+       MapType:
+        Map: "map" @5:30 (kind=79)
+        LBracket: "[" @5:33 (kind=43)
+        KeyType:
+         NamedType
+          Ident: "string" @5:34 (kind=24)
+        RBracket: "]" @5:40 (kind=44)
+        ValueType:
+         NamedType
+          Ident: "string" @5:41 (kind=24)
+   Body
+  FuncDecl
+   Function: "func" @6:1 (kind=10)
+   Name: "x4" @6:6 (kind=3)
+   Params
+    Param
+     Ident: "m" @6:9 (kind=3)
+     Type
+      MapType:
+       Map: "map" @6:11 (kind=79)
+       LBracket: "[" @6:14 (kind=43)
+       KeyType:
+        NamedType
+         Ident: "string" @6:15 (kind=24)
+       RBracket: "]" @6:21 (kind=44)
+       ValueType:
+        NamedType
+         Ident: "string" @6:22 (kind=24)
+   Results
+     Param
+      Type
+       MapType:
+        Map: "map" @6:30 (kind=79)
+        LBracket: "[" @6:33 (kind=43)
+        KeyType:
+         NamedType
+          Ident: "string" @6:34 (kind=24)
+        RBracket: "]" @6:40 (kind=44)
+        ValueType:
+         NamedType
+          Ident: "string" @6:41 (kind=24)
+   Body
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("struct_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
@@ -323,6 +488,7 @@ func x()([]int,[]string){}
 func x(){
   type test struct {
 	  x int
+		m map[string]string
 	}
 }
 `
@@ -350,8 +516,20 @@ func x(){
         Type:
          NamedType
           Ident: "int" @5:6 (kind=12)
-       RBrace: "}" @6:2 (kind=42)
-     RBrace: "}" @7:1 (kind=42)
+        Name: "m" @6:3 (kind=3)
+        Type:
+         MapType:
+          Map: "map" @6:5 (kind=79)
+          LBracket: "[" @6:8 (kind=43)
+          KeyType:
+           NamedType
+            Ident: "string" @6:9 (kind=24)
+          RBracket: "]" @6:15 (kind=44)
+          ValueType:
+           NamedType
+            Ident: "string" @6:16 (kind=24)
+       RBrace: "}" @7:2 (kind=42)
+     RBrace: "}" @8:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
