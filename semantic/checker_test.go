@@ -158,6 +158,7 @@ type test interface{
 										{Name: "c", Type: TUInt8},
 										{Name: "d", Type: TFloat},
 										{Name: "e", Type: &NamedType{
+											Name:           "UserID",
 											UnderlyingType: TInt,
 										}},
 									},

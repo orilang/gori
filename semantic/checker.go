@@ -195,11 +195,14 @@ func (c *Checker) createTypeObjects() {
 		switch d := decl.(type) {
 		case *ast.DefinedTypeDecl:
 			sym.Type = &NamedType{
-				Decl: d,
+				Name: d.Name.Value,
+				Decl: decl,
 			}
 
 		case *ast.StructDecl:
 			sym.Type = &NamedType{
+				Name: d.Name.Value,
+				Decl: decl,
 				UnderlyingType: &StructType{
 					Decl: d,
 				},
@@ -207,6 +210,8 @@ func (c *Checker) createTypeObjects() {
 
 		case *ast.InterfaceDecl:
 			sym.Type = &NamedType{
+				Name: d.Name.Value,
+				Decl: decl,
 				UnderlyingType: &InterfaceType{
 					Decl: d,
 				},
@@ -215,6 +220,8 @@ func (c *Checker) createTypeObjects() {
 		case
 			*ast.EnumDecl:
 			sym.Type = &NamedType{
+				Name: d.Name.Value,
+				Decl: decl,
 				UnderlyingType: &EnumType{
 					Decl: d,
 				},
@@ -222,6 +229,8 @@ func (c *Checker) createTypeObjects() {
 
 		case *ast.SumDecl:
 			sym.Type = &NamedType{
+				Name: d.Name.Value,
+				Decl: decl,
 				UnderlyingType: &SumType{
 					Decl: d,
 				},
@@ -986,6 +995,7 @@ func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) {
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
+			Name:           decl.Name.Value,
 			Decl:           decl,
 			UnderlyingType: c.resolveType(decl.Type),
 		},
@@ -1005,6 +1015,8 @@ func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
+			Name: decl.Name.Value,
+			Decl: decl,
 			UnderlyingType: &StructType{
 				Decl:   decl,
 				Fields: c.resolveStructFields(decl.Fields),
@@ -1026,6 +1038,8 @@ func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) {
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
+			Name: decl.Name.Value,
+			Decl: decl,
 			UnderlyingType: &EnumType{
 				Decl:     decl,
 				Variants: c.resolveEnumVariants(decl.Variants),
@@ -1047,6 +1061,8 @@ func (c *Checker) checkSumDecl(decl *ast.SumDecl) {
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
+			Name: decl.Name.Value,
+			Decl: decl,
 			UnderlyingType: &SumType{
 				Decl:     decl,
 				Variants: c.resolveSumVariants(decl.Variants),
@@ -1068,6 +1084,8 @@ func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
+			Name: decl.Name.Value,
+			Decl: decl,
 			UnderlyingType: &InterfaceType{
 				Decl:    decl,
 				Methods: c.resolveInterfaceMethods(decl.Methods),
