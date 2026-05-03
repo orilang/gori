@@ -512,7 +512,7 @@ type User struct {
 								Name: "mp", Type: &MapType{Key: TString, Value: TString},
 							},
 							{
-								Name: "hmp", Type: &MapType{Kind: MapHash, Key: TString, Value: TString},
+								Name: "hmp", Type: &HashMapType{Key: TString, Value: TString},
 							},
 						},
 					},
@@ -549,9 +549,14 @@ type User struct {
 		assert.Equal(t, src.Fields[2].Name, dst.Fields[2].Name)
 		mpsrc := src.Fields[2].Type.(*MapType)
 		mpdst := src.Fields[2].Type.(*MapType)
-		assert.Equal(t, mpsrc.Kind, mpdst.Kind)
 		assert.Equal(t, mpsrc.Key, mpdst.Key)
 		assert.Equal(t, mpsrc.Value, mpdst.Value)
+
+		assert.Equal(t, src.Fields[3].Name, dst.Fields[3].Name)
+		hmpsrc := src.Fields[3].Type.(*HashMapType)
+		hmpdst := src.Fields[3].Type.(*HashMapType)
+		assert.Equal(t, hmpsrc.Key, hmpdst.Key)
+		assert.Equal(t, hmpsrc.Value, hmpdst.Value)
 	})
 
 	t.Run("declare_const_symbol", func(t *testing.T) {

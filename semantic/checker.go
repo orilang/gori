@@ -309,14 +309,17 @@ func (c *Checker) resolveType(t ast.Type) Type {
 			return TInvalid
 		}
 
-		m := &MapType{
+		if v.KindKW.Kind == token.KWHashMap {
+			return &HashMapType{
+				Key:   key,
+				Value: value,
+			}
+		}
+
+		return &MapType{
 			Key:   key,
 			Value: value,
 		}
-		if v.KindKW.Kind == token.KWHashMap {
-			m.Kind = MapHash
-		}
-		return m
 	}
 	return nil
 }
@@ -635,6 +638,13 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 		case *MapType:
 			if !IsIdentical(decl.Key, index) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid map index expression of type %#v", index)})
+				return TInvalid
+			}
+			return decl.Value
+
+		case *HashMapType:
+			if !IsIdentical(decl.Key, index) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid hashmap index expression of type %#v", index)})
 				return TInvalid
 			}
 			return decl.Value

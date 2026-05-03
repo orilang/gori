@@ -45,15 +45,12 @@ type SliceType struct {
 	Elem Type
 }
 
-type MapKind int
-
-const (
-	MapRegular MapKind = iota
-	MapHash
-)
-
 type MapType struct {
-	Kind  MapKind
+	Key   Type
+	Value Type
+}
+
+type HashMapType struct {
 	Key   Type
 	Value Type
 }

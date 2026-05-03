@@ -33,7 +33,12 @@ func IsIdentical(a, b Type) bool {
 
 	case *MapType:
 		if t2, ok := b.(*MapType); ok {
-			return t1.Kind == t2.Kind && IsIdentical(t1.Key, t2.Key) && IsIdentical(t1.Value, t2.Value)
+			return IsIdentical(t1.Key, t2.Key) && IsIdentical(t1.Value, t2.Value)
+		}
+
+	case *HashMapType:
+		if t2, ok := b.(*HashMapType); ok {
+			return IsIdentical(t1.Key, t2.Key) && IsIdentical(t1.Value, t2.Value)
 		}
 
 	case *StructType:

@@ -76,11 +76,12 @@ func (t *SliceType) String() string {
 
 func (t *MapType) typeNode() {}
 func (t *MapType) String() string {
-	prefix := "map"
-	if t.Kind == MapHash {
-		prefix = "hashmap"
-	}
-	return prefix + "[" + t.Key.String() + "]" + t.Value.String()
+	return "map[" + t.Key.String() + "]" + t.Value.String()
+}
+
+func (t *HashMapType) typeNode() {}
+func (t *HashMapType) String() string {
+	return "hashmap[" + t.Key.String() + "]" + t.Value.String()
 }
 
 func (t *StructType) typeNode() {}
