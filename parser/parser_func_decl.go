@@ -55,7 +55,7 @@ func (p *Parser) parseFuncParam(forbidBlankIdentifier bool) ast.Param {
 		return ast.Param{Name: name, Type: p.parseSliceOrArrayType()}
 	}
 
-	if p.kind() == token.LBracket && p.kindNext(p.position+1) == token.IntLit && p.kindNext(p.position+2) == token.RBracket {
+	if p.kind() == token.LBracket {
 		return ast.Param{Name: name, Type: p.parseSliceOrArrayType()}
 	}
 

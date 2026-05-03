@@ -25,12 +25,10 @@ func (p *Parser) parseSliceOrArrayType() ast.Type {
 	}
 
 	lb := p.expect(token.LBracket, "expected '['")
-	if p.kind() == token.IntLit {
+	if p.kind() != token.RBracket {
 		array.LBracket = lb
-		size := p.parseExpr(LOWEST)
-		rb := p.expect(token.RBracket, "expected ']'")
-		array.Len = size
-		array.RBracket = rb
+		array.Len = p.parseExpr(LOWEST)
+		array.RBracket = p.expect(token.RBracket, "expected ']'")
 
 		for !slices.Contains(kindList, p.kind()) {
 			if !token.IsSliceType(p.kind()) {
@@ -49,9 +47,8 @@ func (p *Parser) parseSliceOrArrayType() ast.Type {
 		return &array
 	}
 
-	rb := p.expect(token.RBracket, "expected ']'")
 	slice.LBracket = lb
-	slice.RBracket = rb
+	slice.RBracket = p.expect(token.RBracket, "expected ']'")
 
 	for !slices.Contains(kindList, p.kind()) {
 		if !token.IsSliceType(p.kind()) {
