@@ -15,9 +15,15 @@ func (p *Parser) parseDefinedDecl() ast.Decl {
 		Name:     kwi,
 	}
 
-	x := &ast.NamedType{}
-	x.Parts = append(x.Parts, p.next())
-	dt.Type = x
+	if token.IsMapType(p.kind()) {
+		dt.Type = p.parseMapsHashMapsDecl()
+	} else if p.kind() == token.LBracket {
+		dt.Type = p.parseSliceOrArrayType()
+	} else {
+		dt.Type = &ast.NamedType{
+			Parts: []token.Token{p.next()},
+		}
+	}
 
 	if p.kind() == token.SemiComma {
 		_ = p.expect(token.SemiComma, "expected ';'")

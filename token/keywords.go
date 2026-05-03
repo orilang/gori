@@ -219,6 +219,9 @@ var validTypeDecl = map[Kind]bool{
 	KWString:    true,
 	KWBool:      true,
 	KWFunc:      true,
+	KWMap:       true,
+	KWHashMap:   true,
+	LBracket:    true, // for slice/array
 }
 
 var sliceTypes = map[Kind]bool{
