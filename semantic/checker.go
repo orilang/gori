@@ -298,10 +298,17 @@ func (c *Checker) resolveType(t ast.Type) Type {
 		if key == nil {
 			return TInvalid
 		}
+
+		if !isMapKeyType(key) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid map key type")})
+			return TInvalid
+		}
+
 		value := c.resolveType(v.ValueType)
 		if value == nil {
 			return TInvalid
 		}
+
 		m := &MapType{
 			Key:   key,
 			Value: value,
@@ -606,10 +613,11 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 		return c.checkExpr(t.Inner)
 
 	case *ast.IndexExpr:
-		x := c.checkExpr(t.X)
+		baseType := c.checkExpr(t.X)
+		underlying := unwrapNamed(baseType)
 		index := c.checkExpr(t.Index)
 
-		switch decl := x.(type) {
+		switch decl := underlying.(type) {
 		case *SliceType:
 			if !IsIdentical(index, TInt) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid index expression of type %#v", index)})
@@ -624,12 +632,12 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 			}
 			return decl.Elem
 
-		// case *MapType:
-		// 	if !IsIdentical(decl.Key, TInt) {
-		// 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid index expression of type %#v", index)})
-		// 		return TInvalid
-		// 	}
-		// 	return decl.Value
+		case *MapType:
+			if !IsIdentical(decl.Key, index) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid map index expression of type %#v", index)})
+				return TInvalid
+			}
+			return decl.Value
 
 		default:
 			return TInvalid
@@ -641,6 +649,14 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 	default:
 		return TInvalid
 	}
+}
+
+// isMapKeyType validates provided type as key type
+func isMapKeyType(t Type) bool {
+	if IsNumeric(t) || IsBool(t) || IsString(t) {
+		return true
+	}
+	return false
 }
 
 // checkFuncBodies validates functions bodies.

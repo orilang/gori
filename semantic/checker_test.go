@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -967,11 +968,15 @@ func y() {
 			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
 			Index: &ast.BadExpr{},
 		})
+		check.checkAssignableExpr(&ast.IndexExpr{
+			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
+			Index: &ast.BadExpr{},
+		})
+		check.checkAssignableExpr(&ast.BadExpr{})
 
 		check.typeDecls = append(check.typeDecls, &ast.StructDecl{})
 		check.createTypeObjects()
 		check.resolveTypeDecls()
-
 		check.checkIncDecStmt(&ast.IncDecStmt{X: &ast.BadExpr{}})
 	})
 
@@ -982,58 +987,58 @@ func y() {
 		}{
 			{
 				data: `package main
-			type User struct {
-				name string
-				age  int
-			}
-			func f(u User) string {
-				return u.name
-			}
-			`,
+type User struct {
+	name string
+	age  int
+}
+func f(u User) string {
+	return u.name
+}
+`,
 			},
 			{
 				data: `package main
-			type User struct {
-				name string
-				age  int
-			}
-			func age(u User) {
-				u.age = 10
-			}
-			`,
-			},
-			{
-				err: true,
-				data: `package main
-			type User struct {
-			    name string
-			}
-			func bad(u User) {
-			    u.name = 1
-			}
-			`,
+type User struct {
+	name string
+	age  int
+}
+func age(u User) {
+	u.age = 10
+}
+`,
 			},
 			{
 				err: true,
 				data: `package main
-			type User struct {
-			    name string
-			}
-			func bad(u User) string {
-			    return u.age
-			}
-			`,
+type User struct {
+		name string
+}
+func bad(u User) {
+		u.name = 1
+}
+`,
 			},
 			{
 				err: true,
 				data: `package main
-			type User struct {
-			    name string
-			}
-			func bad(u User) string {
-			    return u.unknown
-			}
-			`,
+type User struct {
+		name string
+}
+func bad(u User) string {
+		return u.age
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+		name string
+}
+func bad(u User) string {
+		return u.unknown
+}
+`,
 			},
 			{
 				data: `package main
@@ -1051,7 +1056,7 @@ type test interface {
 	foo() string
 }
 func f(u test) {
-  u.foo()
+	u.foo()
 }
 `,
 			},
@@ -1084,7 +1089,7 @@ type test interface {
 	foo() string
 }
 func f(u test) {
-  u.unknown()
+	u.unknown()
 }
 `,
 			},
@@ -1094,7 +1099,7 @@ func foo() string {
 	return "foo"
 }
 func bar() string {
-  return foo()
+	return foo()
 }
 `,
 			},
@@ -1102,7 +1107,70 @@ func bar() string {
 				err: true,
 				data: `package main
 func bar() string {
-  return foo()
+	return foo()
+}
+`,
+			},
+			{
+				data: `package main
+func f(s []string) string {
+	return s[0]
+}
+func x(s [5]string) string {
+	return s[0]
+}
+			`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) string {
+	return m["x"]
+}
+`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) string {
+	m["k"] = "v"
+}
+`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) map[string]string {
+	return m
+}
+`,
+			},
+			{
+				data: `package main
+type UsersByID map[int]string
+
+func f(m UsersByID) string {
+	return m[1]
+}
+`,
+			},
+			{
+				data: `package main
+func f(m hashmap[string]string) hashmap[string]string {
+	return m
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) string {
+	return m[0]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) hashmap[string]string {
+	return m
 }
 `,
 			},
@@ -1117,6 +1185,9 @@ func bar() string {
 			check := NewChecker()
 
 			result := check.Check(pr)
+			for _, v := range result {
+				fmt.Println("BBBB", v.Err.Error())
+			}
 			if tc.err {
 				assert.Greater(t, len(result), 0)
 			} else {
