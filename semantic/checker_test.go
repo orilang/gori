@@ -984,6 +984,25 @@ func y() {
 		check.createTypeObjects()
 		check.resolveTypeDecls()
 		check.checkIncDecStmt(&ast.IncDecStmt{X: &ast.BadExpr{}})
+
+		check.resolveType(&ast.MapType{
+			KeyType: &ast.NamedType{
+				Parts: []token.Token{
+					{
+						Kind:  token.KWInt,
+						Value: "int",
+					},
+				},
+			},
+			ValueType: &ast.NamedType{
+				Parts: []token.Token{
+					{
+						Kind:  token.StringLit,
+						Value: "zzzz",
+					},
+				},
+			},
+		})
 	})
 
 	t.Run("x9", func(t *testing.T) {
@@ -1159,6 +1178,13 @@ func f(m UsersByID) string {
 			},
 			{
 				data: `package main
+func f(m hashmap[string]string) string {
+	m["k"] = "v"
+}
+`,
+			},
+			{
+				data: `package main
 func f(m hashmap[string]string) hashmap[string]string {
 	return m
 }
@@ -1177,6 +1203,14 @@ func f(m map[string]string) string {
 				data: `package main
 func f(m map[string]string) hashmap[string]string {
 	return m
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m hashmap[string]string) string {
+	return m[0]
 }
 `,
 			},
