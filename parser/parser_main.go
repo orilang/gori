@@ -460,7 +460,7 @@ func (p *Parser) parsePrefix() ast.Expr {
 	case token.LParen:
 		expr = p.parseGroupExpr()
 
-	case token.Minus, token.Not:
+	case token.Minus, token.Plus, token.Not:
 		expr = p.parseUnaryExpr()
 	}
 

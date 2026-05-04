@@ -371,6 +371,22 @@ func TestParser_main_expr(t *testing.T) {
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("unary_plus_one", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `+1
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.parseExpr(LOWEST)
+		result := `UnaryExpr
+ Operator: "+" @1:1 (kind=51)
+ IntLitExpr
+  Value: "1" @1:2 (kind=4)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("unary_minus_one", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
