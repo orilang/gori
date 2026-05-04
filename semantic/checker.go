@@ -196,13 +196,13 @@ func (c *Checker) createTypeObjects() {
 		case *ast.DefinedTypeDecl:
 			sym.Type = &NamedType{
 				Name: d.Name.Value,
-				Decl: decl,
+				Decl: d,
 			}
 
 		case *ast.StructDecl:
 			sym.Type = &NamedType{
 				Name: d.Name.Value,
-				Decl: decl,
+				Decl: d,
 				UnderlyingType: &StructType{
 					Decl: d,
 				},
@@ -211,7 +211,7 @@ func (c *Checker) createTypeObjects() {
 		case *ast.InterfaceDecl:
 			sym.Type = &NamedType{
 				Name: d.Name.Value,
-				Decl: decl,
+				Decl: d,
 				UnderlyingType: &InterfaceType{
 					Decl: d,
 				},
@@ -221,7 +221,7 @@ func (c *Checker) createTypeObjects() {
 			*ast.EnumDecl:
 			sym.Type = &NamedType{
 				Name: d.Name.Value,
-				Decl: decl,
+				Decl: d,
 				UnderlyingType: &EnumType{
 					Decl: d,
 				},
@@ -230,7 +230,7 @@ func (c *Checker) createTypeObjects() {
 		case *ast.SumDecl:
 			sym.Type = &NamedType{
 				Name: d.Name.Value,
-				Decl: decl,
+				Decl: d,
 				UnderlyingType: &SumType{
 					Decl: d,
 				},
