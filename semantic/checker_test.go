@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -1225,14 +1224,133 @@ func f(m hashmap[string]string) string {
 			check := NewChecker()
 
 			result := check.Check(pr)
-			for _, v := range result {
-				fmt.Println("BBBB", v.Err.Error())
-			}
 			if tc.err {
 				assert.Greater(t, len(result), 0)
 			} else {
 				assert.Equal(t, 0, len(result))
 			}
 		}
+
+		check := NewChecker()
+		assert.Equal(t, TInvalid, check.checkSelectorExpr(&ast.SelectorExpr{X: &ast.BadExpr{}}))
+	})
+
+	t.Run("x10", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+type User [5]string
+func f(u User) string {
+	return u[1]
+}
+`,
+			},
+			{
+				data: `package main
+type User [1+2]string
+`,
+			},
+			{
+				data: `package main
+type User [2-1]string
+`,
+			},
+			{
+				data: `package main
+type User [2/1]string
+`,
+			},
+			{
+				data: `package main
+type User [1*2]string
+`,
+			},
+			{
+				data: `package main
+type User [+2]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User [1+2.4]string
+`,
+			},
+			{
+				data: `package main
+type User [-(-2)]string
+`,
+			},
+			{
+				data: `package main
+type User [- -1]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User [-1]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User [-1.2]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User [1.2]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User [+1.2]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User [-(1+2)]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User [-a]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User [!true]string
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		_, ok := check.evalArrayLen(&ast.IntLitExpr{Name: token.Token{Value: "a"}})
+		assert.Equal(t, false, ok)
 	})
 }

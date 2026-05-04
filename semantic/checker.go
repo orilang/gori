@@ -290,9 +290,13 @@ func (c *Checker) resolveType(t ast.Type) Type {
 		if elem == nil {
 			return TInvalid
 		}
-		len := v.Len.(*ast.IntLitExpr)
-		l, _ := strconv.Atoi(len.Name.Value)
-		return &ArrayType{Len: int64(l), Elem: elem}
+
+		len, ok := c.evalArrayLen(v.Len)
+		if !ok || len < 0 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid array length type")})
+			return TInvalid
+		}
+		return &ArrayType{Len: len, Elem: elem}
 
 	case *ast.SliceType:
 		elem := c.resolveType(v.Elem)
@@ -331,6 +335,57 @@ func (c *Checker) resolveType(t ast.Type) Type {
 		}
 	}
 	return nil
+}
+
+// evalArrayLen validates array length
+func (c *Checker) evalArrayLen(expr ast.Expr) (int64, bool) {
+	switch t := expr.(type) {
+	case *ast.IntLitExpr:
+		v, err := strconv.ParseInt(t.Name.Value, 10, 64)
+		if err != nil {
+			return 0, false
+		}
+		return v, true
+
+	case *ast.ParenExpr:
+		return c.evalArrayLen(t.Inner)
+
+	case *ast.BinaryExpr:
+		left, lok := c.evalArrayLen(t.Left)
+		right, rok := c.evalArrayLen(t.Right)
+		if lok && rok {
+			switch t.Operator.Kind {
+			case token.Plus:
+				return left + right, true
+			case token.Minus:
+				return left - right, true
+			case token.Slash:
+				return left / right, true
+			case token.Star:
+				return left * right, true
+			}
+		}
+		return 0, false
+
+	case *ast.UnaryExpr:
+		v, ok := c.evalArrayLen(t.Right)
+		if !ok {
+			return 0, false
+		}
+
+		switch t.Operator.Kind {
+		case token.Plus:
+			return v, true
+
+		case token.Minus:
+			if v < 0 {
+				return -v, true
+			}
+			return -v, true
+		}
+	}
+
+	return 0, false
 }
 
 // resolveNamedType resolves named type to return a semantic type
