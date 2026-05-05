@@ -51,8 +51,23 @@ func (s *Scope) LookupLocal(name string) *Symbol {
 // pkgScope is set to nil because it's the parent scope.
 // All new scopes will only be childrens
 func NewChecker() *Checker {
+	universalTypes := NewScope(nil)
+	universalTypes.Declare(&Symbol{Name: "bool", Kind: SymType, Type: TBool})
+	universalTypes.Declare(&Symbol{Name: "int", Kind: SymType, Type: TInt})
+	universalTypes.Declare(&Symbol{Name: "int8", Kind: SymType, Type: TInt8})
+	universalTypes.Declare(&Symbol{Name: "int32", Kind: SymType, Type: TInt32})
+	universalTypes.Declare(&Symbol{Name: "int64", Kind: SymType, Type: TInt64})
+	universalTypes.Declare(&Symbol{Name: "uint", Kind: SymType, Type: TUInt})
+	universalTypes.Declare(&Symbol{Name: "uint8", Kind: SymType, Type: TUInt8})
+	universalTypes.Declare(&Symbol{Name: "uint32", Kind: SymType, Type: TUInt32})
+	universalTypes.Declare(&Symbol{Name: "uint64", Kind: SymType, Type: TUInt64})
+	universalTypes.Declare(&Symbol{Name: "float", Kind: SymType, Type: TFloat})
+	universalTypes.Declare(&Symbol{Name: "float32", Kind: SymType, Type: TFloat32})
+	universalTypes.Declare(&Symbol{Name: "float64", Kind: SymType, Type: TFloat64})
+	universalTypes.Declare(&Symbol{Name: "string", Kind: SymType, Type: TString})
+
 	return &Checker{
-		pkgScope: NewScope(nil),
+		pkgScope: NewScope(universalTypes),
 	}
 }
 
@@ -648,13 +663,28 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 		calleeType := c.checkExpr(t.Callee)
 		if named, ok := calleeType.(*NamedType); ok {
 			if len(t.Args) != 1 {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments in %s", named.Name)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", named.Name, len(t.Args))})
 				return TInvalid
 			}
-			if IsConvertibleTo(named, c.checkExpr(t.Args[0])) {
+			arg := c.checkExpr(t.Args[0])
+			if IsConvertibleTo(named, arg) {
 				return named
 			}
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert in %s", named.Name)})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %s to %#v", named.Name, arg)})
+			return TInvalid
+		}
+
+		if builtin, ok := calleeType.(*BuiltinType); ok {
+			if len(t.Args) != 1 {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", expr, len(t.Args))})
+				return TInvalid
+			}
+
+			arg := c.checkExpr(t.Args[0])
+			if IsConvertibleTo(arg, builtin) {
+				return calleeType
+			}
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %#v to %#v", arg, builtin)})
 			return TInvalid
 		}
 
@@ -824,13 +854,7 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
 			}
 
 		case *ast.AssignStmt:
-			switch t.Operator.Kind {
-			case token.Assign:
-				c.checkSimpleAssignStmt(t)
-
-			case token.Define:
-				c.checkDefineAssignStmt(t)
-			}
+			c.checkAssigmentStmt(t)
 
 		case *ast.ReturnStmt:
 			c.checkReturnStmt(t)
@@ -843,6 +867,9 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
 
 		case *ast.IfStmt:
 			c.checkIfStmt(t)
+
+		case *ast.ForStmt:
+			c.checkForStmt(t)
 
 		default:
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("statement %#v not managed", stmt)})
@@ -1239,23 +1266,23 @@ func lookupInterfaceMethods(it *InterfaceType, name string) (Type, bool) {
 }
 
 // checkIfStmt validates if statement block
-func (c *Checker) checkIfStmt(iblock *ast.IfStmt) {
-	if iblock == nil {
+func (c *Checker) checkIfStmt(stmt *ast.IfStmt) {
+	if stmt == nil {
 		return
 	}
 
-	condType := c.checkExpr(iblock.Condition)
+	condType := c.checkExpr(stmt.Condition)
 	if !IsBool(condType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must return a boolean")})
 		return
 	}
 
-	if iblock.Then != nil {
-		c.checkBlockStmt(iblock.Then)
+	if stmt.Then != nil {
+		c.checkBlockStmt(stmt.Then)
 	}
 
-	if iblock.Else != nil {
-		switch t := iblock.Else.(type) {
+	if stmt.Else != nil {
+		switch t := stmt.Else.(type) {
 		case *ast.IfStmt:
 			c.checkIfStmt(t)
 		case *ast.BlockStmt:
@@ -1263,5 +1290,57 @@ func (c *Checker) checkIfStmt(iblock *ast.IfStmt) {
 		default:
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported if statement %#v", t)})
 		}
+	}
+}
+
+// checkForStmt validates plain for statement block
+func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
+	if stmt == nil {
+		return
+	}
+
+	if stmt.Init != nil {
+		switch t := stmt.Init.(type) {
+		case *ast.AssignStmt:
+			c.checkAssigmentStmt(t)
+		default:
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported for statement %#v", t)})
+			return
+		}
+	}
+
+	if stmt.Condition != nil {
+		condType := c.checkExpr(stmt.Condition)
+		if !IsBool(condType) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must return a boolean")})
+			return
+		}
+	}
+
+	if stmt.Post != nil {
+		switch t := stmt.Post.(type) {
+		case *ast.AssignStmt:
+			c.checkAssigmentStmt(t)
+		default:
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported for statement %#v", t)})
+			return
+		}
+	}
+
+	if stmt.Body != nil {
+		c.checkBlockStmt(stmt.Body)
+	}
+}
+
+// checkForStmt validates for assigment statement
+func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt) {
+	switch stmt.Operator.Kind {
+	case token.Assign, token.PlusEq, token.MinusEq:
+		c.checkSimpleAssignStmt(stmt)
+	case token.Define:
+		c.checkDefineAssignStmt(stmt)
+	default:
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported assigment in for statement %#v", stmt)})
+		return
 	}
 }

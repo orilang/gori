@@ -1424,4 +1424,96 @@ func x(a int, b int, c int) int {
 			Else: &ast.BadStmt{},
 		})
 	})
+
+	t.Run("x12", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+func x() bool {
+	for {
+		return false
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(a int, b int) bool {
+	for a < b {
+		return false
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(a int) int {
+	for a = 0;a<5;a+=1 {
+		return a
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x() int {
+ for a := int(0);a<5;a+=1 {
+   return a
+ }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x() int {
+ for a := int("a");a<5;a+=1 {
+   return a
+ }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x() int {
+ for a := int(1,2);a<5;a+=1 {
+   return a
+ }
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		check.checkForStmt(nil)
+		check.checkForStmt(&ast.ForStmt{
+			Init: &ast.BadStmt{},
+		})
+		check.checkForStmt(&ast.ForStmt{
+			Condition: &ast.BadExpr{},
+		})
+		check.checkForStmt(&ast.ForStmt{
+			Post: &ast.BadStmt{},
+		})
+	})
 }
