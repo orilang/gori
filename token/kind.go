@@ -77,6 +77,7 @@ const (
 	Modulo  // %
 
 	// Comparison operators
+
 	Eq  // ==
 	Neq // !=
 	Lt  // <
@@ -85,6 +86,7 @@ const (
 	Gte // >=
 
 	// Logical operators
+
 	And // &&
 	Or  // ||
 	Not // !

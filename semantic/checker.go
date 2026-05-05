@@ -633,7 +633,13 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 		right := c.checkExpr(t.Right)
 
 		if IsIdentical(left, right) && SupportsBinaryOp(left, t.Operator.Kind) {
-			return left
+			switch t.Operator.Kind {
+			case token.Eq, token.Neq, token.And, token.Or, token.Lt, token.Lte, token.Gt, token.Gte:
+				return TBool
+
+			default:
+				return left
+			}
 		}
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid binary operation %q of type %s with type %s", t.Operator.Value, left.String(), right.String())})
 		return TInvalid
@@ -834,6 +840,9 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
 
 		case *ast.ExprStmt:
 			c.checkExprStmt(t)
+
+		case *ast.IfStmt:
+			c.checkIfStmt(t)
 
 		default:
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("statement %#v not managed", stmt)})
@@ -1227,4 +1236,32 @@ func lookupInterfaceMethods(it *InterfaceType, name string) (Type, bool) {
 		}
 	}
 	return nil, false
+}
+
+// checkIfStmt validates if statement block
+func (c *Checker) checkIfStmt(iblock *ast.IfStmt) {
+	if iblock == nil {
+		return
+	}
+
+	condType := c.checkExpr(iblock.Condition)
+	if !IsBool(condType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must return a boolean")})
+		return
+	}
+
+	if iblock.Then != nil {
+		c.checkBlockStmt(iblock.Then)
+	}
+
+	if iblock.Else != nil {
+		switch t := iblock.Else.(type) {
+		case *ast.IfStmt:
+			c.checkIfStmt(t)
+		case *ast.BlockStmt:
+			c.checkBlockStmt(t)
+		default:
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported if statement %#v", t)})
+		}
+	}
 }

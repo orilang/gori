@@ -1353,4 +1353,75 @@ type User [!true]string
 		_, ok := check.evalArrayLen(&ast.IntLitExpr{Name: token.Token{Value: "a"}})
 		assert.Equal(t, false, ok)
 	})
+
+	t.Run("x11", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+func x(a int, b int, c int) int {
+ if a < b {
+   if a < c {
+	   return c
+	 }
+ } else {
+   return b
+ }
+}
+`,
+			},
+			{
+				data: `package main
+func x(a int, b int, c int) int {
+ if a < b {
+   return b
+ } else if a < c {
+	 return c
+ } else {
+   return a
+ }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(a int, b int, c int) int {
+ if a {
+   return b
+ }
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		check.checkIfStmt(nil)
+		check.checkIfStmt(&ast.IfStmt{
+			Condition: &ast.BinaryExpr{
+				Left:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
+				Operator: token.Token{Kind: token.Lt, Value: "<"},
+				Right:    &ast.IdentExpr{Name: token.Token{Value: "b"}},
+			},
+			Else: &ast.BadStmt{},
+		})
+	})
 }
