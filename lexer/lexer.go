@@ -380,10 +380,14 @@ func (l *Lexer) fetchNextToken() (byte, bool) {
 
 // identOrKeyword parses the token and appends token list
 func (l *Lexer) identOrKeyword() {
-	var tok []byte
+	var (
+		tok  []byte
+		next byte
+	)
 	line, column := l.line, l.column
 	for _, v := range l.input[l.position:] {
 		if !isLetter(v) && !isDigit(v) && v != '_' {
+			next = v
 			break
 		}
 		tok = append(tok, v)
@@ -393,6 +397,13 @@ func (l *Lexer) identOrKeyword() {
 		l.newToken(token.Illegal, tok, line, column)
 		return
 	}
+
+	// this is a special lexer exception for int(0), ..., uint(0), ..., float(0)
+	if token.IsBuiltinSymbolType(token.LookupKeyword(string(tok))) && next == '(' {
+		l.newToken(token.Ident, tok, line, column)
+		return
+	}
+
 	l.newToken(token.LookupKeyword(string(tok)), tok, line, column)
 }
 

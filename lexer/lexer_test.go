@@ -145,6 +145,7 @@ func main() {
 	x1 := 1;x2:=1
 	x3.z=1
 	backslash:="a\"b"
+	xi := int(0)
 }
 `
 		result := []token.Token{
@@ -307,6 +308,13 @@ func main() {
 			{Kind: token.Ident, Value: "backslash"},
 			{Kind: token.Define, Value: ":="},
 			{Kind: token.StringLit, Value: `"a\"b"`},
+
+			{Kind: token.Ident, Value: "xi"},
+			{Kind: token.Define, Value: ":="},
+			{Kind: token.Ident, Value: "int"},
+			{Kind: token.LParen, Value: "("},
+			{Kind: token.IntLit, Value: "0"},
+			{Kind: token.RParen, Value: ")"},
 
 			{Kind: token.RBrace, Value: "}"},
 			{Kind: token.EOF, Value: ""},

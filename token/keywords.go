@@ -66,6 +66,22 @@ var builtinTypes = map[Kind]bool{
 	KWInterface: true,
 }
 
+var builtinSymbolTypes = map[Kind]bool{
+	KWInt:     true,
+	KWInt8:    true,
+	KWInt32:   true,
+	KWInt64:   true,
+	KWUint:    true,
+	KWUint8:   true,
+	KWUint32:  true,
+	KWUint64:  true,
+	KWFloat:   true,
+	KWFloat32: true,
+	KWFloat64: true,
+	KWString:  true,
+	KWBool:    true,
+}
+
 var prefix = map[Kind]bool{
 	LParen:    true,
 	Ident:     true,

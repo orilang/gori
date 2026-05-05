@@ -14,6 +14,11 @@ func IsBuiltinType(k Kind) bool {
 	return builtinTypes[k]
 }
 
+// IsBuiltinType returns true when builtin types is found otherwise false
+func IsBuiltinSymbolType(k Kind) bool {
+	return builtinSymbolTypes[k]
+}
+
 // IsPrefix returns true when the provided kind is found is the list
 func IsPrefix(k Kind) bool {
 	return prefix[k]

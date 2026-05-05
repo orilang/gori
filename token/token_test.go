@@ -49,6 +49,26 @@ func TestToken(t *testing.T) {
 		}
 	})
 
+	t.Run("builtin_symbol_types", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWInt,
+				expected: true,
+			},
+			{
+				input:    KWFunc,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsBuiltinSymbolType(tc.input))
+		}
+	})
+
 	t.Run("is_prefix", func(t *testing.T) {
 		tests := []struct {
 			input    Kind
