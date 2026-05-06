@@ -22,7 +22,6 @@ type User struct {
 }
 `
 		scope := &Scope{
-			Parent: nil,
 			Symbols: map[string]*Symbol{
 				"UserID": {
 					Name: "UserID",
@@ -57,7 +56,6 @@ type User struct {
 		check := NewChecker()
 
 		assert.Equal(t, 0, len(check.Check(pr)))
-		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
 		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
 		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
 		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)
@@ -102,7 +100,6 @@ type test interface{
 }
 `
 		scope := &Scope{
-			Parent: nil,
 			Symbols: map[string]*Symbol{
 				"UserID": {
 					Name: "UserID",
@@ -177,7 +174,6 @@ type test interface{
 		check := NewChecker()
 
 		assert.Equal(t, 0, len(check.Check(pr)))
-		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
 		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
 		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
 		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)
@@ -234,7 +230,6 @@ type Color enum {
 }
 `
 		scope := &Scope{
-			Parent: nil,
 			Symbols: map[string]*Symbol{
 				"Color": {
 					Name: "Color",
@@ -254,7 +249,6 @@ type Color enum {
 		check := NewChecker()
 
 		assert.Equal(t, 0, len(check.Check(pr)))
-		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
 		src := scope.Symbols["Color"].Type.(*EnumType)
 		dstE := check.pkgScope.Symbols["Color"].Type.(*NamedType)
 		dst := dstE.UnderlyingType.(*EnumType)
@@ -285,7 +279,6 @@ type test sum {
 }
 `
 		scope := &Scope{
-			Parent: nil,
 			Symbols: map[string]*Symbol{
 				"test": {
 					Name: "test",
@@ -321,7 +314,6 @@ type test sum {
 		check := NewChecker()
 
 		assert.Equal(t, 0, len(check.Check(pr)))
-		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
 		assert.Equal(t, scope.Symbols["test"].Name, check.pkgScope.Symbols["test"].Name)
 		assert.Equal(t, scope.Symbols["test"].Kind, check.pkgScope.Symbols["test"].Kind)
 
@@ -399,7 +391,6 @@ func ok(a UserID, b UserID) UserID {
 }
 `
 		scope := &Scope{
-			Parent: nil,
 			Symbols: map[string]*Symbol{
 				"UserID": {
 					Name: "UserID",
@@ -435,7 +426,6 @@ func ok(a UserID, b UserID) UserID {
 		check := NewChecker()
 
 		assert.Equal(t, 0, len(check.Check(pr)))
-		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
 		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
 		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
 		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)
@@ -495,7 +485,6 @@ type User struct {
 }
 `
 		scope := &Scope{
-			Parent: nil,
 			Symbols: map[string]*Symbol{
 				"User": {
 					Name: "User",
@@ -528,7 +517,6 @@ type User struct {
 		check := NewChecker()
 
 		assert.Equal(t, 0, len(check.Check(pr)))
-		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
 		assert.Equal(t, scope.Symbols["User"].Name, check.pkgScope.Symbols["User"].Name)
 		assert.Equal(t, scope.Symbols["User"].Kind, check.pkgScope.Symbols["User"].Kind)
 		src := scope.Symbols["User"].Type.(*StructType)
@@ -589,7 +577,6 @@ type UserID int
 const j UserID = UserID(1)
 `
 		scope := &Scope{
-			Parent: nil,
 			Symbols: map[string]*Symbol{
 				"a": {Name: "a", Kind: SymConst, Type: TInt},
 				"b": {Name: "b", Kind: SymConst, Type: TFloat},
@@ -618,7 +605,6 @@ const j UserID = UserID(1)
 		check := NewChecker()
 
 		assert.Equal(t, 0, len(check.Check(pr)))
-		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
 		assert.Equal(t, scope.Symbols["a"].Name, check.pkgScope.Symbols["a"].Name)
 		assert.Equal(t, scope.Symbols["a"].Kind, check.pkgScope.Symbols["a"].Kind)
 		assert.Equal(t, scope.Symbols["a"].Type, check.pkgScope.Symbols["a"].Type)
@@ -770,7 +756,6 @@ func fa() {
 func fempty() {}
 `
 		scope := &Scope{
-			Parent: nil,
 			Symbols: map[string]*Symbol{
 				"fa": {
 					Name: "fa",
@@ -814,8 +799,6 @@ func fempty() {}
 		check := NewChecker()
 
 		assert.Equal(t, 0, len(check.Check(pr)))
-		assert.Equal(t, scope.Parent, check.pkgScope.Parent)
-
 		assert.Equal(t, scope.Symbols["fa"].Name, check.pkgScope.Symbols["fa"].Name)
 		assert.Equal(t, scope.Symbols["fa"].Kind, check.pkgScope.Symbols["fa"].Kind)
 		fsrc := scope.Symbols["fa"].Type.(*FuncMethod)
@@ -1470,9 +1453,9 @@ func x() int {
 				err: true,
 				data: `package main
 func x() int {
- for a := int("a");a<5;a+=1 {
-   return a
- }
+	for a := int("a");a<5;a+=1 {
+		return a
+	}
 }
 `,
 			},
@@ -1480,9 +1463,9 @@ func x() int {
 				err: true,
 				data: `package main
 func x() int {
- for a := int(1,2);a<5;a+=1 {
-   return a
- }
+	for a := int(1,2);a<5;a+=1 {
+		return a
+	}
 }
 `,
 			},
@@ -1515,5 +1498,215 @@ func x() int {
 		check.checkForStmt(&ast.ForStmt{
 			Post: &ast.BadStmt{},
 		})
+	})
+
+	t.Run("x13", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+func x(z int){
+	for i := range int(5) {
+		z = i
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(){
+	for k,v := range int(5) {}
+}
+`,
+			},
+			{
+				data: `package main
+func x(){
+	for _,v := range int(5) {}
+}
+`,
+			},
+			{
+				data: `package main
+func x(){
+	for k,_ := range int(5) {}
+}
+`,
+			},
+			{
+				data: `package main
+func x(){
+	var k int = 0
+	var v int = 0
+	for k,v := range int(5) {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(){
+	for _,_ := range int(5) {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(){
+	for _ := range int(5) {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(z string){
+	for z = range 5 {
+		z = i
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z int){
+	for z = range int(5) {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(z string){
+	for _ = range 5 {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(z string){
+	for z = range int(5) {
+		z = i
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(z string){
+	for z,_ = range int(5) {
+		z = i
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(z string){
+	for _,z = range int(5) {
+		z = i
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(z int){
+	for z,z := range int(5) {
+		z = i
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(z int){
+	for k,v := range float(5) {
+		z = i
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z []int){
+	for k,v := range z {}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z [5]int){
+	for k,v := range z {}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z map[string]int){
+	for k,v := range z {}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z hashmap[string]int){
+	for k,v := range z {}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z hashmap[string]int){
+	for range z {}
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		check.checkRangeStmt(nil)
+		check.checkRangeStmt(&ast.RangeStmt{X: &ast.BadExpr{}})
+		_, _, ok := rangeVars(TInvalid)
+		assert.Equal(t, false, ok)
+
+		check.scope = NewScope(check.pkgScope)
+		check.useScope = true
+		check.checkRangeStmt(&ast.RangeStmt{
+			X: &ast.CallExpr{
+				Callee: &ast.IdentExpr{
+					Name: token.Token{Kind: token.Ident, Value: "int"},
+				},
+				Args: []ast.Expr{
+					&ast.IntLitExpr{Name: token.Token{Kind: token.IntLit, Value: "5"}},
+				},
+			},
+			Op: token.Token{Kind: token.Slash},
+		})
+		check.useScope = false
 	})
 }

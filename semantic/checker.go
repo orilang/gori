@@ -811,6 +811,8 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 	c.checkBlockStmt(fn.Body)
 }
 
+// checkBlockStmt loops over block statements in order to check/declare them
+// within its dedicated local scope
 func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
 	if block == nil {
 		return
@@ -870,6 +872,9 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
 
 		case *ast.ForStmt:
 			c.checkForStmt(t)
+
+		case *ast.RangeStmt:
+			c.checkRangeStmt(t)
 
 		default:
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("statement %#v not managed", stmt)})
@@ -1342,5 +1347,144 @@ func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt) {
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported assigment in for statement %#v", stmt)})
 		return
+	}
+}
+
+// checkRangeStmt validates range statement block
+func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
+	if stmt == nil {
+		return
+	}
+
+	iteratorType := c.checkExpr(stmt.X)
+	if IsInvalid(iteratorType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("range expression is invalid")})
+		return
+	}
+
+	rangekeyType, rangeValueType, ok := rangeVars(iteratorType)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported range var type")})
+		return
+	}
+
+	// for range x {}
+	if stmt.Op == (token.Token{}) && stmt.Body != nil {
+		c.checkBlockStmt(stmt.Body)
+		return
+	}
+
+	switch stmt.Op.Kind {
+	case token.Assign:
+		if stmt.Key != nil && stmt.Value != nil {
+			key := c.checkExpr(stmt.Key)
+			if stmt.Key.Name.Value != "_" && !IsAssignableTo(rangekeyType, key) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v", rangekeyType, key)})
+				return
+			}
+
+			value := c.checkExpr(stmt.Value)
+			if stmt.Value.Name.Value != "_" && !IsAssignableTo(rangeValueType, value) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range value type, expected %#v, got %#v", rangeValueType, value)})
+				return
+			}
+		} else if stmt.Key != nil {
+			if stmt.Key.Name.Value == "_" {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("blank identifier for this range key is forbidden")})
+				return
+			}
+
+			key := c.checkExpr(stmt.Key)
+			if !IsAssignableTo(rangekeyType, key) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v", rangekeyType, key)})
+				return
+			}
+		}
+
+	case token.Define:
+		if stmt.Key != nil && stmt.Value != nil {
+			if stmt.Key.Name.Value == "_" && stmt.Value.Name.Value == "_" {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("range key and value cannot be both blank identifiers")})
+				return
+			}
+
+			oldScope := c.scope
+			defer func() {
+				c.scope = oldScope
+			}()
+
+			blockScope := NewScope(c.scope)
+			c.scope = blockScope
+
+			if stmt.Key.Name.Value != "_" {
+				c.scope.Declare(&Symbol{
+					Name: stmt.Key.Name.Value,
+					Kind: SymVar,
+					Type: rangekeyType,
+				})
+			}
+
+			if stmt.Value.Name.Value != "_" {
+				if ok := c.scope.Declare(&Symbol{
+					Name: stmt.Value.Name.Value,
+					Kind: SymVar,
+					Type: rangeValueType,
+				}); !ok {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("range key duplicate %s declaration", stmt.Value.Name.Value)})
+					return
+				}
+			}
+		} else if stmt.Key != nil {
+			if stmt.Key.Name.Value == "_" {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("blank identifier for this range key is forbidden")})
+				return
+			}
+
+			oldScope := c.scope
+			defer func() {
+				c.scope = oldScope
+			}()
+
+			blockScope := NewScope(c.scope)
+			c.scope = blockScope
+
+			c.scope.Declare(&Symbol{
+				Name: stmt.Key.Name.Value,
+				Kind: SymVar,
+				Type: rangekeyType,
+			})
+		}
+
+	default:
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("forbidden range token %s", stmt.Op.Value)})
+		return
+	}
+
+	if stmt.Body != nil {
+		c.checkBlockStmt(stmt.Body)
+	}
+}
+
+// rangeVars returns underlying type var
+func rangeVars(t Type) (Type, Type, bool) {
+	un := unwrapNamed(t)
+	switch x := un.(type) {
+	case *ArrayType:
+		return TInt, x.Elem, true
+	case *SliceType:
+		return TInt, x.Elem, true
+	case *MapType:
+		return x.Key, x.Value, true
+	case *HashMapType:
+		return x.Key, x.Value, true
+	case *BuiltinType:
+		switch x {
+		case TInt, TInt8, TInt32, TInt64, TUInt, TUInt8, TUInt32, TUInt64:
+			return t, t, true
+		default:
+			return nil, nil, false
+		}
+	default:
+		return nil, nil, false
 	}
 }
