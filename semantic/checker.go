@@ -1278,7 +1278,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt) {
 
 	condType := c.checkExpr(stmt.Condition)
 	if !IsBool(condType) {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must return a boolean")})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must returned a boolean")})
 		return
 	}
 
