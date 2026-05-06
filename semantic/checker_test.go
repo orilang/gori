@@ -1398,14 +1398,27 @@ func x(a int, b int, c int) int {
 
 		check := NewChecker()
 		check.checkIfStmt(nil)
+		check.scope = NewScope(check.pkgScope)
+		check.useScope = true
+		check.scope.Declare(&Symbol{
+			Name: "a",
+			Kind: SymVar,
+			Type: TInt,
+		})
+		check.scope.Declare(&Symbol{
+			Name: "b",
+			Kind: SymVar,
+			Type: TInt,
+		})
 		check.checkIfStmt(&ast.IfStmt{
 			Condition: &ast.BinaryExpr{
-				Left:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
+				Left:     &ast.IdentExpr{Name: token.Token{Kind: token.Ident, Value: "a"}},
 				Operator: token.Token{Kind: token.Lt, Value: "<"},
-				Right:    &ast.IdentExpr{Name: token.Token{Value: "b"}},
+				Right:    &ast.IdentExpr{Name: token.Token{Kind: token.Ident, Value: "b"}},
 			},
 			Else: &ast.BadStmt{},
 		})
+		check.useScope = false
 	})
 
 	t.Run("x12", func(t *testing.T) {
