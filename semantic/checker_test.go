@@ -943,6 +943,10 @@ func y() {
 			},
 		)
 
+		check.checkAssigmentStmt(&ast.AssignStmt{
+			Operator: token.Token{Kind: token.Slash},
+		})
+
 		check.checkBlockStmt(&ast.BlockStmt{
 			Stmts: []ast.Stmt{
 				&ast.BadStmt{},
