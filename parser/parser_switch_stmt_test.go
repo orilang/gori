@@ -700,7 +700,7 @@ func x(){
      Stmts
       SwitchStmt
        Switch: "switch" @4:3 (kind=34)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:10 (kind=3)
        LBrace: "{" @4:12 (kind=41)
@@ -771,7 +771,7 @@ func x(){
      Stmts
       SwitchStmt
        Switch: "switch" @4:3 (kind=34)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:10 (kind=3)
        LBrace: "{" @4:12 (kind=41)
@@ -847,7 +847,7 @@ func x(){
      Stmts
       SwitchStmt
        Switch: "switch" @4:3 (kind=34)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:10 (kind=3)
        LBrace: "{" @4:12 (kind=41)
@@ -920,7 +920,7 @@ func x(){
      Stmts
       SwitchStmt
        Switch: "switch" @4:3 (kind=34)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:10 (kind=3)
        LBrace: "{" @4:12 (kind=41)
@@ -992,7 +992,7 @@ func x(){
      Stmts
       SwitchStmt
        Switch: "switch" @4:3 (kind=34)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:10 (kind=3)
        LBrace: "{" @4:12 (kind=41)
@@ -1053,7 +1053,7 @@ func x(){
      Stmts
       SwitchStmt
        Switch: "switch" @4:3 (kind=34)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:10 (kind=3)
        LBrace: "{" @4:12 (kind=41)
@@ -1065,7 +1065,7 @@ func x(){
         Body:
          SwitchStmt
           Switch: "switch" @6:7 (kind=34)
-          Init:
+          Tag:
            IdentExpr
             Name: "y" @6:14 (kind=3)
           LBrace: "{" @6:16 (kind=41)
@@ -1131,7 +1131,7 @@ func x(){
              Name: "w" @4:13 (kind=3)
            LParent: "(" @4:14 (kind=39)
            RParent: ")" @4:15 (kind=40)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:17 (kind=3)
        LBrace: "{" @4:19 (kind=41)
@@ -1215,7 +1215,7 @@ func x(){
              Name: "w" @4:13 (kind=3)
            LParent: "(" @4:14 (kind=39)
            RParent: ")" @4:15 (kind=40)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:17 (kind=3)
        LBrace: "{" @4:19 (kind=41)
@@ -1301,7 +1301,7 @@ func x(){
              Name: "w" @4:13 (kind=3)
            LParent: "(" @4:14 (kind=39)
            RParent: ")" @4:15 (kind=40)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:17 (kind=3)
        LBrace: "{" @4:19 (kind=41)
@@ -1386,7 +1386,7 @@ func x(){
              Name: "w" @4:13 (kind=3)
            LParent: "(" @4:14 (kind=39)
            RParent: ")" @4:15 (kind=40)
-       Init:
+       Tag:
         IdentExpr
          Name: "z" @4:17 (kind=3)
        LBrace: "{" @4:19 (kind=41)

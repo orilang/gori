@@ -294,7 +294,7 @@ func (d *dumper) node(indent int, n any) {
 		}
 
 		if v.Tag != nil {
-			d.line(indent+1, "Init:")
+			d.line(indent+1, "Tag:")
 			d.expr(indent+2, v.Tag)
 		}
 
