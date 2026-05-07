@@ -1785,6 +1785,26 @@ func x(zz hashmap[string]int,zz hashmap[string]int){
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+const k int = int(1)
+
+func x(zz hashmap[string]int){
+	for k := range zz {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const v int = int(1)
+
+func x(zz hashmap[string]int){
+	for k,v := range zz {}
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
