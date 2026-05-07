@@ -828,58 +828,64 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
 	c.scope = blockScope
 
 	for _, stmt := range block.Stmts {
-		switch t := stmt.(type) {
-		case *ast.DeclStmt:
-			switch decl := t.Decl.(type) {
-			case *ast.ConstDecl:
-				c.checkScopeConstDecl(decl)
+		c.checkStmt(stmt)
+	}
+}
 
-			case *ast.VarDecl:
-				c.checkScopeVarDecl(decl)
+// checkStmt checks all possible statements kind.
+// This is splitted here for reusability
+func (c *Checker) checkStmt(stmt ast.Stmt) {
+	switch t := stmt.(type) {
+	case *ast.DeclStmt:
+		switch decl := t.Decl.(type) {
+		case *ast.ConstDecl:
+			c.checkScopeConstDecl(decl)
 
-			case *ast.DefinedTypeDecl:
-				c.checkDefinedTypeDecl(decl)
+		case *ast.VarDecl:
+			c.checkScopeVarDecl(decl)
 
-			case *ast.StructDecl:
-				c.checkStructDecl(decl)
+		case *ast.DefinedTypeDecl:
+			c.checkDefinedTypeDecl(decl)
 
-			case *ast.EnumDecl:
-				c.checkEnumDecl(decl)
+		case *ast.StructDecl:
+			c.checkStructDecl(decl)
 
-			case *ast.SumDecl:
-				c.checkSumDecl(decl)
+		case *ast.EnumDecl:
+			c.checkEnumDecl(decl)
 
-			case *ast.InterfaceDecl:
-				c.checkInterfaceDecl(decl)
+		case *ast.SumDecl:
+			c.checkSumDecl(decl)
 
-			default:
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("declaration %#v not managed", decl)})
-			}
-
-		case *ast.AssignStmt:
-			c.checkAssigmentStmt(t)
-
-		case *ast.ReturnStmt:
-			c.checkReturnStmt(t)
-
-		case *ast.IncDecStmt:
-			c.checkIncDecStmt(t)
-
-		case *ast.ExprStmt:
-			c.checkExprStmt(t)
-
-		case *ast.IfStmt:
-			c.checkIfStmt(t)
-
-		case *ast.ForStmt:
-			c.checkForStmt(t)
-
-		case *ast.RangeStmt:
-			c.checkRangeStmt(t)
+		case *ast.InterfaceDecl:
+			c.checkInterfaceDecl(decl)
 
 		default:
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("statement %#v not managed", stmt)})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("declaration %#v not managed", decl)})
 		}
+
+	case *ast.AssignStmt:
+		c.checkAssigmentStmt(t)
+
+	case *ast.ReturnStmt:
+		c.checkReturnStmt(t)
+
+	case *ast.IncDecStmt:
+		c.checkIncDecStmt(t)
+
+	case *ast.ExprStmt:
+		c.checkExprStmt(t)
+
+	case *ast.IfStmt:
+		c.checkIfStmt(t)
+
+	case *ast.ForStmt:
+		c.checkForStmt(t)
+
+	case *ast.RangeStmt:
+		c.checkRangeStmt(t)
+
+	default:
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported statement %#v", stmt)})
 	}
 }
 
@@ -1289,12 +1295,10 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt) {
 
 	if stmt.Else != nil {
 		switch t := stmt.Else.(type) {
-		case *ast.IfStmt:
-			c.checkIfStmt(t)
 		case *ast.BlockStmt:
 			c.checkBlockStmt(t)
 		default:
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported if statement %#v", t)})
+			c.checkStmt(t)
 		}
 	}
 }
@@ -1306,13 +1310,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
 	}
 
 	if stmt.Init != nil {
-		switch t := stmt.Init.(type) {
-		case *ast.AssignStmt:
-			c.checkAssigmentStmt(t)
-		default:
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported for statement %#v", t)})
-			return
-		}
+		c.checkStmt(stmt.Init)
 	}
 
 	if stmt.Condition != nil {
@@ -1324,13 +1322,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
 	}
 
 	if stmt.Post != nil {
-		switch t := stmt.Post.(type) {
-		case *ast.AssignStmt:
-			c.checkAssigmentStmt(t)
-		default:
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported for statement %#v", t)})
-			return
-		}
+		c.checkStmt(stmt.Post)
 	}
 
 	if stmt.Body != nil {
