@@ -1286,6 +1286,12 @@ type User [-1]string
 			{
 				err: true,
 				data: `package main
+type User [2/0]string
+`,
+			},
+			{
+				err: true,
+				data: `package main
 type User [-1.2]string
 `,
 			},

@@ -375,6 +375,10 @@ func (c *Checker) evalArrayLen(expr ast.Expr) (int64, bool) {
 			case token.Minus:
 				return left - right, true
 			case token.Slash:
+				if right == 0 {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("division by 0 is forbidden")})
+					return 0, false
+				}
 				return left / right, true
 			case token.Star:
 				return left * right, true
@@ -393,9 +397,6 @@ func (c *Checker) evalArrayLen(expr ast.Expr) (int64, bool) {
 			return v, true
 
 		case token.Minus:
-			if v < 0 {
-				return -v, true
-			}
 			return -v, true
 		}
 	}
