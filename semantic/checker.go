@@ -860,7 +860,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 			c.checkInterfaceDecl(decl)
 
 		default:
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("declaration %#v not managed", decl)})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported declaration %#v", decl)})
 		}
 
 	case *ast.AssignStmt:
@@ -883,6 +883,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 
 	case *ast.RangeStmt:
 		c.checkRangeStmt(t)
+
+	case *ast.SwitchStmt:
+		c.checkSwitchStmt(t)
 
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported statement %#v", stmt)})
@@ -1202,13 +1205,13 @@ func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
 func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	call, ok := stmt.Expr.(*ast.CallExpr)
 	if !ok {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("expression statement must be a function call")})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("call expression statement must be a function call, got %#v", call)})
 		return
 	}
 
 	calleType := c.checkExpr(call.Callee)
 	if _, ok := calleType.(*FuncMethod); !ok {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("expression statement must be a function call")})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("callee type expression statement must be a function call got %#v", calleType)})
 		return
 	}
 
@@ -1496,4 +1499,88 @@ func (c *Checker) isNameAvailable(kind, name string) bool {
 		return false
 	}
 	return true
+}
+
+// checkSwitchStmt validates switch statement block
+func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
+	if stmt == nil {
+		return
+	}
+
+	oldScope := c.scope
+	defer func() {
+		c.scope = oldScope
+	}()
+
+	switchScope := NewScope(c.scope)
+	c.scope = switchScope
+
+	if stmt.Init != nil {
+		c.checkStmt(stmt.Init)
+	}
+
+	if stmt.Tag != nil {
+		tagType := c.checkExpr(stmt.Tag)
+		if IsInvalid(tagType) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag expression is invalid")})
+			return
+		}
+
+		if !IsComparable(tagType) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag type is not comparable got %#v", tagType)})
+			return
+		}
+
+		if len(stmt.Cases) == 0 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("switch statement has 0 cases")})
+			return
+		}
+
+		for _, cc := range stmt.Cases {
+			for _, v := range cc.Values {
+				vExpr := c.checkExpr(v)
+				if !IsIdentical(tagType, vExpr) {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v", tagType, vExpr)})
+					return
+				}
+			}
+
+			if cc.Body != nil {
+				c.checkSwitchBody(cc.Body)
+			}
+		}
+	} else {
+		if len(stmt.Cases) == 0 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("switch statement has 0 cases")})
+			return
+		}
+
+		for _, cc := range stmt.Cases {
+			for _, v := range cc.Values {
+				vExpr := c.checkExpr(v)
+				if !IsBool(vExpr) {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("switch case expected boolean got %#v", vExpr)})
+					return
+				}
+			}
+
+			if cc.Body != nil {
+				c.checkSwitchBody(cc.Body)
+			}
+		}
+	}
+}
+
+// checkSwitchBody loops over switch base body for validation
+func (c *Checker) checkSwitchBody(body []ast.Stmt) {
+	oldScope := c.scope
+	defer func() {
+		c.scope = oldScope
+	}()
+
+	bodyScope := NewScope(c.scope)
+	c.scope = bodyScope
+	for _, b := range body {
+		c.checkStmt(b)
+	}
 }

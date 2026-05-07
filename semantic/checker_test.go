@@ -1823,4 +1823,167 @@ func x(zz hashmap[string]int){
 			}
 		}
 	})
+
+	t.Run("x15", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+func w() int {
+  return 5
+}
+func b() {}
+func c() {}
+func x(a int) int {
+  switch z:=w();z {
+    case a:
+      b()
+    case 2:
+      c()
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return 5
+}
+func b() {}
+func c() {}
+func x(a int) int {
+  switch z:=w();z {
+    case z>a:
+      b()
+    case 2:
+      c()
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(a int) int {
+  switch z {
+    case z>a:
+      b()
+    case 2:
+      c()
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return 5
+}
+func x(a int) int {
+  switch z:=w();z {
+    case z>a:
+      b()
+    case 2:
+      c()
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return 5
+}
+func x(a string) int {
+  switch z:=w();z {
+    case a:
+      b()
+    case 2:
+      c()
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return 5
+}
+func x(z map[string]string) int {
+  switch z {
+    case 1:
+      b()
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return 5
+}
+func b() {}
+func c() {}
+func x(a int) int {
+  switch z:=w();z {}
+}
+`,
+			},
+			{
+				data: `package main
+func x() int {
+  switch {
+    case 1 == 2:
+      return 0
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x() int {
+  switch {
+    case "a":
+      return 0
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x() int {
+  switch {}
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		check.checkSwitchStmt(nil)
+	})
 }
