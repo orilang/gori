@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -1780,7 +1779,7 @@ func x(zz hashmap[string]int){
 			{
 				err: true,
 				data: `package main
-func x(zz hashmap[string]int){
+func x(zz hashmap[string]int,zz hashmap[string]int){
   assign := int(0)
   assign := int(0)
 }
@@ -1797,9 +1796,6 @@ func x(zz hashmap[string]int){
 			check := NewChecker()
 
 			result := check.Check(pr)
-			for _, v := range result {
-				fmt.Println("BBBB", v.Err.Error())
-			}
 			if tc.err {
 				assert.Greater(t, len(result), 0, i)
 			} else {
