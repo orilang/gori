@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -1557,7 +1558,7 @@ func x(){
 func x(){
 	var k int = 0
 	var v int = 0
-	for k,v := range int(5) {}
+	for kk,vv := range int(5) {}
 }
 `,
 			},
@@ -1725,5 +1726,79 @@ func x(z hashmap[string]int){
 			Op: token.Token{Kind: token.Slash},
 		})
 		check.useScope = false
+	})
+
+	t.Run("x14", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+const x int = int(1)
+
+func f() {
+	var x int = int(2)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const k int = int(1)
+
+func x(zz hashmap[string]int){
+	for k,v := range zz {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(zz hashmap[string]int){
+  const ca int = int(0)
+  const ca int = int(0)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(zz hashmap[string]int){
+  var va int = int(0)
+  var va int = int(0)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(zz hashmap[string]int){
+  assign := int(0)
+  assign := int(0)
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			for _, v := range result {
+				fmt.Println("BBBB", v.Err.Error())
+			}
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
 	})
 }

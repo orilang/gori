@@ -1014,13 +1014,13 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
 
 	x, ok := decl.Left.(*ast.IdentExpr)
 	if !ok {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %#v is not an identifier", decl)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %#v not an identifier", decl)})
 		return
 	}
 
 	sym := c.scope.Lookup(x.Name.Value)
 	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %s is already defined", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %s already declared", x.Name.Value)})
 		return
 	}
 
@@ -1417,6 +1417,9 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 			c.scope = blockScope
 
 			if stmt.Key.Name.Value != "_" {
+				if !c.isNameAvailable("variable", stmt.Key.Name.Value) {
+					return
+				}
 				c.scope.Declare(&Symbol{
 					Name: stmt.Key.Name.Value,
 					Kind: SymVar,
@@ -1425,14 +1428,14 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 			}
 
 			if stmt.Value.Name.Value != "_" {
-				if ok := c.scope.Declare(&Symbol{
+				if !c.isNameAvailable("variable", stmt.Value.Name.Value) {
+					return
+				}
+				c.scope.Declare(&Symbol{
 					Name: stmt.Value.Name.Value,
 					Kind: SymVar,
 					Type: rangeValueType,
-				}); !ok {
-					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("range key duplicate %s declaration", stmt.Value.Name.Value)})
-					return
-				}
+				})
 			}
 		} else if stmt.Key != nil {
 			if stmt.Key.Name.Value == "_" {
@@ -1448,6 +1451,9 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 			blockScope := NewScope(c.scope)
 			c.scope = blockScope
 
+			if !c.isNameAvailable("variable", stmt.Key.Name.Value) {
+				return
+			}
 			c.scope.Declare(&Symbol{
 				Name: stmt.Key.Name.Value,
 				Kind: SymVar,
@@ -1487,4 +1493,14 @@ func rangeVars(t Type) (Type, Type, bool) {
 	default:
 		return nil, nil, false
 	}
+}
+
+// isNameAvailable validates if variable has not already been declared.
+// This prevent variable shadowing which is forbidden.
+func (c *Checker) isNameAvailable(kind, name string) bool {
+	if c.scope.Lookup(name) != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("%s %q already declared", kind, name)})
+		return false
+	}
+	return true
 }
