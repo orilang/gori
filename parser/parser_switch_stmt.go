@@ -38,7 +38,6 @@ func (p *Parser) parseSwitchStmt() ast.Stmt {
 }
 
 func (p *Parser) parseSwitchCasesStmt(s ast.SwitchStmt) ast.Stmt {
-	var dcount int
 	for p.kind() != token.RBrace && p.kind() != token.EOF {
 		switch p.kind() {
 		case token.KWCase:
@@ -93,12 +92,6 @@ func (p *Parser) parseSwitchCasesStmt(s ast.SwitchStmt) ast.Stmt {
 			s.Cases = append(s.Cases, scase)
 
 		case token.KWDefault:
-			dcount++
-			if dcount > 1 {
-				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected 'default', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
-				return &ast.BadStmt{From: s.Switch, To: p.peek(), Reason: "expected only one 'default' case"}
-			}
-
 			dkw := p.expect(token.KWDefault, "expected 'default'")
 			if p.kind() == token.Colon {
 				colon := p.expect(token.Colon, "expected ':'")
@@ -142,13 +135,7 @@ func (p *Parser) parseFallThroughStmt() ast.Stmt {
 		_ = p.next()
 	}
 
-	// any unauthorized statement is rejected after 'fallthrough'
-	if p.kind() == token.RBrace || p.kind() == token.EOF || p.kind() == token.KWCase || p.kind() == token.KWDefault {
-		return &ast.FallThroughStmt{
-			FallThrough: kw,
-		}
+	return &ast.FallThroughStmt{
+		FallThrough: kw,
 	}
-
-	p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected statement after 'fallthrough', got %v %q", kw.Line, kw.Column, p.peek().Kind, p.peek().Value))
-	return &ast.BadStmt{From: p.peek(), Reason: "expected '}' or 'EOF' or new line"}
 }

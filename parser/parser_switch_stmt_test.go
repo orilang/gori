@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -1420,7 +1421,7 @@ func x(){
 		assert.Equal(0, len(parser.Errors))
 	})
 
-	t.Run("bad_no_tag_cases_x1", func(t *testing.T) {
+	t.Run("double_default_no_tag_cases_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
 		data := `package main
@@ -1437,8 +1438,124 @@ func x(){
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
-		assert.NotNil(pr)
-		assert.Greater(len(parser.Errors), 0)
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      SwitchStmt
+       Switch: "switch" @4:3 (kind=34)
+       LBrace: "{" @4:10 (kind=41)
+       Case: "case" @5:5 (kind=35)
+        Values:
+         IntLitExpr
+          Value: "1" @5:10 (kind=4)
+         IntLitExpr
+          Value: "2" @5:12 (kind=4)
+       Colon: ":" @5:13 (kind=47)
+        Body:
+         CallExpr
+          Callee
+           IdentExpr
+            Name: "b" @6:7 (kind=3)
+          LParent: "(" @6:8 (kind=39)
+          RParent: ")" @6:9 (kind=40)
+         CallExpr
+          Callee
+           IdentExpr
+            Name: "c" @7:7 (kind=3)
+          LParent: "(" @7:8 (kind=39)
+          RParent: ")" @7:9 (kind=40)
+       Case: "default" @8:5 (kind=36)
+       Colon: ":" @8:12 (kind=47)
+       Case: "default" @9:5 (kind=36)
+       Colon: ":" @9:12 (kind=47)
+       RBrace: "}" @10:2 (kind=42)
+     RBrace: "}" @11:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("double_fallthrough_no_tag_cases_x8", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func x(){
+  switch {
+    case 1:
+      b()
+      fallthrough
+      fallthrough
+    case 2:
+      c()
+	}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      SwitchStmt
+       Switch: "switch" @4:3 (kind=34)
+       LBrace: "{" @4:10 (kind=41)
+       Case: "case" @5:5 (kind=35)
+        Values:
+         IntLitExpr
+          Value: "1" @5:10 (kind=4)
+       Colon: ":" @5:11 (kind=47)
+        Body:
+         CallExpr
+          Callee
+           IdentExpr
+            Name: "b" @6:7 (kind=3)
+          LParent: "(" @6:8 (kind=39)
+          RParent: ")" @6:9 (kind=40)
+         FallThroughStmt
+          FallThrough: "fallthrough" @7:7 (kind=37)
+         FallThroughStmt
+          FallThrough: "fallthrough" @8:7 (kind=37)
+       Case: "case" @9:5 (kind=35)
+        Values:
+         IntLitExpr
+          Value: "2" @9:10 (kind=4)
+       Colon: ":" @9:11 (kind=47)
+        Body:
+         CallExpr
+          Callee
+           IdentExpr
+            Name: "c" @10:7 (kind=3)
+          LParent: "(" @10:8 (kind=39)
+          RParent: ")" @10:9 (kind=40)
+       RBrace: "}" @11:2 (kind=42)
+     RBrace: "}" @12:1 (kind=42)
+`
+		for _, v := range parser.Errors {
+			fmt.Println(v.Error())
+		}
+
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
 	})
 
 	t.Run("bad_no_tag_cases_x2", func(t *testing.T) {
@@ -1553,28 +1670,6 @@ func x(){
   switch {
     case :
       b()
-      c()
-	}
-}
-`
-		parser := New(lex.FetchTokensFromString(data))
-		pr := parser.ParseFile()
-		assert.NotNil(pr)
-		assert.Greater(len(parser.Errors), 0)
-	})
-
-	t.Run("no_tag_cases_x8", func(t *testing.T) {
-		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
-		assert.Nil(err)
-		data := `package main
-
-func x(){
-  switch {
-    case 1:
-      b()
-      fallthrough
-      fallthrough
-    case 2:
       c()
 	}
 }
