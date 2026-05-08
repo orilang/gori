@@ -887,6 +887,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 	case *ast.SwitchStmt:
 		c.checkSwitchStmt(t)
 
+	case *ast.FallThroughStmt:
+		c.checkFallThroughStmt(t)
+
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported statement %#v", stmt)})
 	}
@@ -1519,6 +1522,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 		c.checkStmt(stmt.Init)
 	}
 
+	var dcount int
 	if stmt.Tag != nil {
 		tagType := c.checkExpr(stmt.Tag)
 		if IsInvalid(tagType) {
@@ -1536,7 +1540,16 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			return
 		}
 
-		for _, cc := range stmt.Cases {
+		for i, cc := range stmt.Cases {
+			if cc.Case.Kind == token.KWDefault {
+				dcount++
+
+				if dcount > 1 {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("multiple default clause is forbidden, got %d", dcount)})
+					return
+				}
+			}
+
 			for _, v := range cc.Values {
 				vExpr := c.checkExpr(v)
 				if !IsIdentical(tagType, vExpr) {
@@ -1546,7 +1559,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			}
 
 			if cc.Body != nil {
-				c.checkSwitchBody(cc.Body)
+				c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1)
 			}
 		}
 	} else {
@@ -1555,7 +1568,16 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			return
 		}
 
-		for _, cc := range stmt.Cases {
+		for i, cc := range stmt.Cases {
+			if cc.Case.Kind == token.KWDefault {
+				dcount++
+
+				if dcount > 1 {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("multiple default clause is forbidden, got %d", dcount)})
+					return
+				}
+			}
+
 			for _, v := range cc.Values {
 				vExpr := c.checkExpr(v)
 				if !IsBool(vExpr) {
@@ -1565,22 +1587,45 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			}
 
 			if cc.Body != nil {
-				c.checkSwitchBody(cc.Body)
+				c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1)
 			}
 		}
 	}
 }
 
 // checkSwitchBody loops over switch base body for validation
-func (c *Checker) checkSwitchBody(body []ast.Stmt) {
+func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool) {
 	oldScope := c.scope
+	oldInSwitchCase := c.inSwitchCase
 	defer func() {
 		c.scope = oldScope
+		c.inSwitchCase = oldInSwitchCase
 	}()
+	c.inSwitchCase = true
 
 	bodyScope := NewScope(c.scope)
 	c.scope = bodyScope
-	for _, b := range body {
+	for i, b := range body {
+		if _, ok := b.(*ast.FallThroughStmt); ok {
+			if i != len(body)-1 {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough must be the last statement of the switch case body")})
+				return
+			}
+
+			if isLastCaseClause {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden inside last switch case")})
+				return
+			}
+			continue
+		}
+
 		c.checkStmt(b)
+	}
+}
+
+// checkFallThroughStmt produces an error when not into switch case
+func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
+	if !c.inSwitchCase {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden outside of switch case")})
 	}
 }

@@ -1951,6 +1951,19 @@ func x() int {
 				data: `package main
 func x() int {
   switch {
+    default:
+    default:
+    case 1 == 2:
+      return 0
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x() int {
+  switch {
     case "a":
       return 0
 	}
@@ -1962,6 +1975,91 @@ func x() int {
 				data: `package main
 func x() int {
   switch {}
+}
+`,
+			},
+			{
+				data: `package main
+func doA() {}
+func doB() {}
+func x(a int) int {
+  switch a {
+	case 1:
+		doA()
+		fallthrough
+	case 2:
+		doB()
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func doA() {}
+func doB() {}
+func x(a int) int {
+  switch a {
+	case 1:
+		doA()
+		fallthrough
+	case 2:
+		doB()
+	default:
+	default:
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func doA() {}
+func doB() {}
+func x(a int) int {
+  switch a {
+	case 1:
+		fallthrough
+		doA()
+	case 2:
+		doB()
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func doA() {}
+func x(a int) int {
+  switch a {
+	case 1:
+		doA()
+	case 2:
+		fallthrough
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func doA() {}
+func x(a int) int {
+  switch a {
+	case 1:
+		doA()
+	default:
+		fallthrough
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func doA() {
+  fallthrough
 }
 `,
 			},
