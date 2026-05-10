@@ -130,6 +130,8 @@ func exprName(decl ast.Expr) string {
 		return exprName(d.X)
 	case *ast.SelectorExpr:
 		return exprName(d.X)
+	case *ast.CallExpr:
+		return exprName(d.Callee)
 	default:
 		return ""
 	}
@@ -1530,6 +1532,13 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			return
 		}
 
+		underlying := unwrapNamed(tagType)
+		switch underlying.(type) {
+		case *SumType:
+			c.checkSwitchStmtSumType(tagType, stmt)
+			return
+		}
+
 		if !IsComparable(tagType) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag type is not comparable got %#v", tagType)})
 			return
@@ -1627,5 +1636,131 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool) {
 func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
 	if !c.inSwitchCase {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden outside of switch case")})
+	}
+}
+
+// checkSwitchStmtSumType validates switch statement block
+func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt) {
+	underlying := unwrapNamed(tagType)
+	sm := underlying.(*SumType)
+
+	seen := make(map[string]bool, len(stmt.Cases))
+	for _, cc := range stmt.Cases {
+		if cc.Case.Kind == token.KWDefault {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("default is forbidden inside sum type switch")})
+			return
+		}
+
+		call, ok := cc.Values[0].(*ast.CallExpr)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("sum case must be a variant, got %#v", call)})
+			return
+		}
+
+		callee, ok := call.Callee.(*ast.IdentExpr)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("sum variant case must use a variant identifier, got %#v", callee)})
+			return
+		}
+
+		variantName, ok := fetchVariant(callee.Name.Value, sm)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unknown variant name %q", callee.Name.Value)})
+			return
+		}
+
+		if seen[variantName.Name] {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("duplicate variant name %s", variantName.Name)})
+			return
+		}
+		seen[variantName.Name] = true
+
+		if len(variantName.Field) != len(call.Args) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variant arguments length invalid, expected %d got %d", len(variantName.Field), len(call.Args))})
+			return
+		}
+
+		var bindings []*Symbol
+		seenBindings := make(map[string]bool)
+		for k, v := range call.Args {
+			ident, ok := v.(*ast.IdentExpr)
+			if !ok {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variant expected identifier got %#v", v)})
+				return
+			}
+
+			// TODO: if we need _ we will have to update the parser
+			// if ident.Name.Value == "_" {
+			// 	continue
+			// }
+
+			if seenBindings[ident.Name.Value] {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %q already declared", ident.Name.Value)})
+				return
+			}
+			seenBindings[ident.Name.Value] = true
+
+			if c.scope.Lookup(ident.Name.Value) != nil {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %q already declared", ident.Name.Value)})
+				return
+			}
+
+			bindings = append(bindings, &Symbol{
+				Name: ident.Name.Value,
+				Kind: SymVar,
+				Type: variantName.Field[k].Type,
+			})
+		}
+
+		if cc.Body != nil {
+			c.checkSwitchSumBody(cc.Body, bindings)
+		}
+	}
+
+	for _, v := range sm.Variants {
+		if !seen[v.Name] {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("missing variant case %q", v.Name)})
+			return
+		}
+	}
+}
+
+func fetchVariant(name string, sm *SumType) (SumVariant, bool) {
+	for _, v := range sm.Variants {
+		if v.Name == name {
+			return v, true
+		}
+	}
+
+	return SumVariant{}, false
+}
+
+// checkSwitchBody loops over switch base body for validation
+func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
+	oldScope := c.scope
+	oldInSwitchCase := c.inSwitchCase
+	defer func() {
+		c.scope = oldScope
+		c.inSwitchCase = oldInSwitchCase
+	}()
+	c.inSwitchCase = true
+
+	bodyScope := NewScope(c.scope)
+	c.scope = bodyScope
+
+	for _, b := range bindings {
+		if !c.scope.Declare(b) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %q already declared", b.Name)})
+			return
+		}
+	}
+
+	for _, b := range body {
+		if _, ok := b.(*ast.FallThroughStmt); ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden in sum switch type")})
+			return
+		}
+
+		c.checkStmt(b)
 	}
 }

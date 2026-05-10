@@ -2084,4 +2084,320 @@ func doA() {
 		check := NewChecker()
 		check.checkSwitchStmt(nil)
 	})
+
+	t.Run("x16", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+type Shape sum {
+  Circle(radius int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case Rect(r):
+				return r
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			default:
+				return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case 1 == 2:
+				return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case RRect(w, h):
+				return w*h
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case Circle(x):
+				return x
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case Rect(w):
+				return w
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case Rect(w, h):
+				return w*h
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case Rect(h, h):
+				return h*h
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case Rect(w, h):
+				fallthrough
+				return h
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+  var h int = 0
+	switch s {
+			case Circle(r):
+				return r
+			case Rect(w, h):
+				return h
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(r):
+				return r
+			case Rect(r, h, h):
+				return h*r
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case Circle(0):
+				return 0
+			case Rect(w, h):
+				return h*r
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type UserID int
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case UserID(0):
+				return 0
+			case Rect(w, h):
+				return h*r
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
+			case a.Circle(0):
+				return 0
+			case Rect(w, h):
+				return h*r
+	}
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		check.checkSwitchStmt(nil)
+		body := []*Symbol{
+			{Name: "test", Kind: SymVar, Type: TInt},
+			{Name: "test", Kind: SymVar, Type: TInt},
+		}
+		check.checkSwitchSumBody(nil, body)
+	})
 }
