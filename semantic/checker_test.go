@@ -2400,4 +2400,197 @@ func describe(s Shape) int {
 		}
 		check.checkSwitchSumBody(nil, body)
 	})
+
+	t.Run("x17", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case Red:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case Red:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+		default:
+			return "yellow"
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case int(0):
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case Reddy:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case Red:
+			return "red"
+		case Red:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case Red:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case Red:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			fallthrough
+		case Yellow:
+			return "yellow"
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case Red, Red:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+	}
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			assert.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
 }

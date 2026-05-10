@@ -1537,6 +1537,9 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 		case *SumType:
 			c.checkSwitchStmtSumType(tagType, stmt)
 			return
+		case *EnumType:
+			c.checkSwitchStmtEnumType(tagType, stmt)
+			return
 		}
 
 		if !IsComparable(tagType) {
@@ -1663,7 +1666,7 @@ func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt) {
 			return
 		}
 
-		variantName, ok := fetchVariant(callee.Name.Value, sm)
+		variantName, ok := fetchSumVariant(callee.Name.Value, sm)
 		if !ok {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unknown variant name %q", callee.Name.Value)})
 			return
@@ -1725,7 +1728,8 @@ func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt) {
 	}
 }
 
-func fetchVariant(name string, sm *SumType) (SumVariant, bool) {
+// fetchSumVariant fetches variant from sum type when found
+func fetchSumVariant(name string, sm *SumType) (SumVariant, bool) {
 	for _, v := range sm.Variants {
 		if v.Name == name {
 			return v, true
@@ -1735,7 +1739,8 @@ func fetchVariant(name string, sm *SumType) (SumVariant, bool) {
 	return SumVariant{}, false
 }
 
-// checkSwitchBody loops over switch base body for validation
+// checkSwitchSumBody loops over sum type switch base body for validation
+// and creates related statements
 func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
 	oldScope := c.scope
 	oldInSwitchCase := c.inSwitchCase
@@ -1758,6 +1763,89 @@ func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
 	for _, b := range body {
 		if _, ok := b.(*ast.FallThroughStmt); ok {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden in sum switch type")})
+			return
+		}
+
+		c.checkStmt(b)
+	}
+}
+
+// checkSwitchStmtEnumType validates switch statement block
+func (c *Checker) checkSwitchStmtEnumType(tagType Type, stmt *ast.SwitchStmt) {
+	underlying := unwrapNamed(tagType)
+	en := underlying.(*EnumType)
+
+	seen := make(map[string]bool, len(stmt.Cases))
+	for _, cc := range stmt.Cases {
+		if cc.Case.Kind == token.KWDefault {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("default is forbidden inside enum type switch")})
+			return
+		}
+
+		if len(cc.Values) != 1 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("enum case must have exactly one variant")})
+			return
+		}
+
+		ident, ok := cc.Values[0].(*ast.IdentExpr)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("enum case must be a variant, got %#v", ident)})
+			return
+		}
+
+		variantName, ok := fetchEnumVariant(ident.Name.Value, en)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unknown variant name %q", ident.Name.Value)})
+			return
+		}
+
+		if seen[variantName] {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("duplicate variant name %s", variantName)})
+			return
+		}
+		seen[variantName] = true
+
+		if cc.Body != nil {
+			c.checkSwitchEnumBody(cc.Body)
+		}
+	}
+
+	for _, v := range en.Variants {
+		if !seen[v] {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("missing variant case %q", v)})
+			return
+		}
+	}
+}
+
+// fetchEnumVariant fetches variant from enum type when found
+func fetchEnumVariant(name string, en *EnumType) (string, bool) {
+	for _, v := range en.Variants {
+		if v == name {
+			return v, true
+		}
+	}
+
+	return "", false
+}
+
+// checkSwitchEnumBody loops over enum type switch base body for validation
+// and creates related statements
+func (c *Checker) checkSwitchEnumBody(body []ast.Stmt) {
+	oldScope := c.scope
+	oldInSwitchCase := c.inSwitchCase
+	defer func() {
+		c.scope = oldScope
+		c.inSwitchCase = oldInSwitchCase
+	}()
+	c.inSwitchCase = true
+
+	bodyScope := NewScope(c.scope)
+	c.scope = bodyScope
+
+	for _, b := range body {
+		if _, ok := b.(*ast.FallThroughStmt); ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden in enum switch type")})
 			return
 		}
 
