@@ -1570,6 +1570,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			return
 		}
 
+		seen := make(map[constKey]bool, len(stmt.Cases))
 		for i, cc := range stmt.Cases {
 			if cc.Case.Kind == token.KWDefault {
 				dcount++
@@ -1585,6 +1586,14 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 				if !IsIdentical(tagType, vExpr) {
 					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v", tagType, vExpr)})
 					return
+				}
+
+				if ck, ok := c.constKey(v, vExpr); ok {
+					if seen[ck] {
+						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("duplicate case expression %s at %d:%d", ck.value, v.Start().Line, v.End().Line)})
+						return
+					}
+					seen[ck] = true
 				}
 			}
 
@@ -1610,6 +1619,10 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 
 			for _, v := range cc.Values {
 				vExpr := c.checkExpr(v)
+				// TODO: Tagless switch duplicates is a job for the linter
+				// as it's difficult for the checker to properly handle every cases
+				// without any burden
+
 				if !IsBool(vExpr) {
 					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("switch case expected boolean got %#v", vExpr)})
 					return
@@ -1621,6 +1634,41 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			}
 		}
 	}
+}
+
+// constKey returns true if expression is a literal one. It will be used by basic switch case
+// in order to find duplicates
+func (c *Checker) constKey(expr ast.Expr, typ Type) (constKey, bool) {
+	switch e := expr.(type) {
+	case *ast.IntLitExpr:
+		return constKey{
+			typeID: typ.String(),
+			kind:   constInt,
+			value:  e.Name.Value,
+		}, true
+
+	case *ast.FloatLitExpr:
+		return constKey{
+			typeID: typ.String(),
+			kind:   constFloat,
+			value:  e.Name.Value,
+		}, true
+
+	case *ast.BoolLitExpr:
+		return constKey{
+			typeID: typ.String(),
+			kind:   constBool,
+			value:  e.Name.Value,
+		}, true
+
+	case *ast.StringLitExpr:
+		return constKey{
+			typeID: typ.String(),
+			kind:   constString,
+			value:  e.Name.Value,
+		}, true
+	}
+	return constKey{}, false
 }
 
 // checkSwitchBody loops over switch base body for validation

@@ -125,3 +125,19 @@ type Checker struct {
 	inSwitchCase bool
 	loopDepth    int
 }
+
+type constKind int
+
+const (
+	constInvalid constKind = iota
+	constInt
+	constFloat
+	constBool
+	constString
+)
+
+type constKey struct {
+	typeID string
+	kind   constKind
+	value  string
+}

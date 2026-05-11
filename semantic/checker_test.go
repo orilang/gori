@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -2700,6 +2701,116 @@ func action(l Color) string {
 			check := NewChecker()
 
 			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
+
+	t.Run("x18", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func x(a int) int {
+	switch a {
+		case 2:
+			x := int(0)
+		case 2:
+			x := int(0)
+  }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(a float) int {
+	switch a {
+		case 2.0:
+			x := int(0)
+		case 2.0:
+			x := int(0)
+  }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(a string) int {
+	switch a {
+		case "x":
+			x := int(0)
+		case "x":
+			x := int(0)
+  }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(a bool) int {
+	switch a {
+		case true:
+			x := int(0)
+		case true:
+			x := int(0)
+  }
+}
+`,
+			},
+			{
+				data: `package main
+func xa() bool { return true}
+func xb() bool { return false}
+func x(a bool) int {
+	switch a {
+		case xa():
+			x1 := int(0)
+		case xb():
+			x2 := int(0)
+  }
+}
+`,
+			},
+			{
+				data: `package main
+func xa() bool { return true}
+func xb() bool { return false}
+func x(a bool) int {
+	switch {
+		case 1 == 2:
+			x1 := int(0)
+		case 1 == 2:
+			x2 := int(0)
+  }
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			for _, v := range parser.Errors {
+				fmt.Println(v.Error())
+			}
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			for _, v := range result {
+				fmt.Println("BBBB", v.Err.Error())
+			}
 			if tc.err {
 				assert.Greater(t, len(result), 0, i)
 			} else {
