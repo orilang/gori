@@ -130,8 +130,6 @@ func exprName(decl ast.Expr) string {
 		return exprName(d.X)
 	case *ast.SelectorExpr:
 		return exprName(d.X)
-	case *ast.CallExpr:
-		return exprName(d.Callee)
 	default:
 		return ""
 	}
@@ -609,6 +607,7 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	name := typeDeclName(decl)
 	sym := c.pkgScope.Lookup(name)
 	sym.Type = targetType
+	sym.Decl = decl
 }
 
 // checkExpr returns the type of the expression
