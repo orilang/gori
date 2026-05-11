@@ -895,6 +895,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 	case *ast.BreakStmt:
 		c.checkBreakStmt(t)
 
+	case *ast.ContinueStmt:
+		c.checkContinueStmt(t)
+
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported statement %#v", stmt)})
 	}
@@ -1660,7 +1663,14 @@ func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
 // checkBreakStmt produces an error when not into for loop statement
 func (c *Checker) checkBreakStmt(_ *ast.BreakStmt) {
 	if c.loopDepth == 0 {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("break is forbidden outside of for loop")})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("break is forbidden outside of loop")})
+	}
+}
+
+// checkContinueStmt produces an error when not into for loop statement
+func (c *Checker) checkContinueStmt(_ *ast.ContinueStmt) {
+	if c.loopDepth == 0 {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("continue is forbidden outside of loop")})
 	}
 }
 

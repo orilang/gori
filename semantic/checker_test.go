@@ -1764,6 +1764,49 @@ func f(x int) {
 }
 `,
 			},
+			{
+				data: `package main
+func x(z hashmap[string]int){
+	for k,v := range z {
+	  continue
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z hashmap[string]int){
+	for k,v := range z {
+	  continue
+		// special case that will be handled by unreachable stmt
+		a := int(0)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(){
+ a := true
+ for {
+   if a {
+	   continue
+	 }
+ }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(x int) {
+	switch x {
+	case 1:
+		continue
+	}
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
