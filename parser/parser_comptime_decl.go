@@ -15,6 +15,15 @@ func (p *Parser) parseComptimeBlockDecl() ast.Decl {
 			ComptimeKW: x,
 		}
 		c.Decls = append(c.Decls, p.parseConstDecl())
+
+		if p.kind() == token.Comment {
+			_ = p.expect(token.Comment, "expected comment")
+		}
+
+		if p.kind() == token.SemiComma {
+			_ = p.expect(token.SemiComma, "expected ';'")
+		}
+
 		return c
 	}
 
@@ -23,6 +32,15 @@ func (p *Parser) parseComptimeBlockDecl() ast.Decl {
 			ComptimeKW: x,
 		}
 		c.Decls = append(c.Decls, p.parseFuncDecl())
+
+		if p.kind() == token.Comment {
+			_ = p.expect(token.Comment, "expected comment")
+		}
+
+		if p.kind() == token.SemiComma {
+			_ = p.expect(token.SemiComma, "expected ';'")
+		}
+
 		return c
 	}
 
