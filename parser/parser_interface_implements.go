@@ -26,5 +26,8 @@ func (p *Parser) parseImplementsDecl() ast.Decl {
 	if p.kind() == token.SemiComma {
 		_ = p.expect(token.SemiComma, "expected ';'")
 	}
+	if p.kind() == token.Comment {
+		_ = p.expect(token.Comment, "expected comment")
+	}
 	return id
 }

@@ -17,7 +17,7 @@ func TestParser_interface_implements_decl(t *testing.T) {
 		data := `package main
 
 X implements Y
-Z implements A.B
+Z implements A.B // A.B
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
