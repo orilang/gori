@@ -892,6 +892,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 	case *ast.FallThroughStmt:
 		c.checkFallThroughStmt(t)
 
+	case *ast.BreakStmt:
+		c.checkBreakStmt(t)
+
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported statement %#v", stmt)})
 	}
@@ -1317,6 +1320,12 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
 		return
 	}
 
+	oldLoopDepth := c.loopDepth
+	c.loopDepth++
+	defer func() {
+		c.loopDepth = oldLoopDepth
+	}()
+
 	if stmt.Init != nil {
 		c.checkStmt(stmt.Init)
 	}
@@ -1356,6 +1365,12 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 	if stmt == nil {
 		return
 	}
+
+	oldLoopDepth := c.loopDepth
+	c.loopDepth++
+	defer func() {
+		c.loopDepth = oldLoopDepth
+	}()
 
 	iteratorType := c.checkExpr(stmt.X)
 	if IsInvalid(iteratorType) {
@@ -1639,6 +1654,13 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool) {
 func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
 	if !c.inSwitchCase {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden outside of switch case")})
+	}
+}
+
+// checkBreakStmt produces an error when not into for loop statement
+func (c *Checker) checkBreakStmt(_ *ast.BreakStmt) {
+	if c.loopDepth == 0 {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("break is forbidden outside of for loop")})
 	}
 }
 

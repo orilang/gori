@@ -123,4 +123,5 @@ type Checker struct {
 	constDecls   []*ast.ConstDecl
 	currentFunc  *FuncType
 	inSwitchCase bool
+	loopDepth    int
 }

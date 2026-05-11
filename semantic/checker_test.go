@@ -1693,6 +1693,77 @@ func x(z hashmap[string]int){
 }
 `,
 			},
+			{
+				data: `package main
+func x(z hashmap[string]int){
+	for range z {
+	  break
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z hashmap[string]int){
+	for range z {
+	  break
+		// special case that will be handled by unreachable stmt
+		a := int(0)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z hashmap[string]int){
+	for k,v := range z {
+	  break
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x(z hashmap[string]int){
+	for k,v := range z {
+	  break
+		// special case that will be handled by unreachable stmt
+		a := int(0)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(z hashmap[string]int){
+	break
+}
+`,
+			},
+			{
+				data: `package main
+func x(){
+ a := true
+ for {
+   if a {
+	   break
+	 }
+ }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(x int) {
+	switch x {
+	case 1:
+		break
+	}
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
