@@ -193,21 +193,11 @@ func isValidForPost(s ast.Stmt) bool {
 // parseForBlockStmt is an helper to make sure we inc/dec
 // loopDepth counter
 func (p *Parser) parseForBlockStmt() *ast.BlockStmt {
-	p.loopDepth++
-	defer func() {
-		p.loopDepth--
-	}()
 	return p.parseBlock()
 }
 
 // parseBreakStmt returns expressions for parseStmt func
 func (p *Parser) parseBreakStmt() ast.Stmt {
-	if p.loopDepth == 0 {
-		tok := p.next()
-		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected break expression outside for loop, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-		return &ast.BadStmt{From: tok, Reason: "expected 'break' inside 'for' loop"}
-	}
-
 	kw := p.expect(token.KWBreak, "expected 'break'")
 	if p.kind() == token.Comment {
 		_ = p.next()
@@ -229,12 +219,6 @@ func (p *Parser) parseBreakStmt() ast.Stmt {
 
 // parseContinueStmt returns expressions for parseStmt func
 func (p *Parser) parseContinueStmt() ast.Stmt {
-	if p.loopDepth == 0 {
-		tok := p.next()
-		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected continue expression outside for loop, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
-		return &ast.BadStmt{From: tok, Reason: "expected 'continue' inside 'for' loop"}
-	}
-
 	kw := p.expect(token.KWContinue, "expected 'continue'")
 	if p.kind() == token.Comment {
 		_ = p.next()

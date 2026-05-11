@@ -28,11 +28,10 @@ type Files struct {
 // Parser holds requirements with the tokens from the Lexer to
 // build the Abstract Syntax Tree (AST)
 type Parser struct {
-	Tokens    []token.Token
-	Errors    []error
-	size      int
-	position  int
-	loopDepth int
+	Tokens   []token.Token
+	Errors   []error
+	size     int
+	position int
 }
 
 const (
