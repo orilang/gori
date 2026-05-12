@@ -423,6 +423,62 @@ type test interface{
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("x10", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+type A interface {
+  X() int
+  Y(a int)
+  Z(b int) int
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  InterfaceDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "A" @3:6 (kind=3)
+   Interface: "interface" @3:8 (kind=28)
+   Public: true
+   LBrace: "{" @3:18 (kind=41)
+   Name: "X" @4:3 (kind=3)
+   Params
+    (none)
+   Results
+     Param
+      Type
+       NamedType
+        Ident: "int" @4:7 (kind=12)
+   Name: "Y" @5:3 (kind=3)
+   Params
+    Param
+     Ident: "a" @5:5 (kind=3)
+     Type
+      NamedType
+       Ident: "int" @5:7 (kind=12)
+   Name: "Z" @6:3 (kind=3)
+   Params
+    Param
+     Ident: "b" @6:5 (kind=3)
+     Type
+      NamedType
+       Ident: "int" @6:7 (kind=12)
+   Results
+     Param
+      Type
+       NamedType
+        Ident: "int" @6:12 (kind=12)
+   RBrace: "}" @7:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("bad_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)

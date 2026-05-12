@@ -93,6 +93,9 @@ func (p *Parser) parseFuncSignature() ast.InterfaceMethod {
 	}
 
 	_ = p.expect(token.RParen, "expected ')' after function name")
+	if p.newlineSincePrev() {
+		return f
+	}
 	f.Results = p.parseFuncSignatureReturnTypes()
 
 	return f
