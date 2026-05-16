@@ -113,6 +113,7 @@ type Scope struct {
 type Diagnostics struct {
 	Err error
 }
+
 type Checker struct {
 	pkgScope     *Scope // pkg only scope
 	scope        *Scope // lexical scope during statement/expression
@@ -121,6 +122,8 @@ type Checker struct {
 	typeDecls    []ast.TypeDecl
 	funcDecls    []*ast.FuncDecl
 	constDecls   []*ast.ConstDecl
+	implDecls    []*ast.ImplementsDecl
+	implInfos    []ImplInfo
 	currentFunc  *FuncType
 	inSwitchCase bool
 	loopDepth    int
@@ -140,4 +143,12 @@ type constKey struct {
 	typeID string
 	kind   constKind
 	value  string
+}
+
+type ImplInfo struct {
+	TypeName      string
+	Type          Type
+	InterfaceName string
+	Interface     *NamedType
+	Decl          *ast.ImplementsDecl
 }

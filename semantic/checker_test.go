@@ -2818,4 +2818,136 @@ func x(a bool) int {
 			}
 		}
 	})
+
+	t.Run("x19", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+type A interface {
+	X() int
+	Y(a int)
+	Z(b int) int
+}
+
+type UserID int
+type XA struct{x int}
+
+XA implements xxx
+XB implements UserID
+`,
+			},
+			{
+				data: `package main
+type A interface {
+	X() int
+	Y(a int)
+	Z(b int) int
+}
+
+type XA struct{x int}
+XA implements A
+
+func X() int {
+	return int(0)
+}
+func Y(a int) {}
+func Z(a int) int {
+	return a
+}
+			`,
+			},
+			{
+				err: true,
+				data: `package main
+type A struct {}
+
+type XA struct{x int}
+XA implements A
+
+func X() int {
+	return int(0)
+}
+func Y(a int) {}
+`,
+			},
+			// 			{
+			// 				err: true,
+			// 				data: `package main
+			// type A interface {
+			// 	X() int
+			// 	Y(a int)
+			// 	Z(b int) int
+			// }
+
+			// type XA struct{x int}
+			// XA implements A
+
+			// func X() int {
+			// 	return int(0)
+			// }
+			// func Y(a int) {}
+			// `,
+			// 			},
+			{
+				err: true,
+				data: `package main
+type A interface {
+	X() int
+	Y(a int)
+	Z(b int) int
+}
+
+type XA struct{x int}
+XA implements A
+
+func X() int {
+	return int(0)
+}
+func Y(a int) {}
+func Z(a int) (int,int) {
+	return a
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			for _, v := range parser.Errors {
+				fmt.Println(v.Error())
+			}
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			for _, v := range result {
+				fmt.Println("BBBB", v.Err.Error())
+			}
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		check.scope = NewScope(check.pkgScope)
+		check.pkgScope.Declare(&Symbol{
+			Name: "XA",
+			Kind: SymType,
+			Type: TInt,
+		})
+		check.checkImplementsDecl(&ast.ImplementsDecl{
+			TypeName:  token.Token{Value: "XA"},
+			Interface: &ast.BadType{},
+		})
+		assert.Greater(t, len(check.errors), 0)
+	})
 }

@@ -79,6 +79,7 @@ func (c *Checker) Check(file *ast.File) []Diagnostics {
 	c.createTypeObjects()
 	c.resolveTypeDecls()
 	c.resolveFuncSignatures()
+	c.checkImplementsDecls()
 	c.checkTopLevelValues(file)
 	c.checkFuncBodies()
 	return c.errors
@@ -97,6 +98,8 @@ func (c *Checker) collectTopLevelSymbols(file *ast.File) {
 			c.declareFuncSymbol(d)
 		case *ast.ConstDecl:
 			c.declareConstSymbol(d)
+		case *ast.ImplementsDecl:
+			c.implDecls = append(c.implDecls, d)
 		}
 	}
 }
@@ -519,6 +522,13 @@ func (c *Checker) resolveFuncSignatures() {
 				},
 			}
 		}
+	}
+}
+
+// checkImplementsDecls validates all "implements" declaration for interface
+func (c *Checker) checkImplementsDecls() {
+	for _, impl := range c.implDecls {
+		c.checkImplementsDecl(impl)
 	}
 }
 
@@ -1209,6 +1219,80 @@ func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
 		},
 	})
 }
+
+// checkImplementsDecl validates "implements" declaration for interface.
+// An error is emitted if any
+func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
+	sym := c.pkgScope.Lookup(decl.TypeName.Value)
+	if sym == nil || sym.Kind != SymType {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %q is undefined", decl.TypeName.Value)})
+		return
+	}
+
+	ifaceType := c.resolveType(decl.Interface)
+	if IsInvalid(ifaceType) {
+		return
+	}
+
+	ifaceNamed, ok := ifaceType.(*NamedType)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("implements target must be a named interface")})
+		return
+	}
+
+	// iface, ok := unwrapNamed(ifaceNamed).(*InterfaceType)
+	_, ok = unwrapNamed(ifaceNamed).(*InterfaceType)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %q is not an interface", ifaceNamed.Name)})
+		return
+	}
+
+	// TODO: when receivers/method sets exist:
+	// if !c.implementsInterface(ifaceType, iface) {
+	// 	return
+	// }
+
+	c.implInfos = append(c.implInfos, ImplInfo{
+		TypeName:      decl.TypeName.Value,
+		Type:          sym.Type,
+		InterfaceName: ifaceNamed.Name,
+		Interface:     ifaceNamed,
+		Decl:          decl,
+	})
+}
+
+// implementsInterface loops over interface methods to verify if all methods
+// has been implemented with the right signatures
+// func (c *Checker) implementsInterface(ifaceType Type, iface *InterfaceType) bool {
+// 	for _, im := range iface.Methods {
+// 		fn, ok := c.lookupMethod(ifaceType, im.Name)
+// 		if !ok {
+// 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("method %q not implemented", im.Name)})
+// 			return false
+// 		}
+
+// 		if !IsIdentical(im.FuncType, fn.FuncType) {
+// 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("wrong method %q signature", im.Name)})
+// 			return false
+// 		}
+// 	}
+// 	return true
+// }
+
+// lookupMethod loops over funcs methods to match provided name.
+// It returns its semantic type and true when found
+// func (c *Checker) lookupMethod(ifaceType Type, name string) (*FuncMethod, bool) {
+// 	for _, fn := range c.funcDecls {
+// 		if fn.Name.Value == name {
+// 			if sym := c.pkgScope.Lookup(name); sym.Kind == SymFunc {
+// 				if m, ok := sym.Type.(*FuncMethod); ok {
+// 					return m, true
+// 				}
+// 			}
+// 		}
+// 	}
+// 	return nil, false
+// }
 
 // checkExprStmt validates expression statement.
 // An error is emitted if any
