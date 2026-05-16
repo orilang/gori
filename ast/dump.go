@@ -39,7 +39,7 @@ func (d *dumper) node(indent int, n any) {
 		d.kv(indent+1, "Function", v.FuncKW)
 		if v.Receiver != nil {
 			d.line(indent+1, "Receiver")
-			d.kv(indent+2, "LParent", v.Receiver.LParen)
+			d.kv(indent+2, "LParen", v.Receiver.LParen)
 			if v.Receiver.Name != (token.Token{}) {
 				d.kv(indent+2, "Name", v.Name)
 			}
@@ -48,7 +48,7 @@ func (d *dumper) node(indent int, n any) {
 				d.kv(indent+2, "SharedKW", v.Receiver.SharedKW)
 			}
 			d.typ(indent+4, v.Receiver.Type)
-			d.kv(indent+2, "RParent", v.Receiver.RParen)
+			d.kv(indent+2, "RParen", v.Receiver.RParen)
 		}
 
 		d.kv(indent+1, "Name", v.Name)
@@ -68,7 +68,7 @@ func (d *dumper) node(indent int, n any) {
 		if len(v.Results.List) > 0 {
 			d.line(indent+1, "Results")
 			if v.Results.LParen != (token.Token{}) {
-				d.kv(indent+2, "LParent", v.Results.LParen)
+				d.kv(indent+2, "LParen", v.Results.LParen)
 			}
 
 			for _, p := range v.Results.List {
@@ -81,7 +81,7 @@ func (d *dumper) node(indent int, n any) {
 			}
 
 			if v.Results.RParen != (token.Token{}) {
-				d.kv(indent+2, "RParent", v.Results.RParen)
+				d.kv(indent+2, "RParen", v.Results.RParen)
 			}
 		}
 
@@ -211,14 +211,14 @@ func (d *dumper) node(indent int, n any) {
 		d.line(indent, "CallExpr")
 		d.line(indent+1, "Callee")
 		d.expr(indent+2, v.Callee)
-		d.kv(indent+1, "LParent", v.LParen)
+		d.kv(indent+1, "LParen", v.LParen)
 		if len(v.Args) > 0 {
 			d.line(indent+1, "Args:")
 			for _, v := range v.Args {
 				d.expr(indent+2, v)
 			}
 		}
-		d.kv(indent+1, "RParent", v.RParen)
+		d.kv(indent+1, "RParen", v.RParen)
 
 	case *AssignStmt:
 		d.line(indent, "AssignStmt")
@@ -393,7 +393,7 @@ func (d *dumper) node(indent int, n any) {
 				if len(f.Results.List) > 0 {
 					d.line(indent+1, "Results")
 					if f.Results.LParen != (token.Token{}) {
-						d.kv(indent+2, "LParent", f.Results.LParen)
+						d.kv(indent+2, "LParen", f.Results.LParen)
 					}
 
 					for _, p := range f.Results.List {
@@ -406,7 +406,7 @@ func (d *dumper) node(indent int, n any) {
 					}
 
 					if f.Results.RParen != (token.Token{}) {
-						d.kv(indent+2, "RParent", f.Results.RParen)
+						d.kv(indent+2, "RParen", f.Results.RParen)
 					}
 				}
 			}

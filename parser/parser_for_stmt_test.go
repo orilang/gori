@@ -1025,8 +1025,8 @@ func x(){
                Callee
                 IdentExpr
                  Name: "w" @7:4 (kind=3)
-               LParent: "(" @7:5 (kind=39)
-               RParent: ")" @7:6 (kind=40)
+               LParen: "(" @7:5 (kind=39)
+               RParen: ")" @7:6 (kind=40)
              RBrace: "}" @8:3 (kind=42)
          RBrace: "}" @9:2 (kind=42)
      RBrace: "}" @10:1 (kind=42)
@@ -1082,8 +1082,8 @@ func x(){
                Callee
                 IdentExpr
                  Name: "w" @6:15 (kind=3)
-               LParent: "(" @6:16 (kind=39)
-               RParent: ")" @6:17 (kind=40)
+               LParen: "(" @6:16 (kind=39)
+               RParen: ")" @6:17 (kind=40)
              RBrace: "}" @7:3 (kind=42)
          RBrace: "}" @8:2 (kind=42)
      RBrace: "}" @9:1 (kind=42)
@@ -1140,8 +1140,8 @@ func x(){
                Callee
                 IdentExpr
                  Name: "w" @7:4 (kind=3)
-               LParent: "(" @7:5 (kind=39)
-               RParent: ")" @7:6 (kind=40)
+               LParen: "(" @7:5 (kind=39)
+               RParen: ")" @7:6 (kind=40)
              RBrace: "}" @8:3 (kind=42)
          RBrace: "}" @9:2 (kind=42)
      RBrace: "}" @10:1 (kind=42)
@@ -1197,8 +1197,8 @@ func x(){
                Callee
                 IdentExpr
                  Name: "w" @6:12 (kind=3)
-               LParent: "(" @6:13 (kind=39)
-               RParent: ")" @6:14 (kind=40)
+               LParen: "(" @6:13 (kind=39)
+               RParen: ")" @6:14 (kind=40)
              RBrace: "}" @7:3 (kind=42)
          RBrace: "}" @8:2 (kind=42)
      RBrace: "}" @9:1 (kind=42)
@@ -1255,8 +1255,8 @@ func x(){
                Callee
                 IdentExpr
                  Name: "w" @7:5 (kind=3)
-               LParent: "(" @7:6 (kind=39)
-               RParent: ")" @7:7 (kind=40)
+               LParen: "(" @7:6 (kind=39)
+               RParen: ")" @7:7 (kind=40)
              RBrace: "}" @8:3 (kind=42)
          RBrace: "}" @9:2 (kind=42)
      RBrace: "}" @10:1 (kind=42)
@@ -1315,8 +1315,8 @@ func x(){
                Callee
                 IdentExpr
                  Name: "w" @9:5 (kind=3)
-               LParent: "(" @9:6 (kind=39)
-               RParent: ")" @9:7 (kind=40)
+               LParen: "(" @9:6 (kind=39)
+               RParen: ")" @9:7 (kind=40)
              RBrace: "}" @10:3 (kind=42)
          RBrace: "}" @11:2 (kind=42)
      RBrace: "}" @12:1 (kind=42)
@@ -1373,8 +1373,8 @@ func x(){
                Callee
                 IdentExpr
                  Name: "w" @7:5 (kind=3)
-               LParent: "(" @7:6 (kind=39)
-               RParent: ")" @7:7 (kind=40)
+               LParen: "(" @7:6 (kind=39)
+               RParen: ")" @7:7 (kind=40)
              RBrace: "}" @8:3 (kind=42)
          RBrace: "}" @9:2 (kind=42)
      RBrace: "}" @10:1 (kind=42)
@@ -1433,8 +1433,8 @@ func x(){
                Callee
                 IdentExpr
                  Name: "w" @9:5 (kind=3)
-               LParent: "(" @9:6 (kind=39)
-               RParent: ")" @9:7 (kind=40)
+               LParen: "(" @9:6 (kind=39)
+               RParen: ")" @9:7 (kind=40)
              RBrace: "}" @10:3 (kind=42)
          RBrace: "}" @11:2 (kind=42)
      RBrace: "}" @12:1 (kind=42)

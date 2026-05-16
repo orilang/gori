@@ -62,7 +62,7 @@ func x()(int,int){
    Params
     (none)
    Results
-    LParent: "(" @3:9 (kind=39)
+    LParen: "(" @3:9 (kind=39)
      Param
       Type
        NamedType
@@ -71,7 +71,7 @@ func x()(int,int){
       Type
        NamedType
         Ident: "int" @3:14 (kind=12)
-    RParent: ")" @3:17 (kind=40)
+    RParen: ")" @3:17 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -97,7 +97,7 @@ func x()(a int,b int){}
    Params
     (none)
    Results
-    LParent: "(" @3:9 (kind=39)
+    LParen: "(" @3:9 (kind=39)
      Param
       Ident: "a" @3:10 (kind=3)
       Type
@@ -108,7 +108,7 @@ func x()(a int,b int){}
       Type
        NamedType
         Ident: "int" @3:18 (kind=12)
-    RParent: ")" @3:21 (kind=40)
+    RParen: ")" @3:21 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -158,7 +158,7 @@ func x()(a z, b z){}
    Params
     (none)
    Results
-    LParent: "(" @3:9 (kind=39)
+    LParen: "(" @3:9 (kind=39)
      Param
       Ident: "a" @3:10 (kind=3)
       Type
@@ -169,7 +169,7 @@ func x()(a z, b z){}
       Type
        NamedType
         Ident: "z" @3:17 (kind=3)
-    RParent: ")" @3:18 (kind=40)
+    RParen: ")" @3:18 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -195,13 +195,13 @@ func x()(a z){}
    Params
     (none)
    Results
-    LParent: "(" @3:9 (kind=39)
+    LParen: "(" @3:9 (kind=39)
      Param
       Ident: "a" @3:10 (kind=3)
       Type
        NamedType
         Ident: "z" @3:12 (kind=3)
-    RParent: ")" @3:13 (kind=40)
+    RParen: ")" @3:13 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -227,7 +227,7 @@ func x()(a []int){}
    Params
     (none)
    Results
-    LParent: "(" @3:9 (kind=39)
+    LParen: "(" @3:9 (kind=39)
      Param
       Ident: "a" @3:10 (kind=3)
       Type
@@ -236,7 +236,7 @@ func x()(a []int){}
         RBracket: "]" @3:13 (kind=44)
         NamedType
          Ident: "int" @3:14 (kind=12)
-    RParent: ")" @3:17 (kind=40)
+    RParen: ")" @3:17 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -294,7 +294,7 @@ func x()([]int,[]string){}
    Params
     (none)
    Results
-    LParent: "(" @3:9 (kind=39)
+    LParen: "(" @3:9 (kind=39)
      Param
       Type
        SliceType:
@@ -309,7 +309,7 @@ func x()([]int,[]string){}
         RBracket: "]" @3:17 (kind=44)
         NamedType
          Ident: "string" @3:18 (kind=24)
-    RParent: ")" @3:24 (kind=40)
+    RParen: ")" @3:24 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -350,7 +350,7 @@ func x4(m map[string]string) map[string]string {}
         NamedType
          Ident: "string" @3:22 (kind=24)
    Results
-    LParent: "(" @3:29 (kind=39)
+    LParen: "(" @3:29 (kind=39)
      Param
       Type
        SliceType:
@@ -370,7 +370,7 @@ func x4(m map[string]string) map[string]string {}
         ValueType:
          NamedType
           Ident: "string" @3:47 (kind=24)
-    RParent: ")" @3:53 (kind=40)
+    RParen: ")" @3:53 (kind=40)
    Body
   FuncDecl
    Function: "func" @4:1 (kind=10)
@@ -390,7 +390,7 @@ func x4(m map[string]string) map[string]string {}
         NamedType
          Ident: "string" @4:22 (kind=24)
    Results
-    LParent: "(" @4:29 (kind=39)
+    LParen: "(" @4:29 (kind=39)
      Param
       Ident: "a" @4:30 (kind=3)
       Type
@@ -412,7 +412,7 @@ func x4(m map[string]string) map[string]string {}
         ValueType:
          NamedType
           Ident: "string" @4:52 (kind=24)
-    RParent: ")" @4:58 (kind=40)
+    RParen: ")" @4:58 (kind=40)
    Body
   FuncDecl
    Function: "func" @5:1 (kind=10)
@@ -497,16 +497,16 @@ func (a User) x()(a int,b int){}
   FuncDecl
    Function: "func" @3:1 (kind=10)
    Receiver
-    LParent: "(" @3:6 (kind=39)
+    LParen: "(" @3:6 (kind=39)
     Name: "x" @3:15 (kind=3)
       NamedType
        Ident: "User" @3:9 (kind=3)
-    RParent: ")" @3:13 (kind=40)
+    RParen: ")" @3:13 (kind=40)
    Name: "x" @3:15 (kind=3)
    Params
     (none)
    Results
-    LParent: "(" @3:18 (kind=39)
+    LParen: "(" @3:18 (kind=39)
      Param
       Ident: "a" @3:19 (kind=3)
       Type
@@ -517,7 +517,7 @@ func (a User) x()(a int,b int){}
       Type
        NamedType
         Ident: "int" @3:27 (kind=12)
-    RParent: ")" @3:30 (kind=40)
+    RParen: ")" @3:30 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -540,17 +540,17 @@ func (a shared User) x()(a int,b int){}
   FuncDecl
    Function: "func" @3:1 (kind=10)
    Receiver
-    LParent: "(" @3:6 (kind=39)
+    LParen: "(" @3:6 (kind=39)
     Name: "x" @3:22 (kind=3)
     SharedKW: "shared" @3:9 (kind=77)
       NamedType
        Ident: "User" @3:16 (kind=3)
-    RParent: ")" @3:20 (kind=40)
+    RParen: ")" @3:20 (kind=40)
    Name: "x" @3:22 (kind=3)
    Params
     (none)
    Results
-    LParent: "(" @3:25 (kind=39)
+    LParen: "(" @3:25 (kind=39)
      Param
       Ident: "a" @3:26 (kind=3)
       Type
@@ -561,7 +561,7 @@ func (a shared User) x()(a int,b int){}
       Type
        NamedType
         Ident: "int" @3:34 (kind=12)
-    RParent: ")" @3:37 (kind=40)
+    RParen: ")" @3:37 (kind=40)
    Body
 `
 		fmt.Printf("%s\n", ast.Dump(pr))
@@ -588,15 +588,15 @@ func (User) x()(a int,b int){}
   FuncDecl
    Function: "func" @3:1 (kind=10)
    Receiver
-    LParent: "(" @3:6 (kind=39)
+    LParen: "(" @3:6 (kind=39)
       NamedType
        Ident: "User" @3:7 (kind=3)
-    RParent: ")" @3:11 (kind=40)
+    RParen: ")" @3:11 (kind=40)
    Name: "x" @3:13 (kind=3)
    Params
     (none)
    Results
-    LParent: "(" @3:16 (kind=39)
+    LParen: "(" @3:16 (kind=39)
      Param
       Ident: "a" @3:17 (kind=3)
       Type
@@ -607,7 +607,7 @@ func (User) x()(a int,b int){}
       Type
        NamedType
         Ident: "int" @3:25 (kind=12)
-    RParent: ")" @3:28 (kind=40)
+    RParen: ")" @3:28 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -630,16 +630,16 @@ func (shared User) x()(a int,b int){}
   FuncDecl
    Function: "func" @3:1 (kind=10)
    Receiver
-    LParent: "(" @3:6 (kind=39)
+    LParen: "(" @3:6 (kind=39)
     SharedKW: "shared" @3:7 (kind=77)
       NamedType
        Ident: "User" @3:14 (kind=3)
-    RParent: ")" @3:18 (kind=40)
+    RParen: ")" @3:18 (kind=40)
    Name: "x" @3:20 (kind=3)
    Params
     (none)
    Results
-    LParent: "(" @3:23 (kind=39)
+    LParen: "(" @3:23 (kind=39)
      Param
       Ident: "a" @3:24 (kind=3)
       Type
@@ -650,7 +650,7 @@ func (shared User) x()(a int,b int){}
       Type
        NamedType
         Ident: "int" @3:32 (kind=12)
-    RParent: ")" @3:35 (kind=40)
+    RParen: ")" @3:35 (kind=40)
    Body
 `
 		assert.Equal(result, ast.Dump(pr))

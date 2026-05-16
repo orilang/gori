@@ -258,8 +258,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
        Case: "default" @7:5 (kind=36)
        Colon: ":" @7:12 (kind=47)
         Body:
@@ -379,14 +379,14 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @7:7 (kind=3)
-          LParent: "(" @7:8 (kind=39)
-          RParent: ")" @7:9 (kind=40)
+          LParen: "(" @7:8 (kind=39)
+          RParen: ")" @7:9 (kind=40)
          CallExpr
           Callee
            IdentExpr
             Name: "c" @8:7 (kind=3)
-          LParent: "(" @8:8 (kind=39)
-          RParent: ")" @8:9 (kind=40)
+          LParen: "(" @8:8 (kind=39)
+          RParen: ")" @8:9 (kind=40)
        Case: "default" @9:5 (kind=36)
        Colon: ":" @9:12 (kind=47)
         Body:
@@ -446,14 +446,14 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
          CallExpr
           Callee
            IdentExpr
             Name: "c" @7:7 (kind=3)
-          LParent: "(" @7:8 (kind=39)
-          RParent: ")" @7:9 (kind=40)
+          LParen: "(" @7:8 (kind=39)
+          RParen: ")" @7:9 (kind=40)
        Case: "default" @8:5 (kind=36)
        Colon: ":" @8:12 (kind=47)
         Body:
@@ -511,8 +511,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
          FallThroughStmt
           FallThrough: "fallthrough" @7:7 (kind=37)
        Case: "case" @8:5 (kind=35)
@@ -525,8 +525,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @9:7 (kind=3)
-          LParent: "(" @9:8 (kind=39)
-          RParent: ")" @9:9 (kind=40)
+          LParen: "(" @9:8 (kind=39)
+          RParen: ")" @9:9 (kind=40)
        RBrace: "}" @10:3 (kind=42)
      RBrace: "}" @11:1 (kind=42)
 `
@@ -577,8 +577,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
          FallThroughStmt
           FallThrough: "fallthrough" @7:7 (kind=37)
        Case: "case" @8:5 (kind=35)
@@ -591,8 +591,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @9:7 (kind=3)
-          LParent: "(" @9:8 (kind=39)
-          RParent: ")" @9:9 (kind=40)
+          LParen: "(" @9:8 (kind=39)
+          RParen: ")" @9:9 (kind=40)
        RBrace: "}" @10:3 (kind=42)
      RBrace: "}" @11:1 (kind=42)
 `
@@ -647,8 +647,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
          FallThroughStmt
           FallThrough: "fallthrough" @7:7 (kind=37)
        Case: "case" @8:5 (kind=35)
@@ -661,8 +661,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @9:7 (kind=3)
-          LParent: "(" @9:8 (kind=39)
-          RParent: ")" @9:9 (kind=40)
+          LParen: "(" @9:8 (kind=39)
+          RParen: ")" @9:9 (kind=40)
        RBrace: "}" @10:3 (kind=42)
      RBrace: "}" @11:1 (kind=42)
 `
@@ -719,8 +719,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
        Case: "case" @7:5 (kind=35)
         Values:
          IntLitExpr
@@ -731,8 +731,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @8:7 (kind=3)
-          LParent: "(" @8:8 (kind=39)
-          RParent: ")" @8:9 (kind=40)
+          LParen: "(" @8:8 (kind=39)
+          RParen: ")" @8:9 (kind=40)
        RBrace: "}" @9:3 (kind=42)
      RBrace: "}" @10:1 (kind=42)
 `
@@ -795,8 +795,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @7:7 (kind=3)
-          LParent: "(" @7:8 (kind=39)
-          RParent: ")" @7:9 (kind=40)
+          LParen: "(" @7:8 (kind=39)
+          RParen: ")" @7:9 (kind=40)
        Case: "case" @8:5 (kind=35)
         Values:
          IntLitExpr
@@ -807,8 +807,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @9:7 (kind=3)
-          LParent: "(" @9:8 (kind=39)
-          RParent: ")" @9:9 (kind=40)
+          LParen: "(" @9:8 (kind=39)
+          RParen: ")" @9:9 (kind=40)
        RBrace: "}" @10:3 (kind=42)
      RBrace: "}" @11:1 (kind=42)
 `
@@ -868,8 +868,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @7:7 (kind=3)
-          LParent: "(" @7:8 (kind=39)
-          RParent: ")" @7:9 (kind=40)
+          LParen: "(" @7:8 (kind=39)
+          RParen: ")" @7:9 (kind=40)
        Case: "case" @8:5 (kind=35)
         Values:
          IntLitExpr
@@ -880,8 +880,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @9:7 (kind=3)
-          LParent: "(" @9:8 (kind=39)
-          RParent: ")" @9:9 (kind=40)
+          LParen: "(" @9:8 (kind=39)
+          RParen: ")" @9:9 (kind=40)
        RBrace: "}" @10:3 (kind=42)
      RBrace: "}" @11:1 (kind=42)
 `
@@ -941,8 +941,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @7:7 (kind=3)
-          LParent: "(" @7:8 (kind=39)
-          RParent: ")" @7:9 (kind=40)
+          LParen: "(" @7:8 (kind=39)
+          RParen: ")" @7:9 (kind=40)
        Case: "case" @8:5 (kind=35)
         Values:
          IntLitExpr
@@ -955,8 +955,8 @@ func x(){
             Callee
              IdentExpr
               Name: "c" @9:14 (kind=3)
-            LParent: "(" @9:15 (kind=39)
-            RParent: ")" @9:16 (kind=40)
+            LParen: "(" @9:15 (kind=39)
+            RParen: ")" @9:16 (kind=40)
        RBrace: "}" @10:3 (kind=42)
      RBrace: "}" @11:1 (kind=42)
 `
@@ -1130,8 +1130,8 @@ func x(){
            Callee
             IdentExpr
              Name: "w" @4:13 (kind=3)
-           LParent: "(" @4:14 (kind=39)
-           RParent: ")" @4:15 (kind=40)
+           LParen: "(" @4:14 (kind=39)
+           RParen: ")" @4:15 (kind=40)
        Tag:
         IdentExpr
          Name: "z" @4:17 (kind=3)
@@ -1150,8 +1150,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
        Case: "case" @7:5 (kind=35)
         Values:
          IntLitExpr
@@ -1162,8 +1162,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @8:7 (kind=3)
-          LParent: "(" @8:8 (kind=39)
-          RParent: ")" @8:9 (kind=40)
+          LParen: "(" @8:8 (kind=39)
+          RParen: ")" @8:9 (kind=40)
        RBrace: "}" @9:2 (kind=42)
      RBrace: "}" @10:1 (kind=42)
 `
@@ -1214,8 +1214,8 @@ func x(){
            Callee
             IdentExpr
              Name: "w" @4:13 (kind=3)
-           LParent: "(" @4:14 (kind=39)
-           RParent: ")" @4:15 (kind=40)
+           LParen: "(" @4:14 (kind=39)
+           RParen: ")" @4:15 (kind=40)
        Tag:
         IdentExpr
          Name: "z" @4:17 (kind=3)
@@ -1236,8 +1236,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @7:7 (kind=3)
-          LParent: "(" @7:8 (kind=39)
-          RParent: ")" @7:9 (kind=40)
+          LParen: "(" @7:8 (kind=39)
+          RParen: ")" @7:9 (kind=40)
        Case: "case" @8:5 (kind=35)
         Values:
          IntLitExpr
@@ -1248,8 +1248,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @9:7 (kind=3)
-          LParent: "(" @9:8 (kind=39)
-          RParent: ")" @9:9 (kind=40)
+          LParen: "(" @9:8 (kind=39)
+          RParen: ")" @9:9 (kind=40)
        RBrace: "}" @10:2 (kind=42)
      RBrace: "}" @11:1 (kind=42)
 `
@@ -1300,8 +1300,8 @@ func x(){
            Callee
             IdentExpr
              Name: "w" @4:13 (kind=3)
-           LParent: "(" @4:14 (kind=39)
-           RParent: ")" @4:15 (kind=40)
+           LParen: "(" @4:14 (kind=39)
+           RParen: ")" @4:15 (kind=40)
        Tag:
         IdentExpr
          Name: "z" @4:17 (kind=3)
@@ -1322,8 +1322,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @7:7 (kind=3)
-          LParent: "(" @7:8 (kind=39)
-          RParent: ")" @7:9 (kind=40)
+          LParen: "(" @7:8 (kind=39)
+          RParen: ")" @7:9 (kind=40)
        Case: "case" @8:5 (kind=35)
         Values:
          IntLitExpr
@@ -1334,8 +1334,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @9:7 (kind=3)
-          LParent: "(" @9:8 (kind=39)
-          RParent: ")" @9:9 (kind=40)
+          LParen: "(" @9:8 (kind=39)
+          RParen: ")" @9:9 (kind=40)
        RBrace: "}" @10:2 (kind=42)
      RBrace: "}" @11:1 (kind=42)
 `
@@ -1385,8 +1385,8 @@ func x(){
            Callee
             IdentExpr
              Name: "w" @4:13 (kind=3)
-           LParent: "(" @4:14 (kind=39)
-           RParent: ")" @4:15 (kind=40)
+           LParen: "(" @4:14 (kind=39)
+           RParen: ")" @4:15 (kind=40)
        Tag:
         IdentExpr
          Name: "z" @4:17 (kind=3)
@@ -1412,8 +1412,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @8:7 (kind=3)
-          LParent: "(" @8:8 (kind=39)
-          RParent: ")" @8:9 (kind=40)
+          LParen: "(" @8:8 (kind=39)
+          RParen: ")" @8:9 (kind=40)
        RBrace: "}" @9:2 (kind=42)
      RBrace: "}" @10:1 (kind=42)
 `
@@ -1466,14 +1466,14 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
          CallExpr
           Callee
            IdentExpr
             Name: "c" @7:7 (kind=3)
-          LParent: "(" @7:8 (kind=39)
-          RParent: ")" @7:9 (kind=40)
+          LParen: "(" @7:8 (kind=39)
+          RParen: ")" @7:9 (kind=40)
        Case: "default" @8:5 (kind=36)
        Colon: ":" @8:12 (kind=47)
        Case: "default" @9:5 (kind=36)
@@ -1529,8 +1529,8 @@ func x(){
           Callee
            IdentExpr
             Name: "b" @6:7 (kind=3)
-          LParent: "(" @6:8 (kind=39)
-          RParent: ")" @6:9 (kind=40)
+          LParen: "(" @6:8 (kind=39)
+          RParen: ")" @6:9 (kind=40)
          FallThroughStmt
           FallThrough: "fallthrough" @7:7 (kind=37)
          FallThroughStmt
@@ -1545,8 +1545,8 @@ func x(){
           Callee
            IdentExpr
             Name: "c" @10:7 (kind=3)
-          LParent: "(" @10:8 (kind=39)
-          RParent: ")" @10:9 (kind=40)
+          LParen: "(" @10:8 (kind=39)
+          RParen: ")" @10:9 (kind=40)
        RBrace: "}" @11:2 (kind=42)
      RBrace: "}" @12:1 (kind=42)
 `

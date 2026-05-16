@@ -177,8 +177,8 @@ func x(){
          Callee
           IdentExpr
            Name: "f" @4:5 (kind=3)
-         LParent: "(" @4:6 (kind=39)
-         RParent: ")" @4:7 (kind=40)
+         LParen: "(" @4:6 (kind=39)
+         RParen: ")" @4:7 (kind=40)
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -213,8 +213,8 @@ func x(){
        Callee
         IdentExpr
          Name: "f" @4:3 (kind=3)
-       LParent: "(" @4:4 (kind=39)
-       RParent: ")" @4:5 (kind=40)
+       LParen: "(" @4:4 (kind=39)
+       RParen: ")" @4:5 (kind=40)
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -256,8 +256,8 @@ func x(a []int){
        Callee
         IdentExpr
          Name: "f" @4:3 (kind=3)
-       LParent: "(" @4:4 (kind=39)
-       RParent: ")" @4:5 (kind=40)
+       LParen: "(" @4:4 (kind=39)
+       RParen: ")" @4:5 (kind=40)
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -301,8 +301,8 @@ func x(a [5]int){
        Callee
         IdentExpr
          Name: "f" @4:3 (kind=3)
-       LParent: "(" @4:4 (kind=39)
-       RParent: ")" @4:5 (kind=40)
+       LParen: "(" @4:4 (kind=39)
+       RParen: ")" @4:5 (kind=40)
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))

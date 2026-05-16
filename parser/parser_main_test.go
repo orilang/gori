@@ -684,8 +684,8 @@ func TestParser_main_expr(t *testing.T) {
  Callee
   IdentExpr
    Name: "f" @1:1 (kind=3)
- LParent: "(" @1:2 (kind=39)
- RParent: ")" @1:3 (kind=40)
+ LParen: "(" @1:2 (kind=39)
+ RParen: ")" @1:3 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -702,7 +702,7 @@ func TestParser_main_expr(t *testing.T) {
  Callee
   IdentExpr
    Name: "f" @1:1 (kind=3)
- LParent: "(" @1:2 (kind=39)
+ LParen: "(" @1:2 (kind=39)
  Args:
   IntLitExpr
    Value: "1" @1:3 (kind=4)
@@ -712,7 +712,7 @@ func TestParser_main_expr(t *testing.T) {
    Operator: "+" @1:6 (kind=51)
    IntLitExpr
     Value: "3" @1:7 (kind=4)
- RParent: ")" @1:8 (kind=40)
+ RParen: ")" @1:8 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -755,11 +755,11 @@ func TestParser_main_expr(t *testing.T) {
      Name: "a" @1:1 (kind=3)
    Dot: "." @1:2 (kind=48)
    Selector: "b" @1:3 (kind=3)
- LParent: "(" @1:4 (kind=39)
+ LParen: "(" @1:4 (kind=39)
  Args:
   IntLitExpr
    Value: "1" @1:5 (kind=4)
- RParent: ")" @1:6 (kind=40)
+ RParen: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -784,11 +784,11 @@ func TestParser_main_expr(t *testing.T) {
         Name: "a" @1:1 (kind=3)
       Dot: "." @1:2 (kind=48)
       Selector: "b" @1:3 (kind=3)
-    LParent: "(" @1:4 (kind=39)
+    LParen: "(" @1:4 (kind=39)
     Args:
      IntLitExpr
       Value: "1" @1:5 (kind=4)
-    RParent: ")" @1:6 (kind=40)
+    RParen: ")" @1:6 (kind=40)
    LBracket: "[" @1:7 (kind=43)
     IntLitExpr
      Value: "2" @1:8 (kind=4)
@@ -815,11 +815,11 @@ func TestParser_main_expr(t *testing.T) {
   Callee
    IdentExpr
     Name: "f" @1:3 (kind=3)
-  LParent: "(" @1:4 (kind=39)
+  LParen: "(" @1:4 (kind=39)
   Args:
    IntLitExpr
     Value: "1" @1:5 (kind=4)
-  RParent: ")" @1:6 (kind=40)
+  RParen: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -844,11 +844,11 @@ func TestParser_main_expr(t *testing.T) {
       Name: "a" @1:3 (kind=3)
     Dot: "." @1:4 (kind=48)
     Selector: "b" @1:5 (kind=3)
-  LParent: "(" @1:6 (kind=39)
+  LParen: "(" @1:6 (kind=39)
   Args:
    IntLitExpr
     Value: "1" @1:7 (kind=4)
-  RParent: ")" @1:8 (kind=40)
+  RParen: ")" @1:8 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -869,8 +869,8 @@ func TestParser_main_expr(t *testing.T) {
   Callee
    IdentExpr
     Name: "f" @1:4 (kind=3)
-  LParent: "(" @1:5 (kind=39)
-  RParent: ")" @1:6 (kind=40)
+  LParen: "(" @1:5 (kind=39)
+  RParen: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -895,8 +895,8 @@ func TestParser_main_expr(t *testing.T) {
        Name: "a" @1:2 (kind=3)
      Dot: "." @1:3 (kind=48)
      Selector: "b" @1:4 (kind=3)
-   LParent: "(" @1:5 (kind=39)
-   RParent: ")" @1:6 (kind=40)
+   LParen: "(" @1:5 (kind=39)
+   RParen: ")" @1:6 (kind=40)
   LBracket: "[" @1:7 (kind=43)
    IntLitExpr
     Value: "0" @1:8 (kind=4)
@@ -933,13 +933,13 @@ func TestParser_main_expr(t *testing.T) {
    Callee
     IdentExpr
      Name: "f" @1:1 (kind=3)
-   LParent: "(" @1:2 (kind=39)
-   RParent: ")" @1:3 (kind=40)
- LParent: "(" @1:4 (kind=39)
+   LParen: "(" @1:2 (kind=39)
+   RParen: ")" @1:3 (kind=40)
+ LParen: "(" @1:4 (kind=39)
  Args:
   IntLitExpr
    Value: "1" @1:5 (kind=4)
- RParent: ")" @1:6 (kind=40)
+ RParen: ")" @1:6 (kind=40)
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))

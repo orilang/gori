@@ -331,13 +331,13 @@ type test struct{
      Callee
       IdentExpr
        Name: "join" @4:11 (kind=3)
-     LParent: "(" @4:15 (kind=39)
+     LParen: "(" @4:15 (kind=39)
      Args:
       IdentExpr
        Name: "a" @4:16 (kind=3)
       IdentExpr
        Name: "b" @4:19 (kind=3)
-     RParent: ")" @4:20 (kind=40)
+     RParen: ")" @4:20 (kind=40)
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))

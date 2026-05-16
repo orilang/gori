@@ -288,7 +288,7 @@ type test interface{
    Params
     (none)
    Results
-    LParent: "(" @4:6 (kind=39)
+    LParen: "(" @4:6 (kind=39)
      Param
       Ident: "y" @4:7 (kind=3)
       Type
@@ -299,7 +299,7 @@ type test interface{
       Type
        NamedType
         Ident: "int" @4:15 (kind=12)
-    RParent: ")" @4:18 (kind=40)
+    RParen: ")" @4:18 (kind=40)
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -376,7 +376,7 @@ type test interface{
    Params
     (none)
    Results
-    LParent: "(" @4:6 (kind=39)
+    LParen: "(" @4:6 (kind=39)
      Param
       Type
        NamedType
@@ -385,7 +385,7 @@ type test interface{
       Type
        NamedType
         Ident: "int" @4:10 (kind=12)
-    RParent: ")" @4:13 (kind=40)
+    RParen: ")" @4:13 (kind=40)
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
