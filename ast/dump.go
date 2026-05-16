@@ -41,7 +41,7 @@ func (d *dumper) node(indent int, n any) {
 			d.line(indent+1, "Receiver")
 			d.kv(indent+2, "LParen", v.Receiver.LParen)
 			if v.Receiver.Name != (token.Token{}) {
-				d.kv(indent+2, "Name", v.Name)
+				d.kv(indent+2, "Name", v.Receiver.Name)
 			}
 
 			if v.Receiver.SharedKW != (token.Token{}) {

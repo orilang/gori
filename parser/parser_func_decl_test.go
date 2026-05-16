@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -498,7 +497,7 @@ func (a User) x()(a int,b int){}
    Function: "func" @3:1 (kind=10)
    Receiver
     LParen: "(" @3:6 (kind=39)
-    Name: "x" @3:15 (kind=3)
+    Name: "a" @3:7 (kind=3)
       NamedType
        Ident: "User" @3:9 (kind=3)
     RParen: ")" @3:13 (kind=40)
@@ -541,7 +540,7 @@ func (a shared User) x()(a int,b int){}
    Function: "func" @3:1 (kind=10)
    Receiver
     LParen: "(" @3:6 (kind=39)
-    Name: "x" @3:22 (kind=3)
+    Name: "a" @3:7 (kind=3)
     SharedKW: "shared" @3:9 (kind=77)
       NamedType
        Ident: "User" @3:16 (kind=3)
@@ -564,10 +563,6 @@ func (a shared User) x()(a int,b int){}
     RParen: ")" @3:37 (kind=40)
    Body
 `
-		fmt.Printf("%s\n", ast.Dump(pr))
-		for _, v := range parser.Errors {
-			fmt.Println(v.Error())
-		}
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
 	})
@@ -1096,7 +1091,7 @@ func () x()(){}
 		assert.Greater(len(parser.Errors), 0)
 	})
 
-	t.Run("bad_receiver_x1", func(t *testing.T) {
+	t.Run("bad_receiver_x2", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
 		data := `package main
