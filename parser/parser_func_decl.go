@@ -10,13 +10,18 @@ import (
 // parseFuncDecl returns function declaration
 func (p *Parser) parseFuncDecl() ast.Decl {
 	kw := p.expect(token.KWFunc, "expected 'func'")
-	name := p.expectValidIdent(token.Ident, false, "expected function name")
-	_ = p.expect(token.LParen, "expected '(' after function name")
 
 	f := &ast.FuncDecl{
 		FuncKW: kw,
-		Name:   name,
 	}
+
+	if p.kind() == token.LParen {
+		f.Receiver = p.parseReceiver(true)
+	}
+
+	f.Name = p.expectValidIdent(token.Ident, false, "expected function name")
+	_ = p.expect(token.LParen, "expected '(' after function name")
+
 	for p.kind() != token.RParen && p.kind() != token.EOF {
 		if p.kind() == token.Comma {
 			tok := p.expect(token.Comma, "expected ','")
@@ -46,6 +51,45 @@ func (p *Parser) parseFuncDecl() ast.Decl {
 	f.Body = body
 
 	return f
+}
+
+// parseReceiver returns receiver config
+func (p *Parser) parseReceiver(forbidBlankIdentifier bool) *ast.Receiver {
+	lb := p.expect(token.LParen, "expected '('")
+
+	recv := &ast.Receiver{
+		LParen: lb,
+	}
+
+	// (User)
+	if p.kind() == token.Ident {
+		if p.kindNext(p.position+1) == token.RParen {
+			recv.Type = &ast.NamedType{
+				Parts: []token.Token{p.expectValidIdent(p.kind(), forbidBlankIdentifier, "expected valid ident")},
+			}
+			recv.RParen = p.expect(token.RParen, "expected ')'")
+			return recv
+		} else {
+			recv.Name = p.expectValidIdent(p.kind(), forbidBlankIdentifier, "expected valid ident")
+		}
+	}
+
+	if p.kind() == token.KWShared {
+		recv.SharedKW = p.expect(token.KWShared, "expected 'shared'")
+	}
+
+	if p.kind() == token.Ident {
+		recv.Type = &ast.NamedType{
+			Parts: []token.Token{p.expectValidIdent(p.kind(), forbidBlankIdentifier, "expected valid ident")},
+		}
+	} else {
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
+		p.consumeTo(token.RBracket)
+		return recv
+	}
+
+	recv.RParen = p.expect(token.RParen, "expected ')'")
+	return recv
 }
 
 // parseFuncParam returns function parameter

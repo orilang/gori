@@ -37,6 +37,20 @@ func (d *dumper) node(indent int, n any) {
 	case *FuncDecl:
 		d.line(indent, "FuncDecl")
 		d.kv(indent+1, "Function", v.FuncKW)
+		if v.Receiver != nil {
+			d.line(indent+1, "Receiver")
+			d.kv(indent+2, "LParent", v.Receiver.LParen)
+			if v.Receiver.Name != (token.Token{}) {
+				d.kv(indent+2, "Name", v.Name)
+			}
+
+			if v.Receiver.SharedKW != (token.Token{}) {
+				d.kv(indent+2, "SharedKW", v.Receiver.SharedKW)
+			}
+			d.typ(indent+4, v.Receiver.Type)
+			d.kv(indent+2, "RParent", v.Receiver.RParen)
+		}
+
 		d.kv(indent+1, "Name", v.Name)
 
 		d.line(indent+1, "Params")

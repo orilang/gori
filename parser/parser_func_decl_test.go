@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -480,6 +481,182 @@ func x4(m map[string]string) map[string]string {}
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("receiver_x1", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func (a User) x()(a int,b int){}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Receiver
+    LParent: "(" @3:6 (kind=39)
+    Name: "x" @3:15 (kind=3)
+      NamedType
+       Ident: "User" @3:9 (kind=3)
+    RParent: ")" @3:13 (kind=40)
+   Name: "x" @3:15 (kind=3)
+   Params
+    (none)
+   Results
+    LParent: "(" @3:18 (kind=39)
+     Param
+      Ident: "a" @3:19 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @3:21 (kind=12)
+     Param
+      Ident: "b" @3:25 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @3:27 (kind=12)
+    RParent: ")" @3:30 (kind=40)
+   Body
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("receiver_x2", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func (a shared User) x()(a int,b int){}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Receiver
+    LParent: "(" @3:6 (kind=39)
+    Name: "x" @3:22 (kind=3)
+    SharedKW: "shared" @3:9 (kind=77)
+      NamedType
+       Ident: "User" @3:16 (kind=3)
+    RParent: ")" @3:20 (kind=40)
+   Name: "x" @3:22 (kind=3)
+   Params
+    (none)
+   Results
+    LParent: "(" @3:25 (kind=39)
+     Param
+      Ident: "a" @3:26 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @3:28 (kind=12)
+     Param
+      Ident: "b" @3:32 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @3:34 (kind=12)
+    RParent: ")" @3:37 (kind=40)
+   Body
+`
+		fmt.Printf("%s\n", ast.Dump(pr))
+		for _, v := range parser.Errors {
+			fmt.Println(v.Error())
+		}
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("receiver_x3", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func (User) x()(a int,b int){}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Receiver
+    LParent: "(" @3:6 (kind=39)
+      NamedType
+       Ident: "User" @3:7 (kind=3)
+    RParent: ")" @3:11 (kind=40)
+   Name: "x" @3:13 (kind=3)
+   Params
+    (none)
+   Results
+    LParent: "(" @3:16 (kind=39)
+     Param
+      Ident: "a" @3:17 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @3:19 (kind=12)
+     Param
+      Ident: "b" @3:23 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @3:25 (kind=12)
+    RParent: ")" @3:28 (kind=40)
+   Body
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("receiver_x4", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func (shared User) x()(a int,b int){}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Receiver
+    LParent: "(" @3:6 (kind=39)
+    SharedKW: "shared" @3:7 (kind=77)
+      NamedType
+       Ident: "User" @3:14 (kind=3)
+    RParent: ")" @3:18 (kind=40)
+   Name: "x" @3:20 (kind=3)
+   Params
+    (none)
+   Results
+    LParent: "(" @3:23 (kind=39)
+     Param
+      Ident: "a" @3:24 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @3:26 (kind=12)
+     Param
+      Ident: "b" @3:30 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @3:32 (kind=12)
+    RParent: ")" @3:35 (kind=40)
+   Body
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("struct_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
@@ -899,6 +1076,32 @@ func x()(_ b){}
 		data := `package main
 
 func x()(a _){}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
+
+	t.Run("bad_receiver_x1", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func () x()(){}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
+
+	t.Run("bad_receiver_x1", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func (x map[string]string) x()(){}
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()

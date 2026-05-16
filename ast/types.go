@@ -21,11 +21,21 @@ type File struct {
 
 // FuncDecl holds function parsed content
 type FuncDecl struct {
-	FuncKW  token.Token
-	Name    token.Token
-	Params  []Param
-	Results ReturnTypes
-	Body    *BlockStmt
+	FuncKW   token.Token
+	Name     token.Token
+	Receiver *Receiver
+	Params   []Param
+	Results  ReturnTypes
+	Body     *BlockStmt
+}
+
+// Receiver holds function parsed receiver content
+type Receiver struct {
+	LParen   token.Token
+	Name     token.Token
+	SharedKW token.Token
+	Type     Type
+	RParen   token.Token
 }
 
 // Params holds func parameter
