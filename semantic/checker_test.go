@@ -2827,6 +2827,201 @@ func x(a bool) int {
 			{
 				err: true,
 				data: `package main
+type A interface {}
+func (a A) name() {}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const A int = 0
+func (a A) name() {}
+`,
+			},
+			{
+				data: `package main
+type A struct{}
+func (a A) name() {}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type A struct{}
+func (a A) name() {}
+func (a A) name() {}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+
+func (u User) name(a string) string { return a }
+func (u User) age(a int) int { return a }
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func (u User) name(a string, a string) string { return a }
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func (u User) name(u User, a string) string { return a }
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func (u User) name(a string) string { return a }
+func (u User) age(a int) int { return u.namee() }
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+
+func (u User) name(a string) string { return a }
+func (u User) test() string { return u.name("test") }
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func (u User) name(a string) string { return a }
+func (u User) test() string { return u.name() }
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func (u User) name(a string) string { return a }
+func (u User) test() string { return u.name(int(0)) }
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func (u User) name(a string) (string, string) { return a }
+func (u User) test() string { return u.name("a") }
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func (u User) name(a string) {}
+func (u User) test() string { return u.name("a") }
+`,
+			},
+			{
+				data: `package main
+type User struct {
+	name string
+}
+
+func (u User) name() string {
+	return "method"
+}
+
+func f(u User) string {
+	return u.name()
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+
+func (u User) name() string { return "x" }
+
+func f(u User) {
+	u.name()
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+
+func (u User) name() int { return int(0) }
+
+func f(u User) {
+	u.name()
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+type UserID int
+
+func (u User) name() UserID { return UserID(0) }
+
+func f(u User) {
+	u.name()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const u int = int(1)
+type User struct {}
+
+func (u User) name() string {
+	return "ok"
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			for _, v := range parser.Errors {
+				fmt.Println(v.Error())
+			}
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			for _, v := range result {
+				fmt.Println("BBBB", v.Err.Error())
+			}
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
+
+	t.Run("x20", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
 type A interface {
 	X() int
 	Y(a int)

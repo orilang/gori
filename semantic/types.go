@@ -121,6 +121,8 @@ type Checker struct {
 	errors       []Diagnostics
 	typeDecls    []ast.TypeDecl
 	funcDecls    []*ast.FuncDecl
+	methodDecls  []*ast.FuncDecl
+	methods      map[*NamedType]map[string]*FuncMethod
 	constDecls   []*ast.ConstDecl
 	implDecls    []*ast.ImplementsDecl
 	implInfos    []ImplInfo

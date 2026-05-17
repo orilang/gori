@@ -79,6 +79,7 @@ func (c *Checker) Check(file *ast.File) []Diagnostics {
 	c.createTypeObjects()
 	c.resolveTypeDecls()
 	c.resolveFuncSignatures()
+	c.resolveMethodSignatures()
 	c.checkImplementsDecls()
 	c.checkTopLevelValues(file)
 	c.checkFuncBodies()
@@ -95,7 +96,11 @@ func (c *Checker) collectTopLevelSymbols(file *ast.File) {
 		case ast.TypeDecl:
 			c.declareTypeSymbol(d)
 		case *ast.FuncDecl:
-			c.declareFuncSymbol(d)
+			if d.Receiver != nil {
+				c.methodDecls = append(c.methodDecls, d)
+			} else {
+				c.declareFuncSymbol(d)
+			}
 		case *ast.ConstDecl:
 			c.declareConstSymbol(d)
 		case *ast.ImplementsDecl:
@@ -175,6 +180,28 @@ func (c *Checker) declareFuncSymbol(fn *ast.FuncDecl) {
 	}
 
 	c.funcDecls = append(c.funcDecls, fn)
+}
+
+// declareMethodSymbol declares new type symbol with its name
+// and append diagnostics errors when already exists
+func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod, decl *ast.FuncDecl) {
+	seen := c.methods
+	if seen == nil {
+		c.methods = make(map[*NamedType]map[string]*FuncMethod)
+	}
+
+	rcv := c.methods[receiver]
+	if rcv == nil {
+		rcv = make(map[string]*FuncMethod)
+		c.methods[receiver] = rcv
+	}
+
+	if _, exists := rcv[fm.Name]; exists {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("method %q already declared", fm.Name)})
+		return
+	}
+
+	rcv[decl.Name.Value] = fm
 }
 
 // declareConstSymbol declares new type symbol with its name
@@ -525,6 +552,34 @@ func (c *Checker) resolveFuncSignatures() {
 	}
 }
 
+// resolveMethodSignatures resolves the ast FuncDecl declaration with receiver to return
+// the semantic view of the FuncMethod. A diagnostic is emitted when duplicates found
+func (c *Checker) resolveMethodSignatures() {
+	for _, decl := range c.methodDecls {
+		recvType := c.resolveType(decl.Receiver.Type)
+		namedRcv, ok := recvType.(*NamedType)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("receiver must be a named type got %#v", namedRcv)})
+			continue
+		}
+
+		if _, ok := unwrapNamed(namedRcv).(*InterfaceType); ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("receiver cannot be an interface type")})
+			continue
+		}
+
+		fm := &FuncMethod{
+			Name: decl.Name.Value,
+			FuncType: &FuncType{
+				Params:  c.resolveParams("param", decl.Params),
+				Results: c.resolveParams("result", decl.Results.List),
+			},
+		}
+
+		c.declareMethodSymbol(namedRcv, fm, decl)
+	}
+}
+
 // checkImplementsDecls validates all "implements" declaration for interface
 func (c *Checker) checkImplementsDecls() {
 	for _, impl := range c.implDecls {
@@ -672,6 +727,32 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 		return TInvalid
 
 	case *ast.CallExpr:
+		if sel, ok := t.Callee.(*ast.SelectorExpr); ok {
+			if named, ok := c.checkExpr(sel.X).(*NamedType); ok {
+				if method, ok := c.lookupMethodType(named, sel.Selector.Value); ok {
+					if len(t.Args) != len(method.FuncType.Params) {
+						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments %s func params required %d got %d", method.Name, len(method.FuncType.Params), len(t.Args))})
+						return TInvalid
+					}
+					for k, v := range method.FuncType.Params {
+						x := c.checkExpr(t.Args[k])
+						if !IsAssignableTo(v.Type, x) {
+							c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", v.Type, x)})
+							return TInvalid
+						}
+					}
+					if len(method.FuncType.Results) == 0 {
+						return nil
+					}
+					if len(method.FuncType.Results) > 1 {
+						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %s func", method.Name)})
+						return TInvalid
+					}
+					return method.FuncType.Results[0].Type
+				}
+			}
+		}
+
 		calleeType := c.checkExpr(t.Callee)
 		if named, ok := calleeType.(*NamedType); ok {
 			if len(t.Args) != 1 {
@@ -679,10 +760,10 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 				return TInvalid
 			}
 			arg := c.checkExpr(t.Args[0])
-			if IsConvertibleTo(named, arg) {
+			if IsConvertibleTo(arg, named) {
 				return named
 			}
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %s to %#v", named.Name, arg)})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %#v to  %s", arg, named.Name)})
 			return TInvalid
 		}
 
@@ -787,8 +868,14 @@ func (c *Checker) checkFuncBodies() {
 	for _, fn := range c.funcDecls {
 		c.checkFuncBody(fn)
 	}
+
+	for _, fn := range c.methodDecls {
+		c.checkMethodBody(fn)
+	}
 }
 
+// checkFuncBody validates function body.
+// An error is emitted if any
 func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 	oldScope := c.scope
 	oldFunc := c.currentFunc
@@ -818,6 +905,59 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 			Kind: SymVar,
 			Type: p.Type,
 		})
+	}
+
+	c.checkBlockStmt(fn.Body)
+}
+
+// checkMethodBody validates method.
+// An error is emitted if any
+func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
+	oldScope := c.scope
+	oldFunc := c.currentFunc
+	oldUseScope := c.useScope
+	defer func() {
+		c.scope = oldScope
+		c.currentFunc = oldFunc
+		c.useScope = oldUseScope
+	}()
+
+	recvType := c.resolveType(fn.Receiver.Type)
+	namedRcv, ok := recvType.(*NamedType)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("receiver must be a named type got %#v", namedRcv)})
+		return
+	}
+
+	method, ok := c.lookupMethodType(namedRcv, fn.Name.Value)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("method type undefined")})
+		return
+	}
+
+	c.currentFunc = method.FuncType
+	c.scope = NewScope(c.pkgScope)
+	c.useScope = true
+
+	if !c.isNameAvailable("receiver", fn.Receiver.Name.Value) {
+		return
+	}
+
+	c.scope.Declare(&Symbol{
+		Name: fn.Receiver.Name.Value,
+		Kind: SymVar,
+		Type: recvType,
+	})
+
+	for _, p := range method.FuncType.Params {
+		if !c.scope.Declare(&Symbol{
+			Name: p.Name,
+			Kind: SymVar,
+			Type: p.Type,
+		}) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("param %q already declared", p.Name)})
+			return
+		}
 	}
 
 	c.checkBlockStmt(fn.Body)
@@ -1282,17 +1422,29 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 // lookupMethod loops over funcs methods to match provided name.
 // It returns its semantic type and true when found
 // func (c *Checker) lookupMethod(ifaceType Type, name string) (*FuncMethod, bool) {
-// 	for _, fn := range c.funcDecls {
-// 		if fn.Name.Value == name {
-// 			if sym := c.pkgScope.Lookup(name); sym.Kind == SymFunc {
-// 				if m, ok := sym.Type.(*FuncMethod); ok {
-// 					return m, true
-// 				}
-// 			}
+// 	if _, ok := c.methods[ifaceType];ok {
+// 	for k, fn := range c.methods {
+// 		if fm, ok := fn[name]; ok  {
 // 		}
+// 	}
 // 	}
 // 	return nil, false
 // }
+
+// lookupMethodType loops over methods to match provided named type and func name.
+// It returns its semantic type and true when found
+func (c *Checker) lookupMethodType(named *NamedType, name string) (*FuncMethod, bool) {
+	if c.methods == nil {
+		return nil, false
+	}
+
+	if method, ok := c.methods[named]; ok {
+		if m, ok := method[name]; ok {
+			return m, true
+		}
+	}
+	return nil, false
+}
 
 // checkExprStmt validates expression statement.
 // An error is emitted if any
@@ -1300,6 +1452,11 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	call, ok := stmt.Expr.(*ast.CallExpr)
 	if !ok {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("call expression statement must be a function call, got %#v", call)})
+		return
+	}
+
+	if _, ok := call.Callee.(*ast.SelectorExpr); ok {
+		_ = c.checkExpr(stmt.Expr)
 		return
 	}
 
