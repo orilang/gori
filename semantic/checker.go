@@ -32,6 +32,31 @@ func (s *Scope) Declare(sym *Symbol) bool {
 	return true
 }
 
+// declareNoShadow declares new symbol by enforcing there is no shadowing
+// and return true when NOT exists
+func (c *Checker) declareNoShadow(scope *Scope, sym *Symbol, kind string) bool {
+	if scope == nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot declare %q on nil scope", sym.Name)})
+		return false
+	}
+
+	if sym.Name == "" || sym.Name == "_" {
+		return true
+	}
+
+	if scope.Lookup(sym.Name) != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("%s %q already declared", kind, sym.Name)})
+		return false
+	}
+
+	if !scope.Declare(sym) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("internal checker error: %s %q already declared in current scope", kind, sym.Name)})
+		return false
+	}
+
+	return true
+}
+
 // Lookup allows us to loop over parent scope in order to find the provided one and returns its related Symbol if exists
 func (s *Scope) Lookup(name string) *Symbol {
 	for scope := s; scope != nil; scope = scope.Parent {
@@ -94,15 +119,39 @@ func (c *Checker) collectTopLevelSymbols(file *ast.File) {
 	for _, decl := range file.Decls {
 		switch d := decl.(type) {
 		case ast.TypeDecl:
-			c.declareTypeSymbol(d)
+			if !c.declareNoShadow(c.pkgScope, &Symbol{
+				Name: typeDeclName(decl),
+				Kind: SymType,
+				Decl: decl,
+			}, "symbol") {
+				continue
+			}
+			c.typeDecls = append(c.typeDecls, d)
+
 		case *ast.FuncDecl:
 			if d.Receiver != nil {
 				c.methodDecls = append(c.methodDecls, d)
 			} else {
-				c.declareFuncSymbol(d)
+				if !c.declareNoShadow(c.pkgScope, &Symbol{
+					Name: d.Name.Value,
+					Kind: SymFunc,
+					Decl: d,
+				}, "symbol") {
+					continue
+				}
+				c.funcDecls = append(c.funcDecls, d)
 			}
+
 		case *ast.ConstDecl:
-			c.declareConstSymbol(d)
+			if !c.declareNoShadow(c.pkgScope, &Symbol{
+				Name: typeDeclName(decl),
+				Kind: SymConst,
+				Decl: decl,
+			}, "symbol") {
+				continue
+			}
+			c.constDecls = append(c.constDecls, d)
+
 		case *ast.ImplementsDecl:
 			c.implDecls = append(c.implDecls, d)
 		}
@@ -143,45 +192,6 @@ func exprName(decl ast.Expr) string {
 	}
 }
 
-// declareTypeSymbol declares new type symbol with its name
-// and append diagnostics errors when already exists
-func (c *Checker) declareTypeSymbol(decl ast.TypeDecl) {
-	name := typeDeclName(decl)
-	if name == "" {
-		return
-	}
-
-	sym := &Symbol{
-		Name: name,
-		Kind: SymType,
-		Decl: decl,
-	}
-
-	if !c.pkgScope.Declare(sym) {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("symbol %q already declared", name)})
-		return
-	}
-
-	c.typeDecls = append(c.typeDecls, decl)
-}
-
-// declareFuncSymbol declares new type symbol with its name
-// and append diagnostics errors when already exists
-func (c *Checker) declareFuncSymbol(fn *ast.FuncDecl) {
-	sym := &Symbol{
-		Name: fn.Name.Value,
-		Kind: SymFunc,
-		Decl: fn,
-	}
-
-	if !c.pkgScope.Declare(sym) {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("symbol %q already declared", fn.Name.Value)})
-		return
-	}
-
-	c.funcDecls = append(c.funcDecls, fn)
-}
-
 // declareMethodSymbol declares new type symbol with its name
 // and append diagnostics errors when already exists
 func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod, decl *ast.FuncDecl) {
@@ -202,28 +212,6 @@ func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod, decl 
 	}
 
 	rcv[decl.Name.Value] = fm
-}
-
-// declareConstSymbol declares new type symbol with its name
-// and append diagnostics errors when already exists
-func (c *Checker) declareConstSymbol(decl *ast.ConstDecl) {
-	name := typeDeclName(decl)
-	if name == "" {
-		return
-	}
-
-	sym := &Symbol{
-		Name: name,
-		Kind: SymConst,
-		Decl: decl,
-	}
-
-	if !c.pkgScope.Declare(sym) {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("symbol %q already declared", name)})
-		return
-	}
-
-	c.constDecls = append(c.constDecls, decl)
 }
 
 // createTypeObjects create structured type objects
@@ -596,7 +584,7 @@ func (c *Checker) resolveParams(kind string, pr []ast.Param) []Param {
 	for _, p := range pr {
 		if p.Name.Value != "" {
 			if prev := seen[p.Name.Value]; prev != nil {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("method %s name %q already declared", kind, p.Name.Value)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("%s name %q already declared", kind, p.Name.Value)})
 				continue
 			}
 
@@ -900,11 +888,13 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 	c.useScope = true
 
 	for _, p := range fnType.FuncType.Params {
-		c.scope.Declare(&Symbol{
+		if !c.declareNoShadow(c.scope, &Symbol{
 			Name: p.Name,
 			Kind: SymVar,
 			Type: p.Type,
-		})
+		}, "variable") {
+			continue
+		}
 	}
 
 	c.checkBlockStmt(fn.Body)
@@ -939,23 +929,21 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 	c.scope = NewScope(c.pkgScope)
 	c.useScope = true
 
-	if !c.isNameAvailable("receiver", fn.Receiver.Name.Value) {
-		return
-	}
-
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: fn.Receiver.Name.Value,
 		Kind: SymVar,
 		Type: recvType,
-	})
+	}, "receiver",
+	) {
+		return
+	}
 
 	for _, p := range method.FuncType.Params {
-		if !c.scope.Declare(&Symbol{
+		if !c.declareNoShadow(c.scope, &Symbol{
 			Name: p.Name,
 			Kind: SymVar,
 			Type: p.Type,
-		}) {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("param %q already declared", p.Name)})
+		}, "variable") {
 			return
 		}
 	}
@@ -1055,12 +1043,6 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 // checkScopeConstDecl validates constant targetType and valueType.
 // An error is emitted if any
 func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) {
-	sym := c.scope.Lookup(decl.Name.Value)
-	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("const %s already declared", decl.Name.Value)})
-		return
-	}
-
 	targetType := c.resolveType(decl.Type)
 	valueType := c.checkExpr(decl.Init)
 
@@ -1069,23 +1051,19 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) {
 		return
 	}
 
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymConst,
 		Type: targetType,
 		Decl: decl,
-	})
+	}, "const") {
+		return
+	}
 }
 
 // checkScopeVarDecl validates constant targetType and valueType.
 // An error is emitted if any
 func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) {
-	sym := c.scope.Lookup(decl.Name.Value)
-	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %s already declared", decl.Name.Value)})
-		return
-	}
-
 	targetType := c.resolveType(decl.Type)
 	valueType := c.checkExpr(decl.Init)
 
@@ -1094,12 +1072,14 @@ func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) {
 		return
 	}
 
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymVar,
 		Type: targetType,
 		Decl: decl,
-	})
+	}, "variable") {
+		return
+	}
 }
 
 // checkAssignableExpr returns valid assignable expression.
@@ -1188,17 +1168,13 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
 		return
 	}
 
-	sym := c.scope.Lookup(x.Name.Value)
-	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %s already declared", x.Name.Value)})
-		return
-	}
-
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: x.Name.Value,
 		Kind: SymVar,
 		Type: valueType,
-	})
+	}, "variable") {
+		return
+	}
 }
 
 // checkReturnStmt checks returned values statement types and length.
@@ -1251,13 +1227,7 @@ func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) {
 // checkDefinedTypeDecl validates type declaration statement.
 // An error is emitted if any
 func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) {
-	sym := c.scope.Lookup(decl.Name.Value)
-	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
-		return
-	}
-
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -1265,19 +1235,15 @@ func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) {
 			Decl:           decl,
 			UnderlyingType: c.resolveType(decl.Type),
 		},
-	})
+	}, "type") {
+		return
+	}
 }
 
 // checkStructDecl validates struct statement.
 // An error is emitted if any
 func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
-	sym := c.scope.Lookup(decl.Name.Value)
-	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
-		return
-	}
-
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -1288,19 +1254,15 @@ func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
 				Fields: c.resolveStructFields(decl.Fields),
 			},
 		},
-	})
+	}, "type") {
+		return
+	}
 }
 
 // checkEnumDecl validates struct statement.
 // An error is emitted if any
 func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) {
-	sym := c.scope.Lookup(decl.Name.Value)
-	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
-		return
-	}
-
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -1311,19 +1273,15 @@ func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) {
 				Variants: c.resolveEnumVariants(decl.Variants),
 			},
 		},
-	})
+	}, "type") {
+		return
+	}
 }
 
 // checkSumDecl validates struct statement.
 // An error is emitted if any
 func (c *Checker) checkSumDecl(decl *ast.SumDecl) {
-	sym := c.scope.Lookup(decl.Name.Value)
-	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
-		return
-	}
-
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -1334,19 +1292,15 @@ func (c *Checker) checkSumDecl(decl *ast.SumDecl) {
 				Variants: c.resolveSumVariants(decl.Variants),
 			},
 		},
-	})
+	}, "type") {
+		return
+	}
 }
 
 // checkInterfaceDecl validates interface declaration statement.
 // An error is emitted if any
 func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
-	sym := c.scope.Lookup(decl.Name.Value)
-	if sym != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %s already declared", decl.Name.Value)})
-		return
-	}
-
-	c.scope.Declare(&Symbol{
+	if !c.declareNoShadow(c.scope, &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -1357,7 +1311,9 @@ func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
 				Methods: c.resolveInterfaceMethods(decl.Methods),
 			},
 		},
-	})
+	}, "type") {
+		return
+	}
 }
 
 // checkImplementsDecl validates "implements" declaration for interface.
@@ -1675,26 +1631,20 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 			blockScope := NewScope(c.scope)
 			c.scope = blockScope
 
-			if stmt.Key.Name.Value != "_" {
-				if !c.isNameAvailable("variable", stmt.Key.Name.Value) {
-					return
-				}
-				c.scope.Declare(&Symbol{
-					Name: stmt.Key.Name.Value,
-					Kind: SymVar,
-					Type: rangekeyType,
-				})
+			if !c.declareNoShadow(c.scope, &Symbol{
+				Name: stmt.Key.Name.Value,
+				Kind: SymVar,
+				Type: rangekeyType,
+			}, "variable") {
+				return
 			}
 
-			if stmt.Value.Name.Value != "_" {
-				if !c.isNameAvailable("variable", stmt.Value.Name.Value) {
-					return
-				}
-				c.scope.Declare(&Symbol{
-					Name: stmt.Value.Name.Value,
-					Kind: SymVar,
-					Type: rangeValueType,
-				})
+			if !c.declareNoShadow(c.scope, &Symbol{
+				Name: stmt.Value.Name.Value,
+				Kind: SymVar,
+				Type: rangeValueType,
+			}, "variable") {
+				return
 			}
 		} else if stmt.Key != nil {
 			if stmt.Key.Name.Value == "_" {
@@ -1710,14 +1660,13 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 			blockScope := NewScope(c.scope)
 			c.scope = blockScope
 
-			if !c.isNameAvailable("variable", stmt.Key.Name.Value) {
-				return
-			}
-			c.scope.Declare(&Symbol{
+			if !c.declareNoShadow(c.scope, &Symbol{
 				Name: stmt.Key.Name.Value,
 				Kind: SymVar,
 				Type: rangekeyType,
-			})
+			}, "variable") {
+				return
+			}
 		}
 
 	default:
@@ -1752,16 +1701,6 @@ func rangeVars(t Type) (Type, Type, bool) {
 	default:
 		return nil, nil, false
 	}
-}
-
-// isNameAvailable validates if variable has not already been declared.
-// This prevent variable shadowing which is forbidden.
-func (c *Checker) isNameAvailable(kind, name string) bool {
-	if c.scope.Lookup(name) != nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("%s %q already declared", kind, name)})
-		return false
-	}
-	return true
 }
 
 // checkSwitchStmt validates switch statement block
@@ -2074,8 +2013,7 @@ func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
 	c.scope = bodyScope
 
 	for _, b := range bindings {
-		if !c.scope.Declare(b) {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %q already declared", b.Name)})
+		if !c.declareNoShadow(c.scope, b, "variable") {
 			return
 		}
 	}
@@ -2168,7 +2106,6 @@ func (c *Checker) checkSwitchEnumBody(body []ast.Stmt) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden in enum switch type")})
 			return
 		}
-
 		c.checkStmt(b)
 	}
 }

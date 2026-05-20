@@ -347,11 +347,6 @@ type test sum {
 		assert.Equal(t, "", typeDeclName(nil))
 	})
 
-	t.Run("declare_type", func(t *testing.T) {
-		check := NewChecker()
-		check.declareTypeSymbol(nil)
-	})
-
 	t.Run("lookup", func(t *testing.T) {
 		check := NewChecker()
 		assert.Nil(t, check.pkgScope.Lookup(""))
@@ -546,12 +541,6 @@ type User struct {
 		hmpdst := src.Fields[3].Type.(*HashMapType)
 		assert.Equal(t, hmpsrc.Key, hmpdst.Key)
 		assert.Equal(t, hmpsrc.Value, hmpdst.Value)
-	})
-
-	t.Run("declare_const_symbol", func(t *testing.T) {
-		check := NewChecker()
-		x := &ast.ConstDecl{}
-		check.declareConstSymbol(x)
 	})
 
 	t.Run("check_expr", func(t *testing.T) {
@@ -2801,16 +2790,10 @@ func x(a bool) int {
 			require.NoError(t, err)
 			parser := parser.New(lex.FetchTokensFromString(tc.data))
 			pr := parser.ParseFile()
-			for _, v := range parser.Errors {
-				fmt.Println(v.Error())
-			}
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
 			result := check.Check(pr)
-			for _, v := range result {
-				fmt.Println("BBBB", v.Err.Error())
-			}
 			if tc.err {
 				assert.Greater(t, len(result), 0, i)
 			} else {
@@ -2996,16 +2979,10 @@ func (u User) name() string {
 			require.NoError(t, err)
 			parser := parser.New(lex.FetchTokensFromString(tc.data))
 			pr := parser.ParseFile()
-			for _, v := range parser.Errors {
-				fmt.Println(v.Error())
-			}
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
 			result := check.Check(pr)
-			for _, v := range result {
-				fmt.Println("BBBB", v.Err.Error())
-			}
 			if tc.err {
 				assert.Greater(t, len(result), 0, i)
 			} else {
@@ -3144,5 +3121,96 @@ func Z(a int) (int,int) {
 			Interface: &ast.BadType{},
 		})
 		assert.Greater(t, len(check.errors), 0)
+	})
+
+	t.Run("x21", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+const u int = int(1)
+type User struct {}
+
+func (u User) name() string {
+	return "x"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func (u User) name(u string) string {
+	return u
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const x int = int(1)
+
+func f(x int) int {
+	return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const x int = int(1)
+
+func f(a int,a int) int {
+	return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const x int = int(1)
+
+func f() {
+  var x int = int(2)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  const x int = int(1)
+  var x int = int(2)
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		assert.Equal(t, false, check.declareNoShadow(nil, &Symbol{Name: "test"}, "const"))
+		check.scope = NewScope(check.pkgScope)
+		check.useScope = true
+		assert.Equal(t, true, check.scope.Declare(&Symbol{Name: "test", Kind: SymConst}))
+		assert.Equal(t, false, check.scope.Declare(&Symbol{Name: "test", Kind: SymConst}))
 	})
 }
