@@ -17,7 +17,7 @@ func TestParser_parser_make_cap(t *testing.T) {
 		data := `package main
 
 func main() {
-  var x map[string]string = make(map[string]string)
+  var x map[string]string = make(map[string]string) // comment
   var y hashmap[string]string = make(hashmap[string]string)
 }
 `

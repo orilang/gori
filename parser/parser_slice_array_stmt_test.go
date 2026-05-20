@@ -16,7 +16,7 @@ func TestParser_slice_array_stmt(t *testing.T) {
 		assert.Nil(err)
 		data := `package main
 
-const x []int=[]int{1,2,3}
+const x []int=[]int{1,2,3} // comment
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
@@ -61,7 +61,7 @@ const x []int=[]int{1,2,3}
 
 func main(){
   const x []int=[]int{1,2,3}
-  const y []int=[]int{1,2,3}
+  const y []int=[]int{1,2,3} // comment
 }
 `
 		parser := New(lex.FetchTokensFromString(data))
@@ -217,7 +217,7 @@ func main(){
 		data := `package main
 
 func main(){
-  var x []int=[]int{1,2,3}
+  var x []int=[]int{1,2,3} // comment
 }
 `
 		parser := New(lex.FetchTokensFromString(data))
@@ -330,7 +330,7 @@ func main(){
 
 func main(){
   var x []int=[]int{1,2,3}
-  var y []int=x[:]
+  var y []int=x[:] // comment
 }
 `
 		parser := New(lex.FetchTokensFromString(data))
@@ -403,7 +403,7 @@ func main(){
 
 func main(){
   var x []int=[]int{1,2,3}
-  var y view []int=x[3:6];
+  var y view []int=x[3:6]; // comment
   var z []int=[]int{1,2,3}
 }
 `
@@ -506,7 +506,7 @@ func main(){
 		data := `package main
 
 func main(){
-  var y view []int=x[:6]
+  var y view []int=x[:6] // comment
 }
 `
 		parser := New(lex.FetchTokensFromString(data))
@@ -556,7 +556,7 @@ func main(){
 		data := `package main
 
 func main(){
-  var y view []int=x[6]
+  var y view []int=x[6]; // comment
 }
 `
 		parser := New(lex.FetchTokensFromString(data))
@@ -790,7 +790,7 @@ func main(){
 
 func main(){
   var x [5]int=[]int{1,2,3}
-	var y view []int=x[:]
+	var y view []int=x[:]; // comment
 }
 `
 		parser := New(lex.FetchTokensFromString(data))

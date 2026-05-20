@@ -14,7 +14,7 @@ func TestParser_parse_const_decl(t *testing.T) {
 	t.Run("float_lit", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
-		data := `const a float = 3.14
+		data := `const a float = 3.14 // comment
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseConstDecl()
@@ -183,7 +183,7 @@ func TestParser_parse_var_decl(t *testing.T) {
 	t.Run("indent_lit", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
-		data := `var a string = x
+		data := `var a string = x // comment
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.parseVarDecl()

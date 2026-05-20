@@ -94,6 +94,10 @@ func (p *Parser) parseSliceElements() *ast.SliceLitExpr {
 		_ = p.expect(token.SemiComma, "expected ';'")
 	}
 
+	if p.kind() == token.Comment {
+		_ = p.expect(token.Comment, "expected comment")
+	}
+
 	return se
 }
 
@@ -111,12 +115,28 @@ func (p *Parser) parseSliceExpr(left ast.Expr) *ast.SliceExpr {
 			x.High = p.parseExpr(LOWEST)
 		}
 		x.RBracket = p.expect(token.RBracket, "RBracket expected ']'")
+
+		if p.kind() == token.SemiComma {
+			_ = p.expect(token.SemiComma, "expected ';'")
+		}
+
+		if p.kind() == token.Comment {
+			_ = p.expect(token.Comment, "expected comment")
+		}
 		return x
 	}
 
 	x.Low = p.parseExpr(LOWEST)
 	if p.kind() != token.Colon {
 		x.RBracket = p.expect(token.RBracket, "RBracket expected ']'")
+
+		if p.kind() == token.SemiComma {
+			_ = p.expect(token.SemiComma, "expected ';'")
+		}
+
+		if p.kind() == token.Comment {
+			_ = p.expect(token.Comment, "expected comment")
+		}
 		return x
 	}
 
@@ -128,6 +148,10 @@ func (p *Parser) parseSliceExpr(left ast.Expr) *ast.SliceExpr {
 
 	if p.kind() == token.SemiComma {
 		_ = p.expect(token.SemiComma, "expected ';'")
+	}
+
+	if p.kind() == token.Comment {
+		_ = p.expect(token.Comment, "expected comment")
 	}
 
 	return x

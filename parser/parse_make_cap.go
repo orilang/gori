@@ -63,5 +63,9 @@ func (p *Parser) parseMakeExpr() *ast.MakeExpr {
 		_ = p.expect(token.SemiComma, "expected ';'")
 	}
 
+	if p.kind() == token.Comment {
+		_ = p.expect(token.Comment, "expected comment")
+	}
+
 	return x
 }
