@@ -194,9 +194,8 @@ func exprName(decl ast.Expr) string {
 
 // declareMethodSymbol declares new type symbol with its name
 // and append diagnostics errors when already exists
-func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod, decl *ast.FuncDecl) {
-	seen := c.methods
-	if seen == nil {
+func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod) {
+	if c.methods == nil {
 		c.methods = make(map[*NamedType]map[string]*FuncMethod)
 	}
 
@@ -211,7 +210,7 @@ func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod, decl 
 		return
 	}
 
-	rcv[decl.Name.Value] = fm
+	rcv[fm.Name] = fm
 }
 
 // createTypeObjects create structured type objects
@@ -564,7 +563,7 @@ func (c *Checker) resolveMethodSignatures() {
 			},
 		}
 
-		c.declareMethodSymbol(namedRcv, fm, decl)
+		c.declareMethodSymbol(namedRcv, fm)
 	}
 }
 
@@ -1325,6 +1324,17 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 		return
 	}
 
+	implementer, ok := sym.Type.(*NamedType)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("%q is not a named type", decl.TypeName.Value)})
+		return
+	}
+
+	if _, ok := unwrapNamed(implementer).(*InterfaceType); ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("%q cannot implement another interface", decl.TypeName.Value)})
+		return
+	}
+
 	ifaceType := c.resolveType(decl.Interface)
 	if IsInvalid(ifaceType) {
 		return
@@ -1336,21 +1346,20 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 		return
 	}
 
-	// iface, ok := unwrapNamed(ifaceNamed).(*InterfaceType)
-	_, ok = unwrapNamed(ifaceNamed).(*InterfaceType)
+	iface, ok := unwrapNamed(ifaceNamed).(*InterfaceType)
 	if !ok {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("type %q is not an interface", ifaceNamed.Name)})
 		return
 	}
 
-	// TODO: when receivers/method sets exist:
-	// if !c.implementsInterface(ifaceType, iface) {
-	// 	return
-	// }
+	if !c.implementsInterface(implementer, iface) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("%q interface implementation is invalid", decl.TypeName.Value)})
+		return
+	}
 
 	c.implInfos = append(c.implInfos, ImplInfo{
 		TypeName:      decl.TypeName.Value,
-		Type:          sym.Type,
+		Type:          implementer,
 		InterfaceName: ifaceNamed.Name,
 		Interface:     ifaceNamed,
 		Decl:          decl,
@@ -1358,34 +1367,22 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 }
 
 // implementsInterface loops over interface methods to verify if all methods
-// has been implemented with the right signatures
-// func (c *Checker) implementsInterface(ifaceType Type, iface *InterfaceType) bool {
-// 	for _, im := range iface.Methods {
-// 		fn, ok := c.lookupMethod(ifaceType, im.Name)
-// 		if !ok {
-// 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("method %q not implemented", im.Name)})
-// 			return false
-// 		}
+// have been implemented with the right signatures
+func (c *Checker) implementsInterface(named *NamedType, iface *InterfaceType) bool {
+	for _, im := range iface.Methods {
+		fn, ok := c.lookupMethodType(named, im.Name)
+		if !ok {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("method %q not implemented", im.Name)})
+			return false
+		}
 
-// 		if !IsIdentical(im.FuncType, fn.FuncType) {
-// 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("wrong method %q signature", im.Name)})
-// 			return false
-// 		}
-// 	}
-// 	return true
-// }
-
-// lookupMethod loops over funcs methods to match provided name.
-// It returns its semantic type and true when found
-// func (c *Checker) lookupMethod(ifaceType Type, name string) (*FuncMethod, bool) {
-// 	if _, ok := c.methods[ifaceType];ok {
-// 	for k, fn := range c.methods {
-// 		if fm, ok := fn[name]; ok  {
-// 		}
-// 	}
-// 	}
-// 	return nil, false
-// }
+		if !IsIdentical(im.FuncType, fn.FuncType) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("wrong method %q signature", im.Name)})
+			return false
+		}
+	}
+	return true
+}
 
 // lookupMethodType loops over methods to match provided named type and func name.
 // It returns its semantic type and true when found

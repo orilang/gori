@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -3013,6 +3012,7 @@ XB implements UserID
 `,
 			},
 			{
+				err: true,
 				data: `package main
 type A interface {
 	X() int
@@ -3030,12 +3030,96 @@ func Y(a int) {}
 func Z(a int) int {
 	return a
 }
-			`,
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type A interface {
+	X() int
+	Y(a int)
+	Z(b int) int
+}
+
+type B interface {
+	X() int
+	Y(a int)
+	Z(b int) int
+}
+
+B implements A
+
+func (x XA) X() int {
+	return int(0)
+}
+func (x XA) Y(a int) {}
+func (x XA) Z(b int) int {
+	return b
+}
+`,
+			},
+			{
+				data: `package main
+type A interface {
+	X() int
+	Y(a int)
+	Z(b int) int
+}
+
+type XA struct{x int}
+XA implements A
+
+func (x XA) X() int {
+	return int(0)
+}
+func (x XA) Y(a int) {}
+func (x XA) Z(b int) int {
+	return b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type A interface {
+	X() int
+	Y(a int)
+	Z(b int) int
+}
+
+type XA struct{x int}
+XA implements A
+
+func (x XA) X() int {
+	return int(0)
+}
+func (x XA) Y(a int) {}
+func (x XA) Z(b int) (int,int) {
+	return b,b
+}
+`,
 			},
 			{
 				err: true,
 				data: `package main
 type A struct {}
+type XA struct{x int}
+XA implements A
+
+func X() int {
+	return int(0)
+}
+func Y(a int) {}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type A interface {
+	X() int
+	Y(a int)
+	Z(b int) int
+}
 
 type XA struct{x int}
 XA implements A
@@ -3046,24 +3130,6 @@ func X() int {
 func Y(a int) {}
 `,
 			},
-			// 			{
-			// 				err: true,
-			// 				data: `package main
-			// type A interface {
-			// 	X() int
-			// 	Y(a int)
-			// 	Z(b int) int
-			// }
-
-			// type XA struct{x int}
-			// XA implements A
-
-			// func X() int {
-			// 	return int(0)
-			// }
-			// func Y(a int) {}
-			// `,
-			// 			},
 			{
 				err: true,
 				data: `package main
@@ -3092,16 +3158,10 @@ func Z(a int) (int,int) {
 			require.NoError(t, err)
 			parser := parser.New(lex.FetchTokensFromString(tc.data))
 			pr := parser.ParseFile()
-			for _, v := range parser.Errors {
-				fmt.Println(v.Error())
-			}
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
 			result := check.Check(pr)
-			for _, v := range result {
-				fmt.Println("BBBB", v.Err.Error())
-			}
 			if tc.err {
 				assert.Greater(t, len(result), 0, i)
 			} else {
@@ -3120,6 +3180,25 @@ func Z(a int) (int,int) {
 			TypeName:  token.Token{Value: "XA"},
 			Interface: &ast.BadType{},
 		})
+
+		check.pkgScope.Declare(&Symbol{
+			Name: "XB",
+			Kind: SymType,
+			Type: &NamedType{
+				Name:           "XB",
+				UnderlyingType: &StructType{},
+			},
+		})
+
+		check.checkImplementsDecl(&ast.ImplementsDecl{
+			TypeName: token.Token{Value: "XB"},
+			Interface: &ast.NamedType{
+				Parts: []token.Token{
+					{Kind: token.KWInt, Value: "int"},
+				},
+			},
+		})
+
 		assert.Greater(t, len(check.errors), 0)
 	})
 
