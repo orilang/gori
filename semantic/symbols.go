@@ -15,8 +15,9 @@ const (
 )
 
 type Symbol struct {
-	Name string
-	Kind SymbolKind
-	Type Type
-	Decl ast.Decl
+	Name       string
+	Kind       SymbolKind
+	Type       Type
+	Decl       ast.Decl
+	IsComptime bool
 }

@@ -115,20 +115,22 @@ type Diagnostics struct {
 }
 
 type Checker struct {
-	pkgScope     *Scope // pkg only scope
-	scope        *Scope // lexical scope during statement/expression
-	useScope     bool
-	errors       []Diagnostics
-	typeDecls    []ast.TypeDecl
-	funcDecls    []*ast.FuncDecl
-	methodDecls  []*ast.FuncDecl
-	methods      map[*NamedType]map[string]*FuncMethod
-	constDecls   []*ast.ConstDecl
-	implDecls    []*ast.ImplementsDecl
-	implInfos    []ImplInfo
-	currentFunc  *FuncType
-	inSwitchCase bool
-	loopDepth    int
+	pkgScope      *Scope // pkg only scope
+	scope         *Scope // lexical scope during statement/expression
+	useScope      bool
+	errors        []Diagnostics
+	typeDecls     []ast.TypeDecl
+	funcDecls     []*ast.FuncDecl
+	methodDecls   []*ast.FuncDecl
+	methods       map[*NamedType]map[string]*FuncMethod
+	constDecls    []*ast.ConstDecl
+	implDecls     []*ast.ImplementsDecl
+	implInfos     []ImplInfo
+	comptimeDecls []ast.Decl
+	comptimeInfos []ComptimeInfo
+	currentFunc   *FuncType
+	inSwitchCase  bool
+	loopDepth     int
 }
 
 type constKind int
@@ -153,4 +155,10 @@ type ImplInfo struct {
 	InterfaceName string
 	Interface     *NamedType
 	Decl          *ast.ImplementsDecl
+}
+
+type ComptimeInfo struct {
+	Name string
+	Kind SymbolKind
+	Decl ast.Decl
 }

@@ -3292,4 +3292,75 @@ func f() {
 		assert.Equal(t, true, check.scope.Declare(&Symbol{Name: "test", Kind: SymConst}))
 		assert.Equal(t, false, check.scope.Declare(&Symbol{Name: "test", Kind: SymConst}))
 	})
+
+	t.Run("x22", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+comptime const u int = "string"
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime const uv int = int(1)
+comptime const uv int = int(1)
+`,
+			},
+			{
+				data: `package main
+comptime const uw int = int(1)
+`,
+			},
+			{
+				data: `package main
+comptime func x()[]int{};comptime func y()[]int{}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func x()[]int{}
+comptime func x()[]int{}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func (a User) x()(a int,b int){}
+`,
+			},
+			{
+				data: `package main
+comptime const X int = int(1)
+const Y int = X
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		check.comptimeDecls = append(check.comptimeDecls, &ast.BadDecl{})
+		check.declareComptimeDecls()
+		assert.Greater(t, len(check.errors), 0)
+	})
 }

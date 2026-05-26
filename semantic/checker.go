@@ -103,9 +103,11 @@ func (c *Checker) Check(file *ast.File) []Diagnostics {
 	c.collectTopLevelSymbols(file)
 	c.createTypeObjects()
 	c.resolveTypeDecls()
+	c.declareComptimeDecls()
 	c.resolveFuncSignatures()
 	c.resolveMethodSignatures()
 	c.checkImplementsDecls()
+	c.checkComptimeValues()
 	c.checkTopLevelValues(file)
 	c.checkFuncBodies()
 	return c.errors
@@ -154,6 +156,11 @@ func (c *Checker) collectTopLevelSymbols(file *ast.File) {
 
 		case *ast.ImplementsDecl:
 			c.implDecls = append(c.implDecls, d)
+
+		case *ast.ComptimeBlockDecl:
+			if d.Decls != nil {
+				c.comptimeDecls = append(c.comptimeDecls, d.Decls...)
+			}
 		}
 	}
 }
@@ -656,8 +663,7 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", valueType, targetType)})
 		return
 	}
-	name := typeDeclName(decl)
-	sym := c.pkgScope.Lookup(name)
+	sym := c.pkgScope.Lookup(typeDeclName(decl))
 	sym.Type = targetType
 	sym.Decl = decl
 }
@@ -2105,4 +2111,94 @@ func (c *Checker) checkSwitchEnumBody(body []ast.Stmt) {
 		}
 		c.checkStmt(b)
 	}
+}
+
+// declareComptimeDecls declares all "comptime" declarations
+func (c *Checker) declareComptimeDecls() {
+	for _, decl := range c.comptimeDecls {
+		switch t := decl.(type) {
+		case *ast.ConstDecl:
+			c.declareComptimeConstSymbol(t)
+		case *ast.FuncDecl:
+			c.declareComptimeFuncSymbol(t)
+		default:
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime")})
+		}
+	}
+}
+
+// declareComptimeConstSymbol validates "comptime" const declarations.
+// An error is emitted if any
+func (c *Checker) declareComptimeConstSymbol(decl *ast.ConstDecl) {
+	if !c.declareNoShadow(c.pkgScope, &Symbol{
+		Name:       typeDeclName(decl),
+		Kind:       SymConst,
+		Decl:       decl,
+		IsComptime: true,
+	}, "symbol") {
+		return
+	}
+}
+
+// declareComptimeFuncSymbol declares "comptime" func declarations.
+// An error is emitted if any
+func (c *Checker) declareComptimeFuncSymbol(decl *ast.FuncDecl) {
+	if decl.Receiver != nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("comptime methods are forbidden")})
+		return
+	}
+
+	if !c.declareNoShadow(c.pkgScope, &Symbol{
+		Name:       decl.Name.Value,
+		Kind:       SymFunc,
+		Decl:       decl,
+		IsComptime: true,
+	}, "symbol") {
+		return
+	}
+	c.funcDecls = append(c.funcDecls, decl)
+}
+
+// checkComptimeValues validates all "comptime" declarations.
+// An error is emitted if any
+func (c *Checker) checkComptimeValues() {
+	for _, decl := range c.comptimeDecls {
+		switch t := decl.(type) {
+		case *ast.ConstDecl:
+			c.checkComptimeConstDecl(t)
+		case *ast.FuncDecl:
+			c.checkComptimeFuncDecl(t)
+		}
+	}
+}
+
+// checkComptimeConstDecl validates "comptime" const declarations.
+// An error is emitted if any
+func (c *Checker) checkComptimeConstDecl(decl *ast.ConstDecl) {
+	targetType := c.resolveType(decl.Type)
+	valueType := c.checkExpr(decl.Init)
+
+	if !IsAssignableTo(targetType, valueType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", valueType, targetType)})
+		return
+	}
+	sym := c.pkgScope.Lookup(typeDeclName(decl))
+	sym.Type = targetType
+
+	c.comptimeInfos = append(c.comptimeInfos, ComptimeInfo{
+		Name: sym.Name,
+		Kind: SymConst,
+		Decl: decl,
+	})
+	c.constDecls = append(c.constDecls, decl)
+}
+
+// checkComptimeFuncDecl validates "comptime" func declarations.
+// An error is emitted if any
+func (c *Checker) checkComptimeFuncDecl(decl *ast.FuncDecl) {
+	c.comptimeInfos = append(c.comptimeInfos, ComptimeInfo{
+		Name: decl.Name.Value,
+		Kind: SymFunc,
+		Decl: decl,
+	})
 }
