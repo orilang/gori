@@ -181,6 +181,9 @@ func IsConvertibleTo(fromType, toType Type) bool {
 	if IsNumeric(fromType) && IsNumeric(toType) {
 		return true
 	}
+	if IsString(fromType) && IsString(toType) {
+		return true
+	}
 	return false
 }
 

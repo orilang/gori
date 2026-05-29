@@ -741,6 +741,8 @@ func fa() {
 	sstring := "ori"
 	ssbool := true
 	fempty()
+	type Path string
+	pp := Path("x")
 }
 func fempty() {}
 `
