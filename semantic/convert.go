@@ -243,7 +243,7 @@ func IsUntypedNilType(t Type) bool {
 
 func IsNilAssignable(t Type) bool {
 	switch t.(type) {
-	case *SliceType, *MapType:
+	case *SliceType, *MapType, *HashMapType:
 		return true
 	}
 	return false
