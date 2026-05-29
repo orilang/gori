@@ -95,7 +95,7 @@ func IsIdentical(a, b Type) bool {
 // example targetType = SliceType{Elem: TInt} and valueType = nil
 func IsAssignableTo(targetType, valueType Type) bool {
 	if IsInvalid(targetType) || IsInvalid(valueType) {
-		return true
+		return false
 	}
 	if IsUntypedNilType(valueType) {
 		return IsNilAssignable(targetType)
@@ -173,7 +173,7 @@ func IsInvalid(t Type) bool {
 // IsConvertibleTo verifies if provided parameters are convertible
 func IsConvertibleTo(fromType, toType Type) bool {
 	if IsInvalid(fromType) || IsInvalid(toType) {
-		return true
+		return false
 	}
 	if IsIdentical(fromType, toType) {
 		return true

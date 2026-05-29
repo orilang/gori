@@ -683,12 +683,15 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 	case *ast.StringLitExpr:
 		return TString
 
+	case *ast.SliceLitExpr:
+		return c.resolveType(t.Type)
+
 	case *ast.IdentExpr:
 		var sym *Symbol
 		if c.useScope {
 			sym = c.scope.Lookup(t.Name.Value)
 		} else {
-			sym = c.pkgScope.LookupLocal(t.Name.Value)
+			sym = c.pkgScope.Lookup(t.Name.Value)
 		}
 		if sym == nil || sym.Type == nil {
 			return TInvalid
@@ -756,7 +759,7 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 			if IsConvertibleTo(arg, named) {
 				return named
 			}
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %#v to  %s", arg, named.Name)})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %#v to %s", arg, named.Name)})
 			return TInvalid
 		}
 
@@ -872,10 +875,11 @@ func (c *Checker) checkFuncBodies() {
 func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 	oldScope := c.scope
 	oldFunc := c.currentFunc
+	oldUseScope := c.useScope
 	defer func() {
 		c.scope = oldScope
 		c.currentFunc = oldFunc
-		c.useScope = false
+		c.useScope = oldUseScope
 	}()
 
 	sym := c.pkgScope.Lookup(fn.Name.Value)
