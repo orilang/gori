@@ -385,7 +385,7 @@ type SliceExpr struct {
 
 type ComptimeBlockDecl struct {
 	ComptimeKW token.Token
-	Decls      []Decl
+	Decl       Decl
 }
 
 type MapType struct {

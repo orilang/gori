@@ -14,7 +14,7 @@ func (p *Parser) parseComptimeBlockDecl() ast.Decl {
 		c := &ast.ComptimeBlockDecl{
 			ComptimeKW: x,
 		}
-		c.Decls = append(c.Decls, p.parseConstDecl())
+		c.Decl = p.parseConstDecl()
 
 		if p.kind() == token.Comment {
 			_ = p.expect(token.Comment, "expected comment")
@@ -31,7 +31,7 @@ func (p *Parser) parseComptimeBlockDecl() ast.Decl {
 		c := &ast.ComptimeBlockDecl{
 			ComptimeKW: x,
 		}
-		c.Decls = append(c.Decls, p.parseFuncDecl())
+		c.Decl = p.parseFuncDecl()
 
 		if p.kind() == token.Comment {
 			_ = p.expect(token.Comment, "expected comment")

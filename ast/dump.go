@@ -464,9 +464,7 @@ func (d *dumper) node(indent int, n any) {
 	case *ComptimeBlockDecl:
 		d.line(indent, "CompTimeBlockDecl:")
 		d.kv(indent+1, "Comptime", v.ComptimeKW)
-		for _, dec := range v.Decls {
-			d.node(indent+2, dec)
-		}
+		d.node(indent+2, v.Decl)
 
 	case *DefinedTypeDecl:
 		d.line(indent, "DefinedTypeDecl:")
