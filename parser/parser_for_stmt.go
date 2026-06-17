@@ -32,7 +32,11 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected expression before '{'"}
 			}
-			rstmt.X = p.parseExpr(LOWEST)
+			if p.kind() == token.LBracket {
+				rstmt.X = p.parseSliceElements()
+			} else {
+				rstmt.X = p.parseExpr(LOWEST)
+			}
 
 			if p.kind() != token.LBrace {
 				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
@@ -78,7 +82,12 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 				return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected expression before '{'"}
 			}
-			rstmt.X = p.parseExpr(LOWEST)
+
+			if p.kind() == token.LBracket {
+				rstmt.X = p.parseSliceElements()
+			} else {
+				rstmt.X = p.parseExpr(LOWEST)
+			}
 
 			if p.kind() != token.LBrace {
 				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
@@ -104,7 +113,12 @@ func (p *Parser) parseForStmtExpr() ast.Stmt {
 			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 			return &ast.BadStmt{From: ftok, To: p.peek(), Reason: "expected expression before '{'"}
 		}
-		rstmt.X = p.parseExpr(LOWEST)
+
+		if p.kind() == token.LBracket {
+			rstmt.X = p.parseSliceElements()
+		} else {
+			rstmt.X = p.parseExpr(LOWEST)
+		}
 
 		if p.kind() != token.LBrace {
 			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))

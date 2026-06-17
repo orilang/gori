@@ -728,6 +728,240 @@ func x(){
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("function_range_x9", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func x(){
+ for i := range []int{1,2,3} {
+   z = i
+ }
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      RangeStmt
+       For: "for" @4:2 (kind=31)
+       Key
+        IdentExpr
+         Name: "i" @4:6 (kind=3)
+       Op: ":=" @4:8 (kind=50)
+       Range: "range" @4:11 (kind=71)
+        SliceType:
+         LBracket: "[" @4:17 (kind=43)
+         RBracket: "]" @4:18 (kind=44)
+         NamedType
+          Ident: "int" @4:19 (kind=12)
+         LBrace: "{" @4:22 (kind=41)
+          Elements
+           IntLitExpr
+            Value: "1" @4:23 (kind=4)
+           IntLitExpr
+            Value: "2" @4:25 (kind=4)
+           IntLitExpr
+            Value: "3" @4:27 (kind=4)
+          RBrace: "}" @4:28 (kind=42)
+        BlockStmt
+         LBrace: "{" @4:30 (kind=41)
+         Stmts
+          AssignStmt
+           Left
+            IdentExpr
+             Name: "z" @5:4 (kind=3)
+           Operator: "=" @5:6 (kind=49)
+           Right
+            IdentExpr
+             Name: "i" @5:8 (kind=3)
+         RBrace: "}" @6:2 (kind=42)
+     RBrace: "}" @7:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("function_range_x10", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func x(){
+ for k,v := range [3]int{1,2,3} {
+   z = i
+ }
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      RangeStmt
+       For: "for" @4:2 (kind=31)
+       Key
+        IdentExpr
+         Name: "k" @4:6 (kind=3)
+       Condition
+        IdentExpr
+         Name: "v" @4:8 (kind=3)
+       Op: ":=" @4:10 (kind=50)
+       Range: "range" @4:13 (kind=71)
+        ArrayType:
+         LBracket: "[" @4:19 (kind=43)
+         IntLitExpr
+          Value: "3" @4:20 (kind=4)
+         RBracket: "]" @4:21 (kind=44)
+         NamedType
+          Ident: "int" @4:22 (kind=12)
+         LBrace: "{" @4:25 (kind=41)
+          Elements
+           IntLitExpr
+            Value: "1" @4:26 (kind=4)
+           IntLitExpr
+            Value: "2" @4:28 (kind=4)
+           IntLitExpr
+            Value: "3" @4:30 (kind=4)
+          RBrace: "}" @4:31 (kind=42)
+        BlockStmt
+         LBrace: "{" @4:33 (kind=41)
+         Stmts
+          AssignStmt
+           Left
+            IdentExpr
+             Name: "z" @5:4 (kind=3)
+           Operator: "=" @5:6 (kind=49)
+           Right
+            IdentExpr
+             Name: "i" @5:8 (kind=3)
+         RBrace: "}" @6:2 (kind=42)
+     RBrace: "}" @7:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("function_range_x11", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func x(){
+ for i := range []int{1,2,3} {}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      RangeStmt
+       For: "for" @4:2 (kind=31)
+       Key
+        IdentExpr
+         Name: "i" @4:6 (kind=3)
+       Op: ":=" @4:8 (kind=50)
+       Range: "range" @4:11 (kind=71)
+        SliceType:
+         LBracket: "[" @4:17 (kind=43)
+         RBracket: "]" @4:18 (kind=44)
+         NamedType
+          Ident: "int" @4:19 (kind=12)
+         LBrace: "{" @4:22 (kind=41)
+          Elements
+           IntLitExpr
+            Value: "1" @4:23 (kind=4)
+           IntLitExpr
+            Value: "2" @4:25 (kind=4)
+           IntLitExpr
+            Value: "3" @4:27 (kind=4)
+          RBrace: "}" @4:28 (kind=42)
+     RBrace: "}" @5:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("function_range_x12", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func x(){
+ for range []int{1,2,3} {}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "x" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:9 (kind=41)
+     Stmts
+      RangeStmt
+       For: "for" @4:2 (kind=31)
+       Op: "" @0:0 (kind=0)
+       Range: "range" @4:6 (kind=71)
+        SliceType:
+         LBracket: "[" @4:12 (kind=43)
+         RBracket: "]" @4:13 (kind=44)
+         NamedType
+          Ident: "int" @4:14 (kind=12)
+         LBrace: "{" @4:17 (kind=41)
+          Elements
+           IntLitExpr
+            Value: "1" @4:18 (kind=4)
+           IntLitExpr
+            Value: "2" @4:20 (kind=4)
+           IntLitExpr
+            Value: "3" @4:22 (kind=4)
+          RBrace: "}" @4:23 (kind=42)
+     RBrace: "}" @5:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("bad_infinite_x1", func(t *testing.T) {
 		// infinity loop
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
