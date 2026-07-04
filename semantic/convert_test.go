@@ -30,7 +30,7 @@ func TestSemantics_convert(t *testing.T) {
 			{a: &SliceType{Elem: TInt}, b: &SliceType{Elem: TInt}, expected: true},
 			{a: &HashMapType{Key: TInt, Value: TString}, b: TInt, expected: false},
 			{a: &MapType{Key: TInt, Value: TString}, b: &HashMapType{Key: TInt, Value: TInt}, expected: false},
-			{a: &MapType{Key: TInt, Value: TString}, b: &MapType{Key: TInt, Value: TString}, expected: false},
+			{a: &MapType{Key: TInt, Value: TString}, b: &MapType{Key: TInt, Value: TString}, expected: true},
 			{a: &HashMapType{Key: TInt, Value: TString}, b: &HashMapType{Key: TInt, Value: TString}, expected: true},
 			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: TBool, expected: false, createDecl: "struct"},
 			{a: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, b: &StructType{Fields: []StructField{{Name: "Name", Type: TString}, {Name: "Age", Type: TInt}}}, expected: false, createDecl: "struct"},
@@ -244,7 +244,7 @@ func TestSemantics_convert(t *testing.T) {
 			{targetType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, valueType: &StructType{Fields: []StructField{{Name: "Age", Type: TInt}}}, expected: true, createDecl: "struct"},
 			{targetType: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: nil, expected: false, createDecl: "enum"},
 			{targetType: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, valueType: &EnumType{Name: "Color", Variants: []string{"Red", "Blue", "Green"}}, expected: true, createDecl: "enum"},
-			{targetType: &InvalidType{}, valueType: &InvalidType{}, expected: true},
+			{targetType: &InvalidType{}, valueType: &InvalidType{}, expected: false},
 		}
 
 		for _, tc := range tests {
@@ -415,7 +415,7 @@ func TestSemantics_convert(t *testing.T) {
 			src, dst Type
 			expected bool
 		}{
-			{src: &InvalidType{}, dst: nil, expected: true},
+			{src: &InvalidType{}, dst: nil, expected: false},
 			{src: TBool, dst: TInt, expected: false},
 			{src: TInt, expected: false},
 			{src: TInt, dst: TFloat, expected: true},

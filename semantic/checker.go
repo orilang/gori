@@ -158,9 +158,7 @@ func (c *Checker) collectTopLevelSymbols(file *ast.File) {
 			c.implDecls = append(c.implDecls, d)
 
 		case *ast.ComptimeBlockDecl:
-			if d.Decls != nil {
-				c.comptimeDecls = append(c.comptimeDecls, d.Decls...)
-			}
+			c.comptimeDecls = append(c.comptimeDecls, d.Decl)
 		}
 	}
 }
@@ -465,7 +463,7 @@ func (c *Checker) resolveNamedType(t *ast.NamedType) Type {
 		return TString
 	case token.Ident:
 		var sym *Symbol
-		if c.useScope {
+		if c.useScope || c.inComptimeFunc {
 			sym = c.scope.Lookup(part.Value)
 		} else {
 			sym = c.pkgScope.LookupLocal(part.Value)
@@ -876,10 +874,12 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 	oldScope := c.scope
 	oldFunc := c.currentFunc
 	oldUseScope := c.useScope
+	oldInComptimeFunc := c.inComptimeFunc
 	defer func() {
 		c.scope = oldScope
 		c.currentFunc = oldFunc
 		c.useScope = oldUseScope
+		c.inComptimeFunc = oldInComptimeFunc
 	}()
 
 	sym := c.pkgScope.Lookup(fn.Name.Value)
@@ -895,12 +895,14 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 	c.currentFunc = fnType.FuncType
 	c.scope = NewScope(c.pkgScope)
 	c.useScope = true
+	c.inComptimeFunc = sym.IsComptime
 
 	for _, p := range fnType.FuncType.Params {
 		if !c.declareNoShadow(c.scope, &Symbol{
-			Name: p.Name,
-			Kind: SymVar,
-			Type: p.Type,
+			Name:       p.Name,
+			Kind:       SymVar,
+			Type:       p.Type,
+			IsComptime: c.inComptimeFunc,
 		}, "variable") {
 			continue
 		}
@@ -1052,8 +1054,8 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 // checkScopeConstDecl validates constant targetType and valueType.
 // An error is emitted if any
 func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) {
-	targetType := c.resolveType(decl.Type)
-	valueType := c.checkExpr(decl.Init)
+	targetType := c.checkTypeInCurrentMode(c.resolveType(decl.Type))
+	valueType := c.checkExprInCurrentMode(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType, targetType)})
@@ -1061,10 +1063,11 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) {
 	}
 
 	if !c.declareNoShadow(c.scope, &Symbol{
-		Name: decl.Name.Value,
-		Kind: SymConst,
-		Type: targetType,
-		Decl: decl,
+		Name:       decl.Name.Value,
+		Kind:       SymConst,
+		Type:       targetType,
+		Decl:       decl,
+		IsComptime: c.inComptimeFunc,
 	}, "const") {
 		return
 	}
@@ -1073,8 +1076,8 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) {
 // checkScopeVarDecl validates constant targetType and valueType.
 // An error is emitted if any
 func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) {
-	targetType := c.resolveType(decl.Type)
-	valueType := c.checkExpr(decl.Init)
+	targetType := c.checkTypeInCurrentMode(c.resolveType(decl.Type))
+	valueType := c.checkExprInCurrentMode(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType, targetType)})
@@ -1082,10 +1085,11 @@ func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) {
 	}
 
 	if !c.declareNoShadow(c.scope, &Symbol{
-		Name: decl.Name.Value,
-		Kind: SymVar,
-		Type: targetType,
-		Decl: decl,
+		Name:       decl.Name.Value,
+		Kind:       SymVar,
+		Type:       targetType,
+		Decl:       decl,
+		IsComptime: c.inComptimeFunc,
 	}, "variable") {
 		return
 	}
@@ -1125,8 +1129,12 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt) {
 		return
 	}
 
+	if IsInvalid(c.checkExprInCurrentMode(decl.Left)) || IsInvalid(c.checkExprInCurrentMode(decl.Right)) {
+		return
+	}
+
 	targetType := c.checkAssignableExpr(decl.Left)
-	valueType := c.checkExpr(decl.Right)
+	valueType := c.checkExprInCurrentMode(decl.Right)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})
@@ -1160,7 +1168,7 @@ func isNumericExpr(expr ast.Expr) bool {
 // define assigment like x = 1 is forbidden as we cannot infer the value type.
 // An error is emitted if any
 func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
-	valueType := c.checkExpr(decl.Right)
+	valueType := c.checkExprInCurrentMode(decl.Right)
 	if IsInvalid(valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("expression %#v is invalid", decl.Right)})
 		return
@@ -1178,9 +1186,10 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
 	}
 
 	if !c.declareNoShadow(c.scope, &Symbol{
-		Name: x.Name.Value,
-		Kind: SymVar,
-		Type: valueType,
+		Name:       x.Name.Value,
+		Kind:       SymVar,
+		Type:       valueType,
+		IsComptime: c.inComptimeFunc,
 	}, "variable") {
 		return
 	}
@@ -1199,7 +1208,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt) {
 	}
 
 	for k, v := range decl.Values {
-		expr := c.checkExpr(v)
+		expr := c.checkExprInCurrentMode(v)
 		if !IsIdentical(c.currentFunc.Results[k].Type, expr) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot use a value of type %T as %T in return statement", expr, c.currentFunc.Results[k].Type)})
 			return
@@ -1419,17 +1428,17 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	}
 
 	if _, ok := call.Callee.(*ast.SelectorExpr); ok {
-		_ = c.checkExpr(stmt.Expr)
+		_ = c.checkExprInCurrentMode(stmt.Expr)
 		return
 	}
 
-	calleType := c.checkExpr(call.Callee)
+	calleType := c.checkExprInCurrentMode(call.Callee)
 	if _, ok := calleType.(*FuncMethod); !ok {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("callee type expression statement must be a function call got %#v", calleType)})
 		return
 	}
 
-	_ = c.checkExpr(stmt.Expr)
+	_ = c.checkExprInCurrentMode(stmt.Expr)
 }
 
 // checkSelectorExpr validates selector expression and return its type.
@@ -1500,7 +1509,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt) {
 		return
 	}
 
-	condType := c.checkExpr(stmt.Condition)
+	condType := c.checkExprInCurrentMode(stmt.Condition)
 	if !IsBool(condType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must returned a boolean")})
 		return
@@ -1537,7 +1546,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
 	}
 
 	if stmt.Condition != nil {
-		condType := c.checkExpr(stmt.Condition)
+		condType := c.checkExprInCurrentMode(stmt.Condition)
 		if !IsBool(condType) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must return a boolean")})
 			return
@@ -1578,7 +1587,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 		c.loopDepth = oldLoopDepth
 	}()
 
-	iteratorType := c.checkExpr(stmt.X)
+	iteratorType := c.checkExprInCurrentMode(stmt.X)
 	if IsInvalid(iteratorType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("range expression is invalid")})
 		return
@@ -1730,7 +1739,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 
 	var dcount int
 	if stmt.Tag != nil {
-		tagType := c.checkExpr(stmt.Tag)
+		tagType := c.checkExprInCurrentMode(stmt.Tag)
 		if IsInvalid(tagType) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag expression is invalid")})
 			return
@@ -1768,7 +1777,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			}
 
 			for _, v := range cc.Values {
-				vExpr := c.checkExpr(v)
+				vExpr := c.checkExprInCurrentMode(v)
 				if !IsIdentical(tagType, vExpr) {
 					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v", tagType, vExpr)})
 					return
@@ -1804,7 +1813,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			}
 
 			for _, v := range cc.Values {
-				vExpr := c.checkExpr(v)
+				vExpr := c.checkExprInCurrentMode(v)
 				// TODO: Tagless switch duplicates is a job for the linter
 				// as it's difficult for the checker to properly handle every cases
 				// without any burden
@@ -2122,25 +2131,13 @@ func (c *Checker) declareComptimeDecls() {
 	for _, decl := range c.comptimeDecls {
 		switch t := decl.(type) {
 		case *ast.ConstDecl:
-			c.declareComptimeConstSymbol(t)
+			// *ast.ConstDecl IS EMPTY ON PURPOSE because WE MUST to validate target and value type
+			// before declaring symbol
 		case *ast.FuncDecl:
 			c.declareComptimeFuncSymbol(t)
 		default:
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime")})
 		}
-	}
-}
-
-// declareComptimeConstSymbol validates "comptime" const declarations.
-// An error is emitted if any
-func (c *Checker) declareComptimeConstSymbol(decl *ast.ConstDecl) {
-	if !c.declareNoShadow(c.pkgScope, &Symbol{
-		Name:       typeDeclName(decl),
-		Kind:       SymConst,
-		Decl:       decl,
-		IsComptime: true,
-	}, "symbol") {
-		return
 	}
 }
 
@@ -2180,29 +2177,269 @@ func (c *Checker) checkComptimeValues() {
 // An error is emitted if any
 func (c *Checker) checkComptimeConstDecl(decl *ast.ConstDecl) {
 	targetType := c.resolveType(decl.Type)
-	valueType := c.checkExpr(decl.Init)
+	if !c.isValidComptimeType(targetType) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+		return
+	}
 
+	valueType := c.checkComptimeExpr(decl.Init)
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", valueType, targetType)})
 		return
 	}
-	sym := c.pkgScope.Lookup(typeDeclName(decl))
-	sym.Type = targetType
+
+	name := typeDeclName(decl)
+	if !c.declareNoShadow(c.pkgScope, &Symbol{
+		Name:       name,
+		Kind:       SymConst,
+		Type:       targetType,
+		Decl:       decl,
+		IsComptime: true,
+	}, "symbol") {
+		return
+	}
 
 	c.comptimeInfos = append(c.comptimeInfos, ComptimeInfo{
-		Name: sym.Name,
+		Name: name,
 		Kind: SymConst,
 		Decl: decl,
 	})
 	c.constDecls = append(c.constDecls, decl)
 }
 
+// isValidComptimeType validates comptime type
+func (c *Checker) isValidComptimeType(t Type) bool {
+	if t == nil || IsInvalid(t) {
+		return false
+	}
+
+	u := unwrapNamed(t)
+	switch u.(type) {
+	case *MapType, *HashMapType, *SliceType, *StructType, *SumType, *EnumType, *InterfaceType:
+		return false
+	}
+	return true
+}
+
+// checkComptimeExpr validates allowed comptime expression
+func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
+	switch t := expr.(type) {
+	case *ast.IntLitExpr, *ast.FloatLitExpr, *ast.BoolLitExpr, *ast.StringLitExpr:
+		return c.checkExpr(t)
+
+	case *ast.ParenExpr:
+		return c.checkComptimeExpr(t.Inner)
+
+	case *ast.UnaryExpr:
+		if IsInvalid(c.checkComptimeExpr(t.Right)) {
+			return TInvalid
+		}
+		return c.checkExpr(expr)
+
+	case *ast.BinaryExpr:
+		left := c.checkComptimeExpr(t.Left)
+		right := c.checkComptimeExpr(t.Right)
+		if IsInvalid(left) || IsInvalid(right) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime binary expression")})
+			return TInvalid
+		}
+		return c.checkExpr(expr)
+
+	case *ast.CallExpr:
+		return c.checkComptimeCallExpr(t)
+
+	case *ast.IdentExpr:
+		var sym *Symbol
+		if c.useScope && c.scope != nil {
+			sym = c.scope.Lookup(t.Name.Value)
+		} else {
+			sym = c.pkgScope.Lookup(t.Name.Value)
+		}
+		if sym == nil || sym.Type == nil {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime symbol")})
+			return TInvalid
+		}
+
+		// this must stay as is. vars are only allowed in functions
+		if sym.Kind == SymVar && !c.inComptimeFunc {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable are forbidden with comptime outside of function")})
+			return TInvalid
+		}
+
+		return sym.Type
+
+	case *ast.IndexExpr, *ast.SliceExpr, *ast.SliceLitExpr:
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("forbidden comptime expression")})
+		return TInvalid
+
+	default:
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported comptime expression")})
+		return TInvalid
+	}
+}
+
+// checkComptimeCallExpr validates allowed comptime call expression
+func (c *Checker) checkComptimeCallExpr(expr *ast.CallExpr) Type {
+	calleeTypeCheck := c.checkComptimeExpr(expr.Callee)
+	if IsInvalid(calleeTypeCheck) {
+		return TInvalid
+	}
+
+	calleeType := c.checkComptimeExpr(expr.Callee)
+	if named, ok := calleeType.(*NamedType); ok {
+		if len(expr.Args) != 1 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", named.Name, len(expr.Args))})
+			return TInvalid
+		}
+
+		arg := c.checkComptimeExpr(expr.Args[0])
+		if IsInvalid(arg) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+			return TInvalid
+		}
+
+		if IsConvertibleTo(arg, named) {
+			return named
+		}
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %#v to %s", arg, named.Name)})
+		return TInvalid
+	}
+
+	if builtin, ok := calleeType.(*BuiltinType); ok {
+		if len(expr.Args) != 1 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", expr, len(expr.Args))})
+			return TInvalid
+		}
+
+		arg := c.checkComptimeExpr(expr.Args[0])
+		if IsInvalid(arg) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+			return TInvalid
+		}
+
+		if IsConvertibleTo(arg, builtin) {
+			return calleeType
+		}
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %#v to %#v", arg, builtin)})
+		return TInvalid
+	}
+
+	if fn, ok := calleeType.(*FuncMethod); ok {
+		sym := c.pkgScope.Lookup(fn.Name)
+		if sym == nil || sym.Kind != SymFunc || !sym.IsComptime {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime function")})
+			return TInvalid
+		}
+
+		if len(expr.Args) != len(fn.FuncType.Params) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime func length argument, want %d got %d", len(expr.Args), len(fn.FuncType.Params))})
+			return TInvalid
+		}
+
+		for i, p := range fn.FuncType.Params {
+			argType := c.checkComptimeExpr(expr.Args[i])
+			if !c.isValidComptimeType(p.Type) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+				return TInvalid
+			}
+
+			if !IsAssignableTo(p.Type, argType) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+				return TInvalid
+			}
+		}
+
+		if len(fn.FuncType.Results) != 1 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("comptime func %q must return exactly one value", fn.Name)})
+			return TInvalid
+		}
+
+		for _, p := range fn.FuncType.Results {
+			if !c.isValidComptimeType(p.Type) {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+				return TInvalid
+			}
+		}
+
+		return fn.FuncType.Results[0].Type
+	}
+
+	c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime expression")})
+	return TInvalid
+}
+
 // checkComptimeFuncDecl validates "comptime" func declarations.
 // An error is emitted if any
 func (c *Checker) checkComptimeFuncDecl(decl *ast.FuncDecl) {
+	// we enforce the validation of the declaration here because we can falsly
+	// append comptimeInfos with wrong declarations when it's not called.
+	// So we extra valides all funcs
+
+	sym := c.pkgScope.Lookup(decl.Name.Value)
+	if sym == nil || sym.Type == nil {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime func")})
+		return
+	}
+
+	if sym.Kind != SymFunc || !sym.IsComptime {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime declaration")})
+		return
+	}
+
+	fn, ok := sym.Type.(*FuncMethod)
+	if !ok {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime symbol")})
+		return
+	}
+
+	for _, p := range fn.FuncType.Params {
+		if !c.isValidComptimeType(p.Type) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+			return
+		}
+	}
+
+	if len(fn.FuncType.Results) != 1 {
+		c.errors = append(c.errors, Diagnostics{
+			Err: fmt.Errorf("comptime func %q must return exactly one value", decl.Name.Value),
+		})
+		return
+	}
+
+	for _, p := range fn.FuncType.Results {
+		if !c.isValidComptimeType(p.Type) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+			return
+		}
+	}
+
 	c.comptimeInfos = append(c.comptimeInfos, ComptimeInfo{
 		Name: decl.Name.Value,
 		Kind: SymFunc,
 		Decl: decl,
 	})
+}
+
+// checkExprInCurrentMode checks if we are in comptime func or not and returns expression Type.
+// When in comptime func we validate authorized expressions
+func (c *Checker) checkExprInCurrentMode(expr ast.Expr) Type {
+	if c.inComptimeFunc {
+		t := c.checkComptimeExpr(expr)
+		if !c.isValidComptimeType(t) {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+			return TInvalid
+		}
+		return t
+	}
+	return c.checkExpr(expr)
+}
+
+// checkTypeInCurrentMode checks if we are in comptime func or not and returns expression Type.
+// When in comptime func we validate authorized expressions
+func (c *Checker) checkTypeInCurrentMode(t Type) Type {
+	if c.inComptimeFunc && !c.isValidComptimeType(t) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
+		return TInvalid
+	}
+	return t
 }

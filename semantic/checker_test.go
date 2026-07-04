@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -3319,6 +3320,7 @@ comptime const uw int = int(1)
 `,
 			},
 			{
+				err: true,
 				data: `package main
 comptime func x()[]int{};comptime func y()[]int{}
 `,
@@ -3364,5 +3366,346 @@ const Y int = X
 		check.comptimeDecls = append(check.comptimeDecls, &ast.BadDecl{})
 		check.declareComptimeDecls()
 		assert.Greater(t, len(check.errors), 0)
+	})
+
+	t.Run("x23", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+comptime const A int = B
+comptime const B int = int(1)
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func runtimeFunc() int {
+	return int(1)
+}
+
+comptime const X int = runtimeFunc()
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const a []int = []int{1,2,3}
+comptime const y []int = a
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const a []int = []int{1,2,3}
+comptime const y int = a[0]
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime const X int = int(1) + runtimeFunc()
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func runtimeFunc() int {
+	return int(1)
+}
+comptime const X int = int(1) + runtimeFunc()
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime const X bool = - a
+`,
+			},
+			{
+				data: `package main
+comptime const x1 int = int(1) + int(1)
+comptime const x2 bool = true
+comptime const x3 int = int(1) + ( int(1) * int(2) )
+comptime const x4 int = - int(1) + ( int(1) * int(2) )
+`,
+			},
+			{
+				data: `package main
+comptime func runtimeFunc() int {
+	return int(1)
+}
+comptime const X int = int(1) + runtimeFunc()
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func runtimeFunc(a map[string]string) int {
+	return int(1)
+}
+comptime const X int = int(1) + runtimeFunc()
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func runtimeFunc() []int {
+  var s []int = []int{1,2,3}
+	return s
+}
+comptime const X int = runtimeFunc()
+`,
+			},
+			{
+				data: `package main
+type UserID int
+comptime const X UserID = UserID(1)
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type UserID int
+const a []int = []int{1,2,3}
+comptime const X UserID = UserID(a[0])
+comptime const x1 UserID = UserID(true)
+comptime const x2 UserID = UserID(true,true)
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime const x1 int = int(1,1)
+comptime const x2 int = int(true)
+const a []int = []int{1,2,3}
+comptime const x3 int = int(a[0])
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func runtimeFunc() int {
+	return int(1)
+}
+
+comptime func id1(x int) int {
+  return x
+}
+comptime func id2(x int) (int,int) {
+  return x
+}
+comptime func id3(x int, y int) (int,int) {
+  return x,y
+}
+comptime func id4(x int) int {
+  return x
+}
+comptime func id5(x []int) int {
+  return x[0]
+}
+comptime func id6() {}
+comptime func id5(x int) {}
+comptime const x1 int = id1(runtimeValue())
+comptime const x2 int = id2(runtimeValue())
+comptime const x3 int = id3(1,2)
+comptime const x4 int = id4("a")
+const a []int = []int{1,2}
+comptime const x5 int = id5(a)
+comptime const x6 int = id6()
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func id() []int {
+  return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func id() []int {
+  return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type IDs []int
+comptime func id(x IDs) {
+  return x[0]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func id() []int {
+  var x []int = []int{1,2}
+	return x
+}
+comptime func id2() []int {
+  const x []int = []int{1,2}
+	return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func runtimeValue() int {
+	return int(1)
+}
+comptime func id2() int {
+  var x int = runtimeValue()
+	return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func runtimeValue() bool {
+	return true
+}
+comptime func id2() bool {
+  x := runtimeValue()
+	return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func runtimeValue() bool {
+	return true
+}
+comptime func id2() bool {
+  x := false
+  x = runtimeValue()
+	return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func runtimeValue() bool {
+	return true
+}
+comptime func id2() bool {
+  if runtimeValue() {
+	  return true
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func id2() bool {
+  for k := range []int{1,2,3} {}
+	return true
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func (u User) runtimeMethod() bool {
+  return false
+}
+comptime func id(u User) bool {
+	return u.runtimeMethod()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func doSomething() {}
+const X int = doSomething()
+`,
+			},
+			{
+				data: `package main
+comptime func id(u int) int {
+	return u
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+comptime func id() {}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Bad struct {
+    xs []int
+}
+comptime func id(b Bad) int {
+  return b.xs[0]
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			for _, v := range result {
+				fmt.Println("BBBB", i, "count", len(result), v.Err.Error())
+			}
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+
+		check := NewChecker()
+		assert.Equal(t, TInvalid, check.checkComptimeExpr(&ast.BadExpr{}))
+		check.pkgScope.Declare(&Symbol{
+			Name: "a",
+			Kind: SymVar,
+			Type: TInt,
+		})
+		assert.Equal(t, TInvalid, check.checkComptimeExpr(&ast.IdentExpr{
+			Name: token.Token{Kind: token.KWString, Value: "a"},
+		}))
+
+		check.checkComptimeFuncDecl(&ast.FuncDecl{Name: token.Token{Value: "plop"}})
+		check.pkgScope.Declare(&Symbol{
+			Name: "plop",
+			Kind: SymFunc,
+			Type: TInt,
+		})
+		check.checkComptimeFuncDecl(&ast.FuncDecl{Name: token.Token{Value: "plop"}})
+		check.pkgScope.Declare(&Symbol{
+			Name: "zzz",
+			Kind: SymConst,
+			Type: TInt,
+		})
+		check.checkComptimeFuncDecl(&ast.FuncDecl{Name: token.Token{Value: "zzz"}})
+		// check.inComptimeFunc = true
+		// assert.Equal(t, TInvalid, check.checkExprInCurrentMode(&ast.SliceExpr{}))
+		// check.inComptimeFunc = false
+
+		assert.Equal(t, false, check.isValidComptimeType(nil))
 	})
 }
