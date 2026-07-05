@@ -1129,12 +1129,18 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt) {
 		return
 	}
 
-	if IsInvalid(c.checkExprInCurrentMode(decl.Left)) || IsInvalid(c.checkExprInCurrentMode(decl.Right)) {
+	targetType := c.checkAssignableExpr(decl.Left)
+	valueType := c.checkExprInCurrentMode(decl.Right)
+
+	if IsInvalid(c.checkExprInCurrentMode(decl.Left)) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid variable type %T", targetType)})
 		return
 	}
 
-	targetType := c.checkAssignableExpr(decl.Left)
-	valueType := c.checkExprInCurrentMode(decl.Right)
+	if IsInvalid(c.checkExprInCurrentMode(decl.Right)) {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})
+		return
+	}
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})

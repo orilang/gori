@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -3668,9 +3667,6 @@ comptime func id(b Bad) int {
 			check := NewChecker()
 
 			result := check.Check(pr)
-			for _, v := range result {
-				fmt.Println("BBBB", i, "count", len(result), v.Err.Error())
-			}
 			if tc.err {
 				assert.Greater(t, len(result), 0, i)
 			} else {
@@ -3707,5 +3703,55 @@ comptime func id(b Bad) int {
 		// check.inComptimeFunc = false
 
 		assert.Equal(t, false, check.isValidComptimeType(nil))
+	})
+
+	t.Run("x24", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func a() {
+ x := int(1)
+ x +=y
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func a() {
+ x := int(1)
+ x -=y
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func a() {
+ x +=y
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
 	})
 }
