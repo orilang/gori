@@ -1439,10 +1439,17 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	}
 
 	calleType := c.checkExprInCurrentMode(call.Callee)
-	if _, ok := calleType.(*FuncMethod); !ok {
+	fn, ok := calleType.(*FuncMethod)
+	if !ok {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("callee type expression statement must be a function call got %#v", calleType)})
 		return
 	}
+
+	if len(fn.FuncType.Results) > 0 {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("calling function with returned values are forbidden without assignment, expected 0, got %d", len(fn.FuncType.Results))})
+		return
+	}
+	fmt.Printf("XXX %#v\n", calleType)
 
 	_ = c.checkExprInCurrentMode(stmt.Expr)
 }

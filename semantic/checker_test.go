@@ -3754,4 +3754,49 @@ func a() {
 			}
 		}
 	})
+
+	t.Run("x25", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func a() int {
+	return int(1)
+}
+
+func b() int {
+	a()
+}
+`,
+			},
+			{
+				data: `package main
+func a() {}
+
+func b() int {
+	a()
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
 }
