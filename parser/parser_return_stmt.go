@@ -31,10 +31,14 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 			break
 		}
 
-		if p.kind() != token.Comma && p.kind() != token.RBrace && p.kind() != token.EOF {
+		if p.kind() != token.Comma && p.kind() != token.RBrace && p.kind() != token.EOF && p.kind() != token.Comment {
 			tok := p.next()
 			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 			return &ast.BadStmt{From: rn, To: tok, Reason: "expected ',' or '}' after return value"}
+		}
+
+		if p.kind() == token.Comment {
+			_ = p.next()
 		}
 
 		if p.kind() == token.Comma {
