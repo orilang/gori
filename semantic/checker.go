@@ -908,6 +908,21 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 		}
 	}
 
+	for _, p := range fnType.FuncType.Results {
+		if p.Name == "" {
+			continue
+		}
+
+		if !c.declareNoShadow(c.scope, &Symbol{
+			Name:       p.Name,
+			Kind:       SymVar,
+			Type:       p.Type,
+			IsComptime: c.inComptimeFunc,
+		}, "variable") {
+			continue
+		}
+	}
+
 	c.checkBlockStmt(fn.Body)
 }
 
@@ -956,6 +971,20 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 			Type: p.Type,
 		}, "variable") {
 			return
+		}
+	}
+
+	for _, p := range method.FuncType.Results {
+		if p.Name == "" {
+			continue
+		}
+
+		if !c.declareNoShadow(c.scope, &Symbol{
+			Name: p.Name,
+			Kind: SymVar,
+			Type: p.Type,
+		}, "variable") {
+			continue
 		}
 	}
 
