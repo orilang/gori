@@ -2,6 +2,7 @@ package semantic
 
 import (
 	"fmt"
+	"slices"
 	"strconv"
 
 	"github.com/orilang/gori/ast"
@@ -909,10 +910,6 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 	}
 
 	for _, p := range fnType.FuncType.Results {
-		if p.Name == "" {
-			continue
-		}
-
 		if !c.declareNoShadow(c.scope, &Symbol{
 			Name:       p.Name,
 			Kind:       SymVar,
@@ -923,7 +920,13 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 		}
 	}
 
-	c.checkBlockStmt(fn.Body)
+	// var returnInputVarsInitialized []string
+	bodyFlow, _ := c.checkBlockStmt(fn.Body, nil)
+
+	if len(fnType.FuncType.Results) > 0 && bodyFlow == flowFallsThrough {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("missing return statement")})
+		return
+	}
 }
 
 // checkMethodBody validates method.
@@ -975,10 +978,6 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 	}
 
 	for _, p := range method.FuncType.Results {
-		if p.Name == "" {
-			continue
-		}
-
 		if !c.declareNoShadow(c.scope, &Symbol{
 			Name: p.Name,
 			Kind: SymVar,
@@ -988,14 +987,14 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 		}
 	}
 
-	c.checkBlockStmt(fn.Body)
+	c.checkBlockStmt(fn.Body, nil)
 }
 
 // checkBlockStmt loops over block statements in order to check/declare them
 // within its dedicated local scope
-func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
+func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialized []string) (returnFlow, []string) {
 	if block == nil {
-		return
+		return flowFallsThrough, nil
 	}
 
 	oldScope := c.scope
@@ -1006,14 +1005,24 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt) {
 	blockScope := NewScope(c.scope)
 	c.scope = blockScope
 
+	flow := flowFallsThrough
 	for _, stmt := range block.Stmts {
-		c.checkStmt(stmt)
+		stmtFlow, rvi := c.checkStmt(stmt, returnInputVarsInitialized)
+
+		returnInputVarsInitialized = slices.Clone(rvi)
+		if flow == flowFallsThrough && stmtFlow == flowReturns {
+			flow = flowReturns
+		}
 	}
+
+	return flow, returnInputVarsInitialized
 }
 
 // checkStmt checks all possible statements kind.
 // This is splitted here for reusability
-func (c *Checker) checkStmt(stmt ast.Stmt) {
+func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) (returnFlow, []string) {
+	flow := flowFallsThrough
+
 	switch t := stmt.(type) {
 	case *ast.DeclStmt:
 		switch decl := t.Decl.(type) {
@@ -1043,10 +1052,10 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 		}
 
 	case *ast.AssignStmt:
-		c.checkAssigmentStmt(t)
+		returnInputVarsInitialized = c.checkAssigmentStmt(t, returnInputVarsInitialized)
 
 	case *ast.ReturnStmt:
-		c.checkReturnStmt(t)
+		flow = c.checkReturnStmt(t, returnInputVarsInitialized)
 
 	case *ast.IncDecStmt:
 		c.checkIncDecStmt(t)
@@ -1055,7 +1064,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 		c.checkExprStmt(t)
 
 	case *ast.IfStmt:
-		c.checkIfStmt(t)
+		return c.checkIfStmt(t, returnInputVarsInitialized)
 
 	case *ast.ForStmt:
 		c.checkForStmt(t)
@@ -1078,6 +1087,8 @@ func (c *Checker) checkStmt(stmt ast.Stmt) {
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported statement %#v", stmt)})
 	}
+
+	return flow, returnInputVarsInitialized
 }
 
 // checkScopeConstDecl validates constant targetType and valueType.
@@ -1145,17 +1156,17 @@ func (c *Checker) checkAssignableExpr(expr ast.Expr) Type {
 
 // checkSimpleAssignStmt validates simple assigment statements like x = 1 where x has already been defined.
 // An error is emitted if any
-func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt) {
+func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsInitialized []string) []string {
 	name := exprName(decl.Left)
 	sym := c.scope.Lookup(name)
 	if sym == nil {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
-		return
+		return nil
 	}
 
 	if sym.Kind == SymConst {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
-		return
+		return nil
 	}
 
 	targetType := c.checkAssignableExpr(decl.Left)
@@ -1163,20 +1174,24 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt) {
 
 	if IsInvalid(c.checkExprInCurrentMode(decl.Left)) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid variable type %T", targetType)})
-		return
+		return nil
 	}
 
 	if IsInvalid(c.checkExprInCurrentMode(decl.Right)) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})
-		return
+		return nil
 	}
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})
-		return
+		return nil
 	}
 
 	sym.Type = targetType
+	if c.currentFunc != nil {
+		returnInputVarsInitialized = c.checkReturnVarsInitialized(returnInputVarsInitialized, name)
+	}
+	return returnInputVarsInitialized
 }
 
 // isNumericExpr detects if expression is a numeric only expression
@@ -1232,23 +1247,35 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
 
 // checkReturnStmt checks returned values statement types and length.
 // An error is emitted if any
-func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt) {
+func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitialized []string) returnFlow {
 	if decl == nil {
-		return
+		return flowFallsThrough
 	}
 
 	if len(c.currentFunc.Results) != len(decl.Values) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("number of returned values is invalid, wanted %d got %d", len(c.currentFunc.Results), len(decl.Values))})
-		return
+		return flowFallsThrough
 	}
 
 	for k, v := range decl.Values {
 		expr := c.checkExprInCurrentMode(v)
 		if !IsIdentical(c.currentFunc.Results[k].Type, expr) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot use a value of type %T as %T in return statement", expr, c.currentFunc.Results[k].Type)})
-			return
+			return flowFallsThrough
 		}
 	}
+
+	for _, dv := range decl.Values {
+		if x, ok := dv.(*ast.IdentExpr); ok {
+			for _, r := range c.currentFunc.Results {
+				if r.Name == x.Name.Value && !slices.Contains(returnInputVarsInitialized, x.Name.Value) {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("returning uninitialized variable %q", x.Name.Value)})
+				}
+			}
+		}
+	}
+
+	return flowReturns
 }
 
 // checkIncDecStmt validates increment/decrement statement.
@@ -1546,29 +1573,100 @@ func lookupInterfaceMethods(it *InterfaceType, name string) (Type, bool) {
 }
 
 // checkIfStmt validates if statement block
-func (c *Checker) checkIfStmt(stmt *ast.IfStmt) {
+func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []string) (returnFlow, []string) {
 	if stmt == nil {
-		return
+		return flowFallsThrough, returnInputVarsInitialized
 	}
 
 	condType := c.checkExprInCurrentMode(stmt.Condition)
 	if !IsBool(condType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must returned a boolean")})
-		return
+		return flowFallsThrough, returnInputVarsInitialized
 	}
 
+	var (
+		initializedIfThen, initializedIfElse bool
+		thenIf, elseIf, rvi                  []string
+		thenFlow, elseFlow                   returnFlow
+	)
+
+	copyIf := slices.Clone(returnInputVarsInitialized)
+	copyElse := slices.Clone(returnInputVarsInitialized)
 	if stmt.Then != nil {
-		c.checkBlockStmt(stmt.Then)
+		initializedIfThen = true
+		thenFlow, thenIf = c.checkBlockStmt(stmt.Then, returnInputVarsInitialized)
 	}
 
 	if stmt.Else != nil {
+		initializedIfElse = true
 		switch t := stmt.Else.(type) {
 		case *ast.BlockStmt:
-			c.checkBlockStmt(t)
+			elseFlow, elseIf = c.checkBlockStmt(t, returnInputVarsInitialized)
 		default:
-			c.checkStmt(t)
+			elseFlow, elseIf = c.checkStmt(t, returnInputVarsInitialized)
 		}
 	}
+
+	if initializedIfThen && initializedIfElse {
+		if thenFlow == flowFallsThrough && elseFlow == flowFallsThrough {
+			var x, y []string
+			for _, v := range thenIf {
+				if !slices.Contains(copyIf, v) {
+					x = append(x, v)
+				}
+			}
+
+			for _, v := range elseIf {
+				if !slices.Contains(copyElse, v) {
+					y = append(y, v)
+				}
+			}
+
+			for _, v := range x {
+				if slices.Contains(y, v) {
+					rvi = append(rvi, v)
+				}
+			}
+
+			for _, v := range copyIf {
+				if !slices.Contains(rvi, v) {
+					rvi = append(rvi, v)
+				}
+			}
+
+			if len(x) == 0 {
+				rvi = slices.Clone(y)
+			}
+
+			if len(x) == 0 && len(y) == 0 {
+				rvi = slices.Clone(copyIf)
+			}
+
+			if len(x) == 0 && len(y) > 0 {
+				rvi = nil
+			}
+
+			return flowFallsThrough, rvi
+		}
+
+		if thenFlow == flowReturns && elseFlow == flowFallsThrough {
+			return flowFallsThrough, elseIf
+		}
+
+		if thenFlow == flowFallsThrough && elseFlow == flowReturns {
+			return flowFallsThrough, thenIf
+		}
+
+		if thenFlow == flowReturns && elseFlow == flowReturns {
+			return flowReturns, returnInputVarsInitialized
+		}
+	}
+
+	if initializedIfThen && !initializedIfElse {
+		rvi = slices.Clone(copyIf)
+	}
+
+	return flowFallsThrough, rvi
 }
 
 // checkForStmt validates plain for statement block
@@ -1584,7 +1682,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
 	}()
 
 	if stmt.Init != nil {
-		c.checkStmt(stmt.Init)
+		c.checkStmt(stmt.Init, nil)
 	}
 
 	if stmt.Condition != nil {
@@ -1596,25 +1694,25 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
 	}
 
 	if stmt.Post != nil {
-		c.checkStmt(stmt.Post)
+		c.checkStmt(stmt.Post, nil)
 	}
 
 	if stmt.Body != nil {
-		c.checkBlockStmt(stmt.Body)
+		c.checkBlockStmt(stmt.Body, nil)
 	}
 }
 
 // checkForStmt validates for assigment statement
-func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt) {
+func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt, returnInputVarsInitialized []string) []string {
 	switch stmt.Operator.Kind {
 	case token.Assign, token.PlusEq, token.MinusEq:
-		c.checkSimpleAssignStmt(stmt)
+		returnInputVarsInitialized = c.checkSimpleAssignStmt(stmt, returnInputVarsInitialized)
 	case token.Define:
 		c.checkDefineAssignStmt(stmt)
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported assigment in for statement %#v", stmt)})
-		return
 	}
+	return returnInputVarsInitialized
 }
 
 // checkRangeStmt validates range statement block
@@ -1643,7 +1741,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 
 	// for range x {}
 	if stmt.Op == (token.Token{}) && stmt.Body != nil {
-		c.checkBlockStmt(stmt.Body)
+		c.checkBlockStmt(stmt.Body, nil)
 		return
 	}
 
@@ -1733,7 +1831,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 	}
 
 	if stmt.Body != nil {
-		c.checkBlockStmt(stmt.Body)
+		c.checkBlockStmt(stmt.Body, nil)
 	}
 }
 
@@ -1776,7 +1874,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 	c.scope = switchScope
 
 	if stmt.Init != nil {
-		c.checkStmt(stmt.Init)
+		c.checkStmt(stmt.Init, nil)
 	}
 
 	var dcount int
@@ -1934,7 +2032,7 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool) {
 			continue
 		}
 
-		c.checkStmt(b)
+		c.checkStmt(b, nil)
 	}
 }
 
@@ -2082,7 +2180,7 @@ func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
 			return
 		}
 
-		c.checkStmt(b)
+		c.checkStmt(b, nil)
 	}
 }
 
@@ -2164,7 +2262,7 @@ func (c *Checker) checkSwitchEnumBody(body []ast.Stmt) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden in enum switch type")})
 			return
 		}
-		c.checkStmt(b)
+		c.checkStmt(b, nil)
 	}
 }
 
@@ -2484,4 +2582,13 @@ func (c *Checker) checkTypeInCurrentMode(t Type) Type {
 		return TInvalid
 	}
 	return t
+}
+
+// checkReturnVarsInitialized verifies if new vars are already present in current list of vars.
+// When not, it will append it to the current list
+func (c *Checker) checkReturnVarsInitialized(a []string, s string) []string {
+	if s != "" && !slices.Contains(a, s) {
+		a = append(a, s)
+	}
+	return a
 }

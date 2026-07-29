@@ -163,3 +163,10 @@ type ComptimeInfo struct {
 	Kind SymbolKind
 	Decl ast.Decl
 }
+
+type returnFlow uint8
+
+const (
+	flowFallsThrough returnFlow = iota
+	flowReturns
+)

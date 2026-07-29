@@ -904,13 +904,13 @@ func y() {
 
 	t.Run("check_block_stmt", func(t *testing.T) {
 		check := NewChecker()
-		check.checkBlockStmt(nil)
+		check.checkBlockStmt(nil, nil)
 	})
 
 	t.Run("check_func_body", func(t *testing.T) {
 		check := NewChecker()
 		check.checkFuncBody(&ast.FuncDecl{})
-		check.checkReturnStmt(nil)
+		check.checkReturnStmt(nil, nil)
 		check.checkExprStmt(&ast.ExprStmt{
 			Expr: &ast.IntLitExpr{
 				Name: token.Token{
@@ -932,11 +932,12 @@ func y() {
 					},
 				},
 			},
+			nil,
 		)
 
 		check.checkAssigmentStmt(&ast.AssignStmt{
 			Operator: token.Token{Kind: token.Slash},
-		})
+		}, nil)
 
 		check.checkBlockStmt(&ast.BlockStmt{
 			Stmts: []ast.Stmt{
@@ -945,7 +946,7 @@ func y() {
 					Decl: &ast.BadDecl{},
 				},
 			},
-		})
+		}, nil)
 
 		check.checkExpr(&ast.IndexExpr{
 			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
@@ -1131,6 +1132,7 @@ func f(m map[string]string) string {
 `,
 			},
 			{
+				err: true,
 				data: `package main
 func f(m map[string]string) string {
 	m["k"] = "v"
@@ -1154,6 +1156,7 @@ func f(m UsersByID) string {
 `,
 			},
 			{
+				err: true,
 				data: `package main
 func f(m hashmap[string]string) string {
 	m["k"] = "v"
@@ -1193,7 +1196,7 @@ func f(m hashmap[string]string) string {
 			},
 		}
 
-		for _, tc := range tests {
+		for i, tc := range tests {
 			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 			require.NoError(t, err)
 			parser := parser.New(lex.FetchTokensFromString(tc.data))
@@ -1203,9 +1206,9 @@ func f(m hashmap[string]string) string {
 
 			result := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0)
+				assert.Greater(t, len(result), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result))
+				assert.Equal(t, 0, len(result), i)
 			}
 		}
 
@@ -1398,7 +1401,7 @@ func x(a int, b int, c int) int {
 		}
 
 		check := NewChecker()
-		check.checkIfStmt(nil)
+		check.checkIfStmt(nil, nil)
 		check.scope = NewScope(check.pkgScope)
 		check.useScope = true
 		check.scope.Declare(&Symbol{
@@ -1418,7 +1421,7 @@ func x(a int, b int, c int) int {
 				Right:    &ast.IdentExpr{Name: token.Token{Kind: token.Ident, Value: "b"}},
 			},
 			Else: &ast.BadStmt{},
-		})
+		}, nil)
 		check.useScope = false
 	})
 
@@ -2763,9 +2766,9 @@ func xb() bool { return false}
 func x(a bool) int {
 	switch a {
 		case xa():
-			x1 := int(0)
+			return int(0)
 		case xb():
-			x2 := int(0)
+			return int(0)
   }
 }
 `,
@@ -2777,9 +2780,9 @@ func xb() bool { return false}
 func x(a bool) int {
 	switch {
 		case 1 == 2:
-			x1 := int(0)
+			return int(0)
 		case 1 == 2:
-			x2 := int(0)
+			return int(0)
   }
 }
 `,
@@ -3773,11 +3776,372 @@ func b() int {
 `,
 			},
 			{
+				err: true,
 				data: `package main
 func a() {}
 
 func b() int {
 	a()
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
+
+	t.Run("x26", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func a() int {
+	return int(1)
+}
+
+func b() int {
+	x := a()
+}
+			`,
+			},
+			{
+				data: `package main
+func a() int {
+	return int(1)
+}
+
+func b() int {
+	return a() // comment
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) int {
+	if ok {
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) int {
+	if ok {}
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) int {
+	if ok {}
+	return int(0)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool, nested bool) int {
+	if ok {
+		if nested {
+			return int(1)
+		} else {
+			return int(2)
+		}
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) int {
+	if ok {
+	} else {
+		return int(0)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool, okk bool) int {
+	if ok {
+		return int(1)
+	} else if okk {
+		return int(0)
+	} else {
+		return int(0)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool, okk bool) int {
+	if ok {
+		return int(1)
+	} else if okk {
+		return int(0)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) int {
+	if ok {
+		return int(1)
+	}
+	return int(0)
+}
+			`,
+			},
+			{
+				data: `package main
+func f(ok bool) int {
+	if ok {
+		return int(1)
+	} else {
+		return int(0)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (a int) {
+	if ok {
+		a = int(1)
+	} else {
+		a = int(0)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (a int) {
+	if ok {
+		a = int(1)
+	} else {
+		a = int(0)
+	}
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (a int) {
+	if ok {
+		a = int(1)
+	}
+	return a
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (a int) {
+	a = int(0)
+	if ok {
+		a = int(1)
+	}
+	return a
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (a int) {
+	if ok {
+		return int(1)
+	} else {
+		a = int(2)
+	}
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (bb int) {
+	if ok {
+		bb = int(1)
+	} else {}
+	return bb
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (a int, b int) {
+	b = int(0)
+	if ok {
+		a = int(1)
+	}
+	return a, b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (a int) {
+	if ok {
+		return a
+	}
+
+	a = int(1)
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (a int, b int) {
+	if ok {
+		a = int(1)
+	} else {
+		b = int(1)
+	}
+
+	return a, b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (a int, b int) {
+	b = int(1)
+
+	if ok {
+		return a, b
+	}
+
+	a = int(1)
+	return a, b
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (a int) {
+	if ok {
+		return int(1)
+	} else {
+		a = int(2)
+	}
+
+	return a
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (a int) {
+	a = int(1)
+
+	if ok {
+		return a
+	}
+
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (a int) {
+	if ok {} else {
+		a = int(1)
+	}
+	return a
+}
+`,
+			},
+			{
+				data: `package main
+func f(x int) (a int) {
+	return x
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (a int) {
+  a = int(1)
+	if ok {
+	} else {
+	}
+  return a
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (a int) {
+	if ok {
+		a = int(1)
+	} else {
+		return int(2)
+	}
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (a int, b int) {
+	a = int(1)
+	if ok {
+	} else {
+		b = int(2)
+	}
+	return a, b
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (a int, b int) {
+	a = int(1)
+	if ok {
+		b = int(2)
+	} else {
+		b = int(3)
+	}
+	return a, b
 }
 `,
 			},
