@@ -4163,4 +4163,392 @@ func f(ok bool) (a int, b int) {
 			}
 		}
 	})
+
+	t.Run("x27", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func a() int {
+	return int(1)
+}
+
+type User struct {}
+func (u User) b() int {
+	x := a()
+}
+`,
+			},
+			{
+				data: `package main
+func a() int {
+	return int(1)
+}
+
+func b() int {
+	return a() // comment
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) int {
+	if ok {
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) int {
+	if ok {}
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) int {
+	if ok {}
+	return int(0)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool, nested bool) int {
+	if ok {
+		if nested {
+			return int(1)
+		} else {
+			return int(2)
+		}
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) int {
+	if ok {
+	} else {
+		return int(0)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool, okk bool) int {
+	if ok {
+		return int(1)
+	} else if okk {
+		return int(0)
+	} else {
+		return int(0)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool, okk bool) int {
+	if ok {
+		return int(1)
+	} else if okk {
+		return int(0)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) int {
+	if ok {
+		return int(1)
+	}
+	return int(0)
+}
+			`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) int {
+	if ok {
+		return int(1)
+	} else {
+		return int(0)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	if ok {
+		a = int(1)
+	} else {
+		a = int(0)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	if ok {
+		a = int(1)
+	} else {
+		a = int(0)
+	}
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	if ok {
+		a = int(1)
+	}
+	return a
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	a = int(0)
+	if ok {
+		a = int(1)
+	}
+	return a
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	if ok {
+		return int(1)
+	} else {
+		a = int(2)
+	}
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (bb int) {
+	if ok {
+		bb = int(1)
+	} else {}
+	return bb
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int, b int) {
+	b = int(0)
+	if ok {
+		a = int(1)
+	}
+	return a, b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	if ok {
+		return a
+	}
+
+	a = int(1)
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int, b int) {
+	if ok {
+		a = int(1)
+	} else {
+		b = int(1)
+	}
+
+	return a, b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int, b int) {
+	b = int(1)
+
+	if ok {
+		return a, b
+	}
+
+	a = int(1)
+	return a, b
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	if ok {
+		return int(1)
+	} else {
+		a = int(2)
+	}
+
+	return a
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	a = int(1)
+
+	if ok {
+		return a
+	}
+
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	if ok {} else {
+		a = int(1)
+	}
+	return a
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(x int) (a int) {
+	return x
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+  a = int(1)
+	if ok {
+	} else {
+	}
+  return a
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	if ok {
+		a = int(1)
+	} else {
+		return int(2)
+	}
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int, b int) {
+	a = int(1)
+	if ok {
+	} else {
+		b = int(2)
+	}
+	return a, b
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int, b int) {
+	a = int(1)
+	if ok {
+		b = int(2)
+	} else {
+		b = int(3)
+	}
+	return a, b
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
 }

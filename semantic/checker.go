@@ -920,9 +920,7 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 		}
 	}
 
-	// var returnInputVarsInitialized []string
 	bodyFlow, _ := c.checkBlockStmt(fn.Body, nil)
-
 	if len(fnType.FuncType.Results) > 0 && bodyFlow == flowFallsThrough {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("missing return statement")})
 		return
@@ -987,7 +985,11 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 		}
 	}
 
-	c.checkBlockStmt(fn.Body, nil)
+	bodyFlow, _ := c.checkBlockStmt(fn.Body, nil)
+	if len(method.FuncType.Results) > 0 && bodyFlow == flowFallsThrough {
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("missing return statement")})
+		return
+	}
 }
 
 // checkBlockStmt loops over block statements in order to check/declare them
