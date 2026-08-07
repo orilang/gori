@@ -920,8 +920,8 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 		}
 	}
 
-	bodyFlow, _ := c.checkBlockStmt(fn.Body, nil)
-	if len(fnType.FuncType.Results) > 0 && bodyFlow == flowFallsThrough {
+	blockStmt := c.checkBlockStmt(fn.Body, nil)
+	if len(fnType.FuncType.Results) > 0 && blockStmt.returnFlowResult == flowFallsThrough {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("missing return statement")})
 		return
 	}
@@ -985,8 +985,8 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 		}
 	}
 
-	bodyFlow, _ := c.checkBlockStmt(fn.Body, nil)
-	if len(method.FuncType.Results) > 0 && bodyFlow == flowFallsThrough {
+	blockStmt := c.checkBlockStmt(fn.Body, nil)
+	if len(method.FuncType.Results) > 0 && blockStmt.returnFlowResult == flowFallsThrough {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("missing return statement")})
 		return
 	}
@@ -994,9 +994,11 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 
 // checkBlockStmt loops over block statements in order to check/declare them
 // within its dedicated local scope
-func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialized []string) (returnFlow, []string) {
+func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	if block == nil {
-		return flowFallsThrough, nil
+		st.returnFlowResult = flowFallsThrough
+		st.returnedInputVarsInitialized = nil
+		return
 	}
 
 	oldScope := c.scope
@@ -1007,22 +1009,38 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 	blockScope := NewScope(c.scope)
 	c.scope = blockScope
 
+	var cStmt stmtInfo
 	flow := flowFallsThrough
-	for _, stmt := range block.Stmts {
-		stmtFlow, rvi := c.checkStmt(stmt, returnInputVarsInitialized)
+	for i, stmt := range block.Stmts {
+		if _, ok := stmt.(*ast.BreakStmt); ok {
+			if i != len(block.Stmts)-1 {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("break must be the last statement of this block")})
+				return
+			}
+		}
 
-		returnInputVarsInitialized = slices.Clone(rvi)
-		if flow == flowFallsThrough && stmtFlow == flowReturns {
+		// At first iteration, we need to hace block stmt return values
+		// but after that we need to take result from statement iteration
+		// and pass it down to the next one not to loose context
+		if i == 0 {
+			cStmt = c.checkStmt(stmt, returnInputVarsInitialized)
+		} else {
+			cStmt = c.checkStmt(stmt, cStmt.returnedInputVarsInitialized)
+		}
+		returnInputVarsInitialized = slices.Clone(cStmt.returnedInputVarsInitialized)
+		if flow == flowFallsThrough && cStmt.returnFlowResult == flowReturns {
 			flow = flowReturns
 		}
 	}
 
-	return flow, returnInputVarsInitialized
+	st.returnFlowResult = flow
+	st.returnedInputVarsInitialized = returnInputVarsInitialized
+	return
 }
 
 // checkStmt checks all possible statements kind.
 // This is splitted here for reusability
-func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) (returnFlow, []string) {
+func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	flow := flowFallsThrough
 
 	switch t := stmt.(type) {
@@ -1069,7 +1087,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		return c.checkIfStmt(t, returnInputVarsInitialized)
 
 	case *ast.ForStmt:
-		c.checkForStmt(t)
+		return c.checkForStmt(t, returnInputVarsInitialized)
 
 	case *ast.RangeStmt:
 		c.checkRangeStmt(t)
@@ -1081,7 +1099,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		c.checkFallThroughStmt(t)
 
 	case *ast.BreakStmt:
-		c.checkBreakStmt(t)
+		returnInputVarsInitialized = c.checkBreakStmt(t, returnInputVarsInitialized)
 
 	case *ast.ContinueStmt:
 		c.checkContinueStmt(t)
@@ -1090,7 +1108,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported statement %#v", stmt)})
 	}
 
-	return flow, returnInputVarsInitialized
+	st.returnFlowResult = flow
+	st.returnedInputVarsInitialized = returnInputVarsInitialized
+	return
 }
 
 // checkScopeConstDecl validates constant targetType and valueType.
@@ -1190,8 +1210,12 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 	}
 
 	sym.Type = targetType
-	if c.currentFunc != nil {
-		returnInputVarsInitialized = c.checkReturnVarsInitialized(returnInputVarsInitialized, name)
+	if c.currentFunc != nil && decl.Operator.Kind == token.Assign {
+		for _, v := range c.currentFunc.Results {
+			if v.Name != "" && v.Name == name {
+				returnInputVarsInitialized = c.checkReturnVarsInitialized(returnInputVarsInitialized, name)
+			}
+		}
 	}
 	return returnInputVarsInitialized
 }
@@ -1252,6 +1276,26 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
 func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitialized []string) returnFlow {
 	if decl == nil {
 		return flowFallsThrough
+	}
+
+	// This is needed when we have named returned values initialized and only use "return" keyword.
+	// returnInputVarsInitialized have already been validated semanticly so
+	// it's safe to compare lengths and return "flowReturns"
+	if len(decl.Values) == 0 {
+		if c.currentFunc != nil {
+			for _, result := range c.currentFunc.Results {
+				if result.Name == "" {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("naked return requires named return values")})
+					return flowFallsThrough
+				}
+
+				if !slices.Contains(returnInputVarsInitialized, result.Name) {
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("returning uninitialized variable %q", result.Name)})
+					return flowFallsThrough
+				}
+			}
+			return flowReturns
+		}
 	}
 
 	if len(c.currentFunc.Results) != len(decl.Values) {
@@ -1575,50 +1619,54 @@ func lookupInterfaceMethods(it *InterfaceType, name string) (Type, bool) {
 }
 
 // checkIfStmt validates if statement block
-func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []string) (returnFlow, []string) {
+func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	if stmt == nil {
-		return flowFallsThrough, returnInputVarsInitialized
+		st.returnFlowResult = flowFallsThrough
+		st.returnedInputVarsInitialized = returnInputVarsInitialized
+		return
 	}
 
 	condType := c.checkExprInCurrentMode(stmt.Condition)
 	if !IsBool(condType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must returned a boolean")})
-		return flowFallsThrough, returnInputVarsInitialized
+		st.returnFlowResult = flowFallsThrough
+		st.returnedInputVarsInitialized = returnInputVarsInitialized
+		return
 	}
 
 	var (
 		initializedIfThen, initializedIfElse bool
-		thenIf, elseIf, rvi                  []string
-		thenFlow, elseFlow                   returnFlow
+		rvi                                  []string
+		thenStmt, elseStmt                   stmtInfo
 	)
 
 	copyIf := slices.Clone(returnInputVarsInitialized)
 	copyElse := slices.Clone(returnInputVarsInitialized)
 	if stmt.Then != nil {
 		initializedIfThen = true
-		thenFlow, thenIf = c.checkBlockStmt(stmt.Then, returnInputVarsInitialized)
+		thenStmt = c.checkBlockStmt(stmt.Then, returnInputVarsInitialized)
 	}
 
 	if stmt.Else != nil {
 		initializedIfElse = true
 		switch t := stmt.Else.(type) {
 		case *ast.BlockStmt:
-			elseFlow, elseIf = c.checkBlockStmt(t, returnInputVarsInitialized)
+			elseStmt = c.checkBlockStmt(t, returnInputVarsInitialized)
 		default:
-			elseFlow, elseIf = c.checkStmt(t, returnInputVarsInitialized)
+			elseStmt = c.checkStmt(t, returnInputVarsInitialized)
 		}
 	}
 
 	if initializedIfThen && initializedIfElse {
-		if thenFlow == flowFallsThrough && elseFlow == flowFallsThrough {
+		if thenStmt.returnFlowResult == flowFallsThrough && elseStmt.returnFlowResult == flowFallsThrough {
 			var x, y []string
-			for _, v := range thenIf {
+			for _, v := range thenStmt.returnedInputVarsInitialized {
 				if !slices.Contains(copyIf, v) {
 					x = append(x, v)
 				}
 			}
 
-			for _, v := range elseIf {
+			for _, v := range elseStmt.returnedInputVarsInitialized {
 				if !slices.Contains(copyElse, v) {
 					y = append(y, v)
 				}
@@ -1648,19 +1696,27 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 				rvi = nil
 			}
 
-			return flowFallsThrough, rvi
+			st.returnFlowResult = flowFallsThrough
+			st.returnedInputVarsInitialized = rvi
+			return
 		}
 
-		if thenFlow == flowReturns && elseFlow == flowFallsThrough {
-			return flowFallsThrough, elseIf
+		if thenStmt.returnFlowResult == flowReturns && elseStmt.returnFlowResult == flowFallsThrough {
+			st.returnFlowResult = flowFallsThrough
+			st.returnedInputVarsInitialized = elseStmt.returnedInputVarsInitialized
+			return
 		}
 
-		if thenFlow == flowFallsThrough && elseFlow == flowReturns {
-			return flowFallsThrough, thenIf
+		if thenStmt.returnFlowResult == flowFallsThrough && elseStmt.returnFlowResult == flowReturns {
+			st.returnFlowResult = flowFallsThrough
+			st.returnedInputVarsInitialized = thenStmt.returnedInputVarsInitialized
+			return
 		}
 
-		if thenFlow == flowReturns && elseFlow == flowReturns {
-			return flowReturns, returnInputVarsInitialized
+		if thenStmt.returnFlowResult == flowReturns && elseStmt.returnFlowResult == flowReturns {
+			st.returnFlowResult = flowReturns
+			st.returnedInputVarsInitialized = returnInputVarsInitialized
+			return
 		}
 	}
 
@@ -1668,29 +1724,47 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 		rvi = slices.Clone(copyIf)
 	}
 
-	return flowFallsThrough, rvi
+	st.returnFlowResult = flowFallsThrough
+	st.returnedInputVarsInitialized = rvi
+	return
 }
 
 // checkForStmt validates plain for statement block
-func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
+func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	if stmt == nil {
+		st.returnFlowResult = flowFallsThrough
+		st.returnedInputVarsInitialized = returnInputVarsInitialized
 		return
 	}
 
 	oldLoopDepth := c.loopDepth
 	c.loopDepth++
+	oldscope := c.scope
+	oldBreakFound := c.breakFound
+	oldBreakInputVarsInitialized := slices.Clone(c.breakInputVarsInitialized)
 	defer func() {
 		c.loopDepth = oldLoopDepth
+		c.scope = oldscope
+		c.breakFound = oldBreakFound
+		c.breakInputVarsInitialized = oldBreakInputVarsInitialized
 	}()
 
+	c.scope = NewScope(c.scope)
+	c.breakFound = false
+
+	var initStmt, bodyStmt stmtInfo
+	afterInit := slices.Clone(returnInputVarsInitialized)
 	if stmt.Init != nil {
-		c.checkStmt(stmt.Init, nil)
+		initStmt = c.checkStmt(stmt.Init, returnInputVarsInitialized)
+		afterInit = slices.Clone(initStmt.returnedInputVarsInitialized)
 	}
 
 	if stmt.Condition != nil {
 		condType := c.checkExprInCurrentMode(stmt.Condition)
 		if !IsBool(condType) {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must return a boolean")})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("for condition must return a boolean")})
+			st.returnFlowResult = flowFallsThrough
+			st.returnedInputVarsInitialized = returnInputVarsInitialized
 			return
 		}
 	}
@@ -1700,8 +1774,35 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt) {
 	}
 
 	if stmt.Body != nil {
-		c.checkBlockStmt(stmt.Body, nil)
+		if stmt.Condition == nil && len(stmt.Body.Stmts) == 0 {
+			st.returnFlowResult = flowFallsThrough
+			st.returnedInputVarsInitialized = returnInputVarsInitialized
+			return
+		}
+
+		bodyStmt = c.checkBlockStmt(stmt.Body, afterInit)
+		if stmt.Condition == nil {
+			if c.breakFound {
+				st.returnFlowResult = flowFallsThrough
+				st.returnedInputVarsInitialized = slices.Clone(c.breakInputVarsInitialized)
+				return
+			}
+
+			st.returnFlowResult = bodyStmt.returnFlowResult
+			st.returnedInputVarsInitialized = returnInputVarsInitialized
+			return
+		}
 	}
+
+	if stmt.Condition != nil || c.breakFound {
+		st.returnFlowResult = flowFallsThrough
+		st.returnedInputVarsInitialized = afterInit
+		return
+	}
+
+	st.returnFlowResult = flowReturns
+	st.returnedInputVarsInitialized = afterInit
+	return
 }
 
 // checkForStmt validates for assigment statement
@@ -2046,10 +2147,27 @@ func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
 }
 
 // checkBreakStmt produces an error when not into for loop statement
-func (c *Checker) checkBreakStmt(_ *ast.BreakStmt) {
+func (c *Checker) checkBreakStmt(_ *ast.BreakStmt, returnInputVarsInitialized []string) []string {
 	if c.loopDepth == 0 {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("break is forbidden outside of loop")})
+		return nil
 	}
+
+	if !c.breakFound {
+		c.breakFound = true
+		c.breakInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
+		return returnInputVarsInitialized
+	}
+
+	var intersection []string
+	for _, v := range returnInputVarsInitialized {
+		if slices.Contains(c.breakInputVarsInitialized, v) {
+			intersection = append(intersection, v)
+		}
+	}
+
+	c.breakInputVarsInitialized = intersection
+	return returnInputVarsInitialized
 }
 
 // checkContinueStmt produces an error when not into for loop statement

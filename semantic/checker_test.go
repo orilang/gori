@@ -1051,7 +1051,7 @@ type test interface {
 func f(u test) string {
 	return u.foo()
 }
-			`,
+`,
 			},
 			{
 				data: `package main
@@ -1072,7 +1072,7 @@ type test interface {
 func f(u test) string {
 	return u.unknown()
 }
-			`,
+`,
 			},
 			{
 				err: true,
@@ -1083,7 +1083,7 @@ type test interface {
 func f(u test) string {
 	return u.foo()
 }
-			`,
+`,
 			},
 			{
 				err: true,
@@ -1122,7 +1122,7 @@ func f(s []string) string {
 func x(s [5]string) string {
 	return s[0]
 }
-			`,
+`,
 			},
 			{
 				data: `package main
@@ -1440,6 +1440,25 @@ func x() bool {
 `,
 			},
 			{
+				err: true,
+				data: `package main
+func x() bool {
+	for {
+		a := false
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func x() bool {
+	for {}
+	return false
+}
+`,
+			},
+			{
+				err: true,
 				data: `package main
 func x(a int, b int) bool {
 	for a < b {
@@ -1450,6 +1469,17 @@ func x(a int, b int) bool {
 			},
 			{
 				data: `package main
+func x(a int, b int) bool {
+	for a < b {
+		return false
+	}
+	return false
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
 func x(a int) int {
 	for a = 0;a<5;a+=1 {
 		return a
@@ -1459,10 +1489,54 @@ func x(a int) int {
 			},
 			{
 				data: `package main
+func x(a int) int {
+	for a = 0;a<5;a+=1 {
+		return a
+	}
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
 func x() int {
  for a := int(0);a<5;a+=1 {
    return a
  }
+}
+`,
+			},
+			{
+				data: `package main
+func x() int {
+ for a := int(0);a<5;a+=1 {
+   return a
+ }
+ return int(1)
+}
+`,
+			},
+
+			{
+				err: true,
+				data: `package main
+func x(a int, b int) (x int, y int) {
+ x = int(1)
+ for a = int(0);a<5;a+=1 {
+   return x, a
+ }
+}
+`,
+			},
+			{
+				data: `package main
+func x(a int, b int) (xy int, y int) {
+ xy = int(1)
+ for a = int(0);a<5;a+=1 {
+   return xy, a
+ }
+ return xy,xy
 }
 `,
 			},
@@ -1486,6 +1560,732 @@ func x() int {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+func x(ok bool) (a int) {
+	for ok {
+		a = int(1)
+	}
+	return a
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(run bool) (result int) {
+	for i := int(0); run; i += int(1) {
+		result = int(1)
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(run bool) (result int) {
+	for {
+		result = int(1)
+		break
+	}
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(run bool) (result int) {
+	for {
+		break
+	}
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) int {
+	for {
+		if ok {
+			break
+		}
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) int {
+	for {
+		if ok {
+			break
+		}
+		result = int(1)
+		break
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) int {
+	result = int(1)
+	for {
+		if ok {
+			break
+		}
+		break
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (result int) {
+	for {
+		if first {
+			result = int(1)
+			break
+		} else {
+			result = int(2)
+			break
+		}
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (result int) {
+	for {
+		if first {
+			break
+		} else {
+			result = int(2)
+			break
+		}
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (result int) {
+	for {
+		if first {
+			break
+		}
+
+		result = int(2)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (result int) {
+	for {
+		for {
+			if first {
+				break
+			}
+
+			result = int(2)
+			break
+		}
+
+		return result
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (result int) {
+	for {
+	  result = int(1)
+		for {
+			if first {
+				break
+			}
+
+			result = int(2)
+			break
+		}
+
+		return result
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() bool {
+	for {
+		for {
+			break
+		}
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f() (result int) {
+	for {
+		for {
+			break
+		}
+
+		result = int(1)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(run bool) (result int) {
+	for {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func x(ok bool) {
+	for ok {
+		undefined = int(1)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(run bool) (result int) {
+	for result = int(1); run; run = false {}
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(run bool) (result int) {
+	for result += int(1); run; run = false {}
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (result int) {
+	for {
+		result = int(1)
+		break
+		return result
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (result int) {
+	result = int(1)
+	for ok {
+		break
+	}
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (result int) {
+	result = int(1)
+	for ok {}
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(run bool) (result int) {
+	result = int(1)
+
+	for i := int(0); run; i += int(1) {
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(ok bool) (result int) {
+	for {
+		if ok {
+			return int(1)
+		}
+
+		result = int(2)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(ok bool) (result int) {
+	for {
+		if ok {
+			return int(1)
+		}
+
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f() (result int) {
+	for {
+		for {
+			result = int(1)
+			break
+		}
+
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool, second bool) (result int) {
+	for {
+		if first {
+			result = int(1)
+			break
+		}
+
+		if second {
+			break
+		}
+
+		result = int(2)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool, second bool) (result int) {
+	for {
+		if first {
+			result = int(1)
+			break
+		}
+
+		if second {
+			result = int(2)
+			break
+		}
+
+		result = int(3)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool, second bool) (result int) {
+	for {
+		if first {
+			if second {
+				break
+			}
+
+			result = int(1)
+			break
+		}
+
+		result = int(2)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool, second bool) (result int) {
+	for {
+		if first {
+			if second {
+				result = int(1)
+				break
+			}
+
+			result = int(2)
+			break
+		}
+
+		result = int(3)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (x int, y int) {
+	for {
+		if first {
+			x = int(1)
+			break
+		}
+
+		x = int(2)
+		y = int(3)
+		break
+	}
+
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (x int, y int) {
+	for {
+		if first {
+			x = int(1)
+			y = int(2)
+			break
+		}
+
+		x = int(3)
+		y = int(4)
+		break
+	}
+
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (x int, y int) {
+	x = int(1)
+
+	for {
+		if first {
+			break
+		}
+
+		y = int(2)
+		break
+	}
+
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (x int, y int) {
+	x = int(1)
+	y = int(2)
+
+	for {
+		if first {
+			break
+		}
+
+		y = int(3)
+		break
+	}
+
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(again bool) (result int) {
+	for {
+		if again {
+			continue
+		}
+
+		result = int(1)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(again bool, stop bool) (result int) {
+	for {
+		if again {
+			continue
+		}
+
+		if stop {
+			break
+		}
+
+		result = int(1)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (result int) {
+	for {
+		if first {
+			break
+		}
+
+		for {
+			result = int(1)
+			break
+		}
+
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (result int) {
+	for {
+		result = int(1)
+
+		if first {
+			break
+		}
+
+		for {
+			result = int(2)
+			break
+		}
+
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool, second bool) (result int) {
+	for {
+		if first {
+			result = int(1)
+		}
+
+		if second {
+			break
+		}
+
+		result = int(2)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool, second bool) (result int) {
+	for {
+		result = int(1)
+
+		if first {
+			result = int(2)
+		}
+
+		if second {
+			break
+		}
+
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool, second bool) (result int) {
+	for {
+		if first {
+			result = int(1)
+
+			if second {
+				break
+			}
+
+			break
+		}
+
+		result = int(2)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool, second bool, third bool) (result int) {
+	for {
+		if first {
+			if second {
+				result = int(1)
+				break
+			}
+
+			if third {
+				break
+			}
+
+			result = int(2)
+			break
+		}
+
+		result = int(3)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (x int, y int) {
+	for {
+		if first {
+			x = int(1)
+			y = int(2)
+			break
+		}
+
+		x = int(3)
+		break
+	}
+
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (x int, y int) {
+	for {
+		if first {
+			x = int(1)
+			y = int(2)
+			break
+		}
+
+		x = int(3)
+		break
+	}
+
+	y = int(4)
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (x int, y int, z int) {
+	for {
+		if first {
+			x = int(1)
+			y = int(2)
+			break
+		}
+
+		x = int(3)
+		z = int(4)
+		break
+	}
+
+	return
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
@@ -1505,16 +2305,16 @@ func x() int {
 		}
 
 		check := NewChecker()
-		check.checkForStmt(nil)
+		check.checkForStmt(nil, nil)
 		check.checkForStmt(&ast.ForStmt{
 			Init: &ast.BadStmt{},
-		})
+		}, nil)
 		check.checkForStmt(&ast.ForStmt{
 			Condition: &ast.BadExpr{},
-		})
+		}, nil)
 		check.checkForStmt(&ast.ForStmt{
 			Post: &ast.BadStmt{},
-		})
+		}, nil)
 	})
 
 	t.Run("x13", func(t *testing.T) {
@@ -3819,7 +4619,7 @@ func a() int {
 func b() int {
 	x := a()
 }
-			`,
+`,
 			},
 			{
 				data: `package main
@@ -3916,7 +4716,7 @@ func f(ok bool) int {
 	}
 	return int(0)
 }
-			`,
+`,
 			},
 			{
 				data: `package main
@@ -4285,7 +5085,7 @@ func (u User) f(ok bool) int {
 	}
 	return int(0)
 }
-			`,
+`,
 			},
 			{
 				data: `package main

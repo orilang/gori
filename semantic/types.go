@@ -115,23 +115,25 @@ type Diagnostics struct {
 }
 
 type Checker struct {
-	pkgScope       *Scope // pkg only scope
-	scope          *Scope // lexical scope during statement/expression
-	useScope       bool
-	errors         []Diagnostics
-	typeDecls      []ast.TypeDecl
-	funcDecls      []*ast.FuncDecl
-	methodDecls    []*ast.FuncDecl
-	methods        map[*NamedType]map[string]*FuncMethod
-	constDecls     []*ast.ConstDecl
-	implDecls      []*ast.ImplementsDecl
-	implInfos      []ImplInfo
-	comptimeDecls  []ast.Decl
-	comptimeInfos  []ComptimeInfo
-	currentFunc    *FuncType
-	inSwitchCase   bool
-	inComptimeFunc bool
-	loopDepth      int
+	pkgScope                  *Scope // pkg only scope
+	scope                     *Scope // lexical scope during statement/expression
+	useScope                  bool
+	errors                    []Diagnostics
+	typeDecls                 []ast.TypeDecl
+	funcDecls                 []*ast.FuncDecl
+	methodDecls               []*ast.FuncDecl
+	methods                   map[*NamedType]map[string]*FuncMethod
+	constDecls                []*ast.ConstDecl
+	implDecls                 []*ast.ImplementsDecl
+	implInfos                 []ImplInfo
+	comptimeDecls             []ast.Decl
+	comptimeInfos             []ComptimeInfo
+	currentFunc               *FuncType
+	inSwitchCase              bool
+	inComptimeFunc            bool
+	breakFound                bool
+	breakInputVarsInitialized []string
+	loopDepth                 int
 }
 
 type constKind int
@@ -167,6 +169,20 @@ type ComptimeInfo struct {
 type returnFlow uint8
 
 const (
+	// Execution may continue to the next statement
 	flowFallsThrough returnFlow = iota
+
+	// Every reachable path returns from the function
 	flowReturns
 )
+
+type loopContext struct {
+	breakFound       bool
+	breakInitialized map[string]struct{}
+}
+
+type stmtInfo struct {
+	returnFlowResult             returnFlow
+	returnedInputVarsInitialized []string
+	loopContext                  loopContext
+}
