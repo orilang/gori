@@ -280,6 +280,14 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 	var stmts []ast.Stmt
 
 	for p.kind() != token.RBrace && p.kind() != token.EOF {
+		if p.kind() == token.Comment {
+			_ = p.next()
+			continue
+		}
+
+		if p.kind() == token.RBrace {
+			break
+		}
 		stmts = append(stmts, p.parseStmt())
 	}
 	rb := p.expect(token.RBrace, "expected '}'")
