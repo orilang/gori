@@ -1870,9 +1870,33 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	switch stmt.Op.Kind {
 	case token.Assign:
 		if stmt.Key != nil && stmt.Value != nil {
+			name := exprName(stmt.Key)
+			sym := c.scope.Lookup(name)
+			if sym == nil {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
+				return
+			}
+
+			if sym.Kind == SymConst {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
+				return
+			}
+
 			key := c.checkExpr(stmt.Key)
 			if stmt.Key.Name.Value != "_" && !IsAssignableTo(rangekeyType, key) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v", rangekeyType, key)})
+				return
+			}
+
+			name = exprName(stmt.Value)
+			sym = c.scope.Lookup(name)
+			if sym == nil {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
+				return
+			}
+
+			if sym.Kind == SymConst {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
 				return
 			}
 
@@ -1895,6 +1919,18 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 		} else if stmt.Key != nil {
 			if stmt.Key.Name.Value == "_" {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("blank identifier for this range key is forbidden")})
+				return
+			}
+
+			name := exprName(stmt.Key)
+			sym := c.scope.Lookup(name)
+			if sym == nil {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
+				return
+			}
+
+			if sym.Kind == SymConst {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
 				return
 			}
 

@@ -2617,6 +2617,67 @@ func f() (result int8) {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	const x int = int(0)
+	for x = range int(5) {}
+	return int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	for x = range int(5) {}
+	return int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	const k int = int(0)
+	const v int = int(0)
+	for k,v = range int(5) {}
+	return int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	var k int = int(0)
+	const v int = int(0)
+	for k,v = range int(5) {}
+	return int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	const v int = int(0)
+	for k,v = range int(5) {}
+	return int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	var k int = int(0)
+	for k,v = range int(5) {}
+	return int(1)
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
