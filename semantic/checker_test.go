@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -2497,6 +2498,7 @@ func x(z hashmap[string]int){
 `,
 			},
 			{
+				err: true,
 				data: `package main
 func x(z hashmap[string]int){
 	for range z {
@@ -2517,6 +2519,7 @@ func x(z hashmap[string]int){
 `,
 			},
 			{
+				err: true,
 				data: `package main
 func x(z hashmap[string]int){
 	for k,v := range z {
@@ -2568,6 +2571,7 @@ func x(z hashmap[string]int){
 `,
 			},
 			{
+				err: true,
 				data: `package main
 func x(z hashmap[string]int){
 	for k,v := range z {
@@ -2601,6 +2605,18 @@ func f(x int) {
 }
 `,
 			},
+
+			{
+				data: `package main
+func f() (result int8) {
+	for result = range int8(5) {
+		return
+	}
+
+	return int8(0)
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
@@ -2620,8 +2636,8 @@ func f(x int) {
 		}
 
 		check := NewChecker()
-		check.checkRangeStmt(nil)
-		check.checkRangeStmt(&ast.RangeStmt{X: &ast.BadExpr{}})
+		check.checkRangeStmt(nil, nil)
+		check.checkRangeStmt(&ast.RangeStmt{X: &ast.BadExpr{}}, nil)
 		_, _, ok := rangeVars(TInvalid)
 		assert.Equal(t, false, ok)
 
@@ -2637,7 +2653,7 @@ func f(x int) {
 				},
 			},
 			Op: token.Token{Kind: token.Slash},
-		})
+		}, nil)
 		check.useScope = false
 	})
 
@@ -2710,6 +2726,17 @@ const v int = int(1)
 
 func x(zz hashmap[string]int){
 	for k,v := range zz {}
+}
+`,
+			},
+			{
+				data: `package main
+func f() int8 {
+	for k,v := range int8(5) {
+		return v
+	}
+
+	return int8(0)
 }
 `,
 			},
@@ -5344,6 +5371,460 @@ func (u User) f(ok bool) (a int, b int) {
 			check := NewChecker()
 
 			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
+
+	t.Run("x28", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func f(z int) int {
+	for x = range int(5) {
+		return z
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (result int) {
+    for x = range int(5) {
+        result = int(1)
+    }
+    return
+}
+`,
+			},
+			{
+				data: `package main
+func f() (result int) {
+    result = int(1)
+
+    for k := range int(5) {
+        result = int(2)
+    }
+
+    return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	for x = range int(5) {
+		return int(1)
+	}
+
+	return int(2)
+}
+`,
+			},
+			{
+				data: `package main
+func f() int {
+	var x int = int(0)
+	for x = range int(5) {
+		return int(1)
+	}
+
+	return int(2)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(z int) int {
+	for i := range int(5) {
+		z = i
+		return z
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(z int) int {
+	for i := range int(5) {
+		z = i
+	}
+	return z
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(z int) int {
+	for i := range int(5) {
+		z = i
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	for k,v := range int(5) {}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+  var z int = int(1)
+	for k,v := range int(5) {
+	  if k == z {
+		  return z
+		}
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+  var z int = int(1)
+	for k,v := range int(5) {
+	  if v == z {
+		  return z
+		}
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+  var z int = int(1)
+	for k,v := range int(5) {
+	  if k == z {
+		  break
+		}
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f() int {
+  var z int = int(1)
+	for k,v := range int(5) {
+	  if v == z {
+		  break
+		}
+	}
+	return z
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (result int) {
+	for k,v := range int(5) {
+		if first {
+			result = int(1)
+			break
+		} else {
+			result = int(2)
+			break
+		}
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (result int) {
+	result = int(1)
+	for k,v := range int(5) {
+		if first {
+			result = int(1)
+			break
+		} else {
+			result = int(2)
+			break
+		}
+	}
+
+	return result
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (result int) {
+	for k,v := range int(5) {
+		if first {
+			break
+		}
+
+		result = int(2)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f() int {
+	for k,v := range int(0) {
+		if k == v {
+			break
+		}
+	}
+
+	return int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (result int) {
+	for k,v := range int(5) {
+		if v == int(1) {
+			continue
+		}
+
+		result = int(2)
+		break
+	}
+
+	return result
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (result int) {
+	result = int(1)
+	for k,v := range int(5) {
+		if first {
+			continue
+		}
+		return
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(first bool) (a int, b int) {
+	a = int(0)
+	b = int(0)
+	for k,v := range int(5) {
+		if first {
+			a = int(1)
+			b = int(1)
+			break
+		} else {
+			a = int(2)
+			b = int(2)
+			break
+		}
+	}
+
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(first bool) (a int, b int) {
+	for k,v := range int(5) {
+		if first {
+			a = int(1)
+			b = int(1)
+			break
+		}
+	}
+
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f() int {
+	for range int(5) {}
+
+	return int(1)
+}
+`,
+			},
+			{
+				data: `package main
+func f() int {
+	for range int(5) {
+		return int(1)
+	}
+
+	return int(2)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (result int) {
+	for result = range int(5) {
+		return
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (result int) {
+	for result = range int(5) {}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f() (result int) {
+	for result = range int(5) {
+		return
+	}
+
+	return int(0)
+}
+`,
+			},
+			{
+				data: `package main
+func f() (a int, b int) {
+	for a, b = range int(5) {
+		return
+	}
+
+	return int(0), int(0)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (result int) {
+	for result = range int(0) {}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(n int) (result int) {
+	for result = range n {}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(n int) (a int, b int) {
+	for a = range n {
+		b = int(1)
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f() (result int) {
+	result = int(1)
+
+	for result = range int(0) {}
+
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (a int, b int) {
+	for a = range int(5) {
+		return
+	}
+
+	return int(0), int(0)
+}
+`,
+			},
+			{
+				data: `package main
+func f() (a int, b int) {
+	b = int(1)
+
+	for a = range int(5) {
+		return
+	}
+
+	return int(0), b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() int {
+	for k,v := range int8(5) {
+		return k
+	}
+
+	return int(0)
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			fmt.Println("\nCODE", i, "\n", tc.data, "\nerror", tc.err)
+			for _, v := range parser.Errors {
+				fmt.Println(v.Error())
+			}
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			for _, v := range result {
+				fmt.Println("BBBB", v.Err.Error())
+			}
 			if tc.err {
 				assert.Greater(t, len(result), 0, i)
 			} else {

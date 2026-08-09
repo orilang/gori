@@ -1019,6 +1019,13 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 			}
 		}
 
+		if _, ok := stmt.(*ast.ContinueStmt); ok {
+			if i != len(block.Stmts)-1 {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("continue must be the last statement of this block")})
+				return
+			}
+		}
+
 		// At first iteration, we need to hace block stmt return values
 		// but after that we need to take result from statement iteration
 		// and pass it down to the next one not to loose context
@@ -1034,7 +1041,7 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 	}
 
 	st.returnFlowResult = flow
-	st.returnedInputVarsInitialized = returnInputVarsInitialized
+	st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 	return
 }
 
@@ -1090,7 +1097,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		return c.checkForStmt(t, returnInputVarsInitialized)
 
 	case *ast.RangeStmt:
-		c.checkRangeStmt(t)
+		return c.checkRangeStmt(t, returnInputVarsInitialized)
 
 	case *ast.SwitchStmt:
 		c.checkSwitchStmt(t)
@@ -1109,7 +1116,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 	}
 
 	st.returnFlowResult = flow
-	st.returnedInputVarsInitialized = returnInputVarsInitialized
+	st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 	return
 }
 
@@ -1622,7 +1629,7 @@ func lookupInterfaceMethods(it *InterfaceType, name string) (Type, bool) {
 func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	if stmt == nil {
 		st.returnFlowResult = flowFallsThrough
-		st.returnedInputVarsInitialized = returnInputVarsInitialized
+		st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 		return
 	}
 
@@ -1630,7 +1637,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 	if !IsBool(condType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must returned a boolean")})
 		st.returnFlowResult = flowFallsThrough
-		st.returnedInputVarsInitialized = returnInputVarsInitialized
+		st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 		return
 	}
 
@@ -1715,7 +1722,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 
 		if thenStmt.returnFlowResult == flowReturns && elseStmt.returnFlowResult == flowReturns {
 			st.returnFlowResult = flowReturns
-			st.returnedInputVarsInitialized = returnInputVarsInitialized
+			st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 			return
 		}
 	}
@@ -1733,7 +1740,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	if stmt == nil {
 		st.returnFlowResult = flowFallsThrough
-		st.returnedInputVarsInitialized = returnInputVarsInitialized
+		st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 		return
 	}
 
@@ -1764,7 +1771,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 		if !IsBool(condType) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("for condition must return a boolean")})
 			st.returnFlowResult = flowFallsThrough
-			st.returnedInputVarsInitialized = returnInputVarsInitialized
+			st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 			return
 		}
 	}
@@ -1776,7 +1783,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 	if stmt.Body != nil {
 		if stmt.Condition == nil && len(stmt.Body.Stmts) == 0 {
 			st.returnFlowResult = flowFallsThrough
-			st.returnedInputVarsInitialized = returnInputVarsInitialized
+			st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 			return
 		}
 
@@ -1789,19 +1796,19 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 			}
 
 			st.returnFlowResult = bodyStmt.returnFlowResult
-			st.returnedInputVarsInitialized = returnInputVarsInitialized
+			st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 			return
 		}
 	}
 
 	if stmt.Condition != nil || c.breakFound {
 		st.returnFlowResult = flowFallsThrough
-		st.returnedInputVarsInitialized = afterInit
+		st.returnedInputVarsInitialized = slices.Clone(afterInit)
 		return
 	}
 
 	st.returnFlowResult = flowReturns
-	st.returnedInputVarsInitialized = afterInit
+	st.returnedInputVarsInitialized = slices.Clone(afterInit)
 	return
 }
 
@@ -1819,16 +1826,27 @@ func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt, returnInputVarsInitia
 }
 
 // checkRangeStmt validates range statement block
-func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
+func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized []string) (st stmtInfo) {
+	st.returnFlowResult = flowFallsThrough
+	st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 	if stmt == nil {
 		return
 	}
 
 	oldLoopDepth := c.loopDepth
 	c.loopDepth++
+	oldscope := c.scope
+	oldBreakFound := c.breakFound
+	oldBreakInputVarsInitialized := slices.Clone(c.breakInputVarsInitialized)
 	defer func() {
 		c.loopDepth = oldLoopDepth
+		c.scope = oldscope
+		c.breakFound = oldBreakFound
+		c.breakInputVarsInitialized = oldBreakInputVarsInitialized
 	}()
+
+	c.scope = NewScope(c.scope)
+	c.breakFound = false
 
 	iteratorType := c.checkExprInCurrentMode(stmt.X)
 	if IsInvalid(iteratorType) {
@@ -1844,7 +1862,8 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 
 	// for range x {}
 	if stmt.Op == (token.Token{}) && stmt.Body != nil {
-		c.checkBlockStmt(stmt.Body, nil)
+		// Range block must always be a flowFallsThrough as it might not be executed
+		c.checkBlockStmt(stmt.Body, returnInputVarsInitialized)
 		return
 	}
 
@@ -1862,6 +1881,17 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range value type, expected %#v, got %#v", rangeValueType, value)})
 				return
 			}
+
+			if c.currentFunc != nil {
+				for _, v := range c.currentFunc.Results {
+					if v.Name != "" && v.Name == stmt.Key.Name.Value {
+						returnInputVarsInitialized = c.checkReturnVarsInitialized(returnInputVarsInitialized, stmt.Key.Name.Value)
+					}
+					if v.Name != "" && v.Name == stmt.Value.Name.Value {
+						returnInputVarsInitialized = c.checkReturnVarsInitialized(returnInputVarsInitialized, stmt.Value.Name.Value)
+					}
+				}
+			}
 		} else if stmt.Key != nil {
 			if stmt.Key.Name.Value == "_" {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("blank identifier for this range key is forbidden")})
@@ -1873,6 +1903,14 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v", rangekeyType, key)})
 				return
 			}
+
+			if c.currentFunc != nil {
+				for _, v := range c.currentFunc.Results {
+					if v.Name != "" && v.Name == stmt.Key.Name.Value {
+						returnInputVarsInitialized = c.checkReturnVarsInitialized(returnInputVarsInitialized, stmt.Key.Name.Value)
+					}
+				}
+			}
 		}
 
 	case token.Define:
@@ -1881,14 +1919,6 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("range key and value cannot be both blank identifiers")})
 				return
 			}
-
-			oldScope := c.scope
-			defer func() {
-				c.scope = oldScope
-			}()
-
-			blockScope := NewScope(c.scope)
-			c.scope = blockScope
 
 			if !c.declareNoShadow(c.scope, &Symbol{
 				Name: stmt.Key.Name.Value,
@@ -1911,14 +1941,6 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 				return
 			}
 
-			oldScope := c.scope
-			defer func() {
-				c.scope = oldScope
-			}()
-
-			blockScope := NewScope(c.scope)
-			c.scope = blockScope
-
 			if !c.declareNoShadow(c.scope, &Symbol{
 				Name: stmt.Key.Name.Value,
 				Kind: SymVar,
@@ -1934,8 +1956,10 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt) {
 	}
 
 	if stmt.Body != nil {
-		c.checkBlockStmt(stmt.Body, nil)
+		// Range block must always be a flowFallsThrough as it might not be executed
+		c.checkBlockStmt(stmt.Body, returnInputVarsInitialized)
 	}
+	return
 }
 
 // rangeVars returns underlying type var
