@@ -2060,93 +2060,30 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 	}
 
 	var (
-		dcount                    int
-		hasFallThrough            bool
-		caseIsEmpty               bool
-		caseHasNoReturn           bool
-		caseHasExitedNormallyOnce bool
-		caseHasExitedOnce         bool
-		defaultReturnFlowResult   returnFlow
+		dcount                  int
+		hasFallThrough          bool
+		caseIsEmpty             bool
+		caseHasNoReturn         bool
+		caseHasExitedNormally   bool
+		defaultReturnFlowResult returnFlow
 	)
 
 	intersection := slices.Clone(returnInputVarsInitialized)
-	intersectionFilter := func(index int, sStmt stmtInfo, hasFallThrough bool) {
-		if !caseIsEmpty {
-			if len(sStmt.returnedInputVarsInitialized) == 0 && sStmt.returnFlowResult == flowFallsThrough && !hasFallThrough {
-				intersection = slices.Clone(returnInputVarsInitialized)
+	intersectionFilter := func(sStmt stmtInfo) {
+		if sStmt.returnFlowResult == flowFallsThrough && !sStmt.switchCaseHasFallThrough {
+			if !caseHasExitedNormally {
+				caseHasExitedNormally = true
+				intersection = slices.Clone(sStmt.returnedInputVarsInitialized)
 			} else {
-				bkp := slices.Clone(intersection)
 				var tmp []string
-				for _, rv := range c.currentFunc.Results {
-					for _, sv := range sStmt.returnedInputVarsInitialized {
-						if rv.Name == sv {
-							tmp = append(tmp, sv)
+				for _, vi := range intersection {
+					for _, rvi := range sStmt.returnedInputVarsInitialized {
+						if vi == rvi {
+							tmp = append(tmp, rvi)
 						}
 					}
 				}
-
-				fmt.Println("TMP", tmp, index, "caseHasExitedNormallyOnce", caseHasExitedNormallyOnce, "hasFallThrough", hasFallThrough, "BKP", bkp)
-				if sStmt.returnFlowResult == flowFallsThrough {
-					if caseHasExitedNormallyOnce {
-						if caseHasExitedOnce {
-							var (
-								itmp  []string
-								found bool
-							)
-							for _, bv := range bkp {
-								for _, tv := range tmp {
-									if bv == tv {
-										found = true
-										itmp = append(itmp, tv)
-									} else {
-										found = false
-									}
-								}
-							}
-
-							if !found {
-								intersection = slices.Clone(returnInputVarsInitialized)
-							} else {
-								intersection = slices.Clone(itmp)
-							}
-							fmt.Println("BKP", bkp, "ITMP", itmp, index, caseHasExitedNormallyOnce, "found", found, "intersection", intersection)
-						} else {
-							intersection = slices.Clone(tmp)
-						}
-					} else if !caseHasExitedNormallyOnce && !caseHasExitedOnce {
-						intersection = slices.Clone(tmp)
-					} else {
-						var (
-							itmp  []string
-							found bool
-						)
-						for _, bv := range bkp {
-							for _, tv := range tmp {
-								if bv == tv {
-									found = true
-									itmp = append(itmp, tv)
-								} else {
-									found = false
-								}
-							}
-						}
-
-						if !found {
-							intersection = slices.Clone(returnInputVarsInitialized)
-						} else {
-							intersection = slices.Clone(itmp)
-						}
-						fmt.Println("BKP", bkp, "ITMP", itmp, index, caseHasExitedNormallyOnce, "found", found, "intersection", intersection)
-					}
-				}
-
-				if (!hasFallThrough || !sStmt.switchCaseHasFallThrough) && sStmt.returnFlowResult == flowReturns {
-					caseHasExitedNormallyOnce = true
-				}
-
-				if index == 0 {
-					caseHasExitedOnce = true
-				}
+				intersection = slices.Clone(tmp)
 			}
 		}
 	}
@@ -2218,7 +2155,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 					continue
 				}
 
-				intersectionFilter(i, sStmt, hasFallThrough)
+				intersectionFilter(sStmt)
 
 				if dcount == 1 {
 					defaultReturnFlowResult = sStmt.returnFlowResult
@@ -2258,6 +2195,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				}
 			} else {
 				caseIsEmpty = true
+				caseHasExitedNormally = true
 				intersection = slices.Clone(returnInputVarsInitialized)
 			}
 		}
@@ -2304,7 +2242,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 					continue
 				}
 
-				intersectionFilter(i, sStmt, hasFallThrough)
+				intersectionFilter(sStmt)
 
 				if dcount == 1 {
 					defaultReturnFlowResult = sStmt.returnFlowResult
@@ -2344,15 +2282,15 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				}
 			} else {
 				caseIsEmpty = true
+				caseHasExitedNormally = true
 				intersection = slices.Clone(returnInputVarsInitialized)
 			}
 		}
 	}
 
+	st.returnedInputVarsInitialized = slices.Clone(intersection)
 	if dcount == 0 {
 		st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
-	} else {
-		st.returnedInputVarsInitialized = slices.Clone(intersection)
 	}
 
 	if caseHasNoReturn || caseIsEmpty {

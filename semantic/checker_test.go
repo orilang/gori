@@ -1,7 +1,6 @@
 package semantic
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -7165,17 +7164,10 @@ func f(a int) (b int, c int) {
 			require.NoError(t, err)
 			parser := parser.New(lex.FetchTokensFromString(tc.data))
 			pr := parser.ParseFile()
-			fmt.Println("\nCODE", i, "\n", tc.data, "\nerror", tc.err)
-			for _, v := range parser.Errors {
-				fmt.Println(v.Error())
-			}
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
 			result := check.Check(pr)
-			for _, v := range result {
-				fmt.Println("BBBB", v.Err.Error())
-			}
 			if tc.err {
 				assert.Greater(t, len(result), 0, i)
 			} else {
