@@ -1100,7 +1100,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		return c.checkRangeStmt(t, returnInputVarsInitialized)
 
 	case *ast.SwitchStmt:
-		c.checkSwitchStmt(t)
+		return c.checkSwitchStmt(t, returnInputVarsInitialized)
 
 	case *ast.FallThroughStmt:
 		c.checkFallThroughStmt(t)
@@ -1258,7 +1258,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
 	}
 
 	if isNumericExpr(decl.Right) {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot use numeric only expression in := declaration")})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot use numeric only expression with define assigment declaration (:=)")})
 		return
 	}
 
@@ -1558,7 +1558,6 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("calling function with returned values are forbidden without assignment, expected 0, got %d", len(fn.FuncType.Results))})
 		return
 	}
-	fmt.Printf("XXX %#v\n", calleType)
 
 	_ = c.checkExprInCurrentMode(stmt.Expr)
 }
@@ -2023,7 +2022,9 @@ func rangeVars(t Type) (Type, Type, bool) {
 }
 
 // checkSwitchStmt validates switch statement block
-func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
+func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitialized []string) (st stmtInfo) {
+	st.returnFlowResult = flowFallsThrough
+	st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 	if stmt == nil {
 		return
 	}
@@ -2033,15 +2034,129 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 		c.scope = oldScope
 	}()
 
-	switchScope := NewScope(c.scope)
-	c.scope = switchScope
+	c.scope = NewScope(c.scope)
 
 	if stmt.Init != nil {
-		c.checkStmt(stmt.Init, nil)
+		// switch examples:
+		// switch z:=w();z {
+		// switch z=w();z {
+		// the init is the first z
+		cStmt := c.checkStmt(stmt.Init, returnInputVarsInitialized)
+
+		if val, ok := stmt.Init.(*ast.AssignStmt); ok && val.Operator.Kind == token.Assign {
+			name := exprName(val.Left)
+			sym := c.scope.Lookup(name)
+			if sym != nil && sym.Kind == SymConst {
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
+				return
+			}
+
+			for _, v := range c.currentFunc.Results {
+				if v.Name != "" && v.Name == name {
+					returnInputVarsInitialized = c.checkReturnVarsInitialized(cStmt.returnedInputVarsInitialized, name)
+				}
+			}
+		}
 	}
 
-	var dcount int
+	var (
+		dcount                    int
+		hasFallThrough            bool
+		caseIsEmpty               bool
+		caseHasNoReturn           bool
+		caseHasExitedNormallyOnce bool
+		caseHasExitedOnce         bool
+		defaultReturnFlowResult   returnFlow
+	)
+
+	intersection := slices.Clone(returnInputVarsInitialized)
+	intersectionFilter := func(index int, sStmt stmtInfo, hasFallThrough bool) {
+		if !caseIsEmpty {
+			if len(sStmt.returnedInputVarsInitialized) == 0 && sStmt.returnFlowResult == flowFallsThrough && !hasFallThrough {
+				intersection = slices.Clone(returnInputVarsInitialized)
+			} else {
+				bkp := slices.Clone(intersection)
+				var tmp []string
+				for _, rv := range c.currentFunc.Results {
+					for _, sv := range sStmt.returnedInputVarsInitialized {
+						if rv.Name == sv {
+							tmp = append(tmp, sv)
+						}
+					}
+				}
+
+				fmt.Println("TMP", tmp, index, "caseHasExitedNormallyOnce", caseHasExitedNormallyOnce, "hasFallThrough", hasFallThrough, "BKP", bkp)
+				if sStmt.returnFlowResult == flowFallsThrough {
+					if caseHasExitedNormallyOnce {
+						if caseHasExitedOnce {
+							var (
+								itmp  []string
+								found bool
+							)
+							for _, bv := range bkp {
+								for _, tv := range tmp {
+									if bv == tv {
+										found = true
+										itmp = append(itmp, tv)
+									} else {
+										found = false
+									}
+								}
+							}
+
+							if !found {
+								intersection = slices.Clone(returnInputVarsInitialized)
+							} else {
+								intersection = slices.Clone(itmp)
+							}
+							fmt.Println("BKP", bkp, "ITMP", itmp, index, caseHasExitedNormallyOnce, "found", found, "intersection", intersection)
+						} else {
+							intersection = slices.Clone(tmp)
+						}
+					} else if !caseHasExitedNormallyOnce && !caseHasExitedOnce {
+						intersection = slices.Clone(tmp)
+					} else {
+						var (
+							itmp  []string
+							found bool
+						)
+						for _, bv := range bkp {
+							for _, tv := range tmp {
+								if bv == tv {
+									found = true
+									itmp = append(itmp, tv)
+								} else {
+									found = false
+								}
+							}
+						}
+
+						if !found {
+							intersection = slices.Clone(returnInputVarsInitialized)
+						} else {
+							intersection = slices.Clone(itmp)
+						}
+						fmt.Println("BKP", bkp, "ITMP", itmp, index, caseHasExitedNormallyOnce, "found", found, "intersection", intersection)
+					}
+				}
+
+				if (!hasFallThrough || !sStmt.switchCaseHasFallThrough) && sStmt.returnFlowResult == flowReturns {
+					caseHasExitedNormallyOnce = true
+				}
+
+				if index == 0 {
+					caseHasExitedOnce = true
+				}
+			}
+		}
+	}
+
 	if stmt.Tag != nil {
+		// switch examples:
+		// switch a {
+		// switch z:=w();z {
+		// switch z=w();z {
+		// the tag is "a" or the last z
 		tagType := c.checkExprInCurrentMode(stmt.Tag)
 		if IsInvalid(tagType) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag expression is invalid")})
@@ -2096,10 +2211,64 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			}
 
 			if cc.Body != nil {
-				c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1)
+				sStmt := c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1, returnInputVarsInitialized)
+
+				if sStmt.switchCaseHasFallThrough {
+					hasFallThrough = true
+					continue
+				}
+
+				intersectionFilter(i, sStmt, hasFallThrough)
+
+				if dcount == 1 {
+					defaultReturnFlowResult = sStmt.returnFlowResult
+
+					if hasFallThrough {
+						hasFallThrough = false
+						if !caseHasNoReturn && sStmt.returnFlowResult == flowReturns {
+							continue
+						}
+					}
+
+					if sStmt.returnFlowResult == flowReturns {
+						continue
+					}
+
+					caseHasNoReturn = true
+					if len(sStmt.returnedInputVarsInitialized) == 0 {
+						caseIsEmpty = true
+					}
+					continue
+				}
+
+				if hasFallThrough {
+					hasFallThrough = false
+					if !caseHasNoReturn && sStmt.returnFlowResult == flowReturns {
+						continue
+					}
+				}
+
+				if !caseHasNoReturn && sStmt.returnFlowResult == flowReturns {
+					continue
+				}
+
+				caseHasNoReturn = true
+				if len(sStmt.returnedInputVarsInitialized) == 0 {
+					caseIsEmpty = true
+				}
+			} else {
+				caseIsEmpty = true
+				intersection = slices.Clone(returnInputVarsInitialized)
 			}
 		}
 	} else {
+		// example switch
+		/*
+			switch {
+			case a == 1:
+				x := int(1)
+			}
+		*/
 		if len(stmt.Cases) == 0 {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("switch statement has 0 cases")})
 			return
@@ -2128,10 +2297,76 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt) {
 			}
 
 			if cc.Body != nil {
-				c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1)
+				sStmt := c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1, returnInputVarsInitialized)
+
+				if sStmt.switchCaseHasFallThrough {
+					hasFallThrough = true
+					continue
+				}
+
+				intersectionFilter(i, sStmt, hasFallThrough)
+
+				if dcount == 1 {
+					defaultReturnFlowResult = sStmt.returnFlowResult
+
+					if hasFallThrough {
+						hasFallThrough = false
+						if !caseHasNoReturn && sStmt.returnFlowResult == flowReturns {
+							continue
+						}
+					}
+
+					if sStmt.returnFlowResult == flowReturns {
+						continue
+					}
+
+					caseHasNoReturn = true
+					if len(sStmt.returnedInputVarsInitialized) == 0 {
+						caseIsEmpty = true
+					}
+					continue
+				}
+
+				if hasFallThrough {
+					hasFallThrough = false
+					if !caseHasNoReturn && sStmt.returnFlowResult == flowReturns {
+						continue
+					}
+				}
+
+				if !caseHasNoReturn && sStmt.returnFlowResult == flowReturns {
+					continue
+				}
+
+				caseHasNoReturn = true
+				if len(sStmt.returnedInputVarsInitialized) == 0 {
+					caseIsEmpty = true
+				}
+			} else {
+				caseIsEmpty = true
+				intersection = slices.Clone(returnInputVarsInitialized)
 			}
 		}
 	}
+
+	if dcount == 0 {
+		st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
+	} else {
+		st.returnedInputVarsInitialized = slices.Clone(intersection)
+	}
+
+	if caseHasNoReturn || caseIsEmpty {
+		st.returnFlowResult = flowFallsThrough
+		return
+	}
+
+	if defaultReturnFlowResult == flowReturns {
+		st.returnFlowResult = flowReturns
+		return
+	}
+
+	st.returnFlowResult = flowFallsThrough
+	return
 }
 
 // constKey returns true if expression is a literal one. It will be used by basic switch case
@@ -2170,7 +2405,7 @@ func (c *Checker) constKey(expr ast.Expr, typ Type) (constKey, bool) {
 }
 
 // checkSwitchBody loops over switch base body for validation
-func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool) {
+func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, returnInputVarsInitialized []string) (st stmtInfo) {
 	oldScope := c.scope
 	oldInSwitchCase := c.inSwitchCase
 	defer func() {
@@ -2181,7 +2416,17 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool) {
 
 	bodyScope := NewScope(c.scope)
 	c.scope = bodyScope
+
+	var cStmt stmtInfo
+	cStmt.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
+
+	var returnFlowResult returnFlow
 	for i, b := range body {
+		if returnFlowResult == flowReturns {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unreachable code at %d:%d", b.Start().Line, b.End().Line)})
+			return
+		}
+
 		if _, ok := b.(*ast.FallThroughStmt); ok {
 			if i != len(body)-1 {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough must be the last statement of the switch case body")})
@@ -2192,11 +2437,15 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden inside last switch case")})
 				return
 			}
+			cStmt.switchCaseHasFallThrough = true
 			continue
 		}
 
-		c.checkStmt(b, nil)
+		cStmt = c.checkStmt(b, cStmt.returnedInputVarsInitialized)
+		returnFlowResult = cStmt.returnFlowResult
 	}
+
+	return cStmt
 }
 
 // checkFallThroughStmt produces an error when not into switch case
@@ -2226,7 +2475,7 @@ func (c *Checker) checkBreakStmt(_ *ast.BreakStmt, returnInputVarsInitialized []
 		}
 	}
 
-	c.breakInputVarsInitialized = intersection
+	c.breakInputVarsInitialized = slices.Clone(intersection)
 	return returnInputVarsInitialized
 }
 

@@ -2832,7 +2832,7 @@ func w() int {
 }
 func b() {}
 func c() {}
-func x(a int) int {
+func x(a int) {
   switch z:=w();z {
     case a:
       b()
@@ -2978,7 +2978,7 @@ func x() int {
 				data: `package main
 func doA() {}
 func doB() {}
-func x(a int) int {
+func x(a int) {
   switch a {
 	case 1:
 		doA()
@@ -3078,7 +3078,7 @@ func doA() {
 		}
 
 		check := NewChecker()
-		check.checkSwitchStmt(nil)
+		check.checkSwitchStmt(nil, nil)
 	})
 
 	t.Run("x16", func(t *testing.T) {
@@ -3389,7 +3389,7 @@ func describe(s Shape) int {
 		}
 
 		check := NewChecker()
-		check.checkSwitchStmt(nil)
+		check.checkSwitchStmt(nil, nil)
 		body := []*Symbol{
 			{Name: "test", Kind: SymVar, Type: TInt},
 			{Name: "test", Kind: SymVar, Type: TInt},
@@ -5865,6 +5865,1296 @@ func f() int {
 	}
 
 	return int(0)
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
+
+	t.Run("x29", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+		case 1:
+		case 2:
+			x := int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+		case 1:
+		case 2:
+			return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+		case 1:
+		default:
+			x := int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+	case 1:
+		return int(1)
+	case 2:
+		return int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+		case 1:
+		default:
+			return int(1)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) int {
+	switch a {
+		case 1:
+		case 2:
+			return int(1)
+	}
+	return int(1)
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) int {
+	x := int(1)
+	switch a {
+		case 1:
+		case 2:
+			return int(1)
+	}
+	return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+	return int(0)
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int, c int) {
+  b = int(1)
+	switch a {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+	return b, int(0)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() int {
+	switch z:=w();z {
+		case 1:
+		case 2:
+			x := int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() int {
+	switch z:=w();z {
+		case 1:
+		case 2:
+			return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() int {
+	switch z:=w();z {
+		case 1:
+		default:
+			x := int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() int {
+	switch z:=w();z {
+		case 1:
+		default:
+			return int(1)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() int {
+	switch z:=w();z {
+		default:
+			return int(1)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() int {
+	switch z:=w();z {
+		case 1:
+		case 2:
+			return int(1)
+	}
+	return int(1)
+}
+`,
+			},
+			{
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() int {
+	x := int(1)
+	switch z:=w();z {
+		case 1:
+		case 2:
+			return int(1)
+	}
+	return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() int {
+	switch z:=w();z {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() (b int, c int) {
+	switch z:=w();z {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() (b int, c int) {
+	const z int = int(1)
+	switch z=w();z {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() (b int, c int) {
+	switch b=w();b {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() (b int, c int) {
+	switch z:=w();z {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+	return int(0)
+}
+`,
+			},
+			{
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f() (b int, c int) {
+	b = int(1)
+	switch z:=w();z {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+	return b, int(0)
+}
+`,
+			},
+			{
+				data: `package main
+func w() int {
+  return int(5)
+}
+func f(a int) (b int, c int) {
+	b = int(1)
+	switch z:=w();z {
+		case 1:
+			x := int(1)
+		case 2:
+			return int(0), int(1)
+	}
+	return b, int(0)
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int, c int) {
+	b = int(0)
+	switch {
+		case a == 1:
+			x := int(1)
+	}
+	return b, int(0)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	b = int(0)
+	switch {
+		case a == 1:
+			x := int(1)
+		case a == 2:
+			x := int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	b = int(0)
+	switch {
+		case a == 1:
+			return b, int(1)
+		default:
+			x := int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	b = int(1)
+	switch a {
+	case 1:
+		x := int(1)
+	case 2:
+		return int(0), int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch {
+	case a == 1:
+		x := int(1)
+	case a == 2:
+		x := int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch {
+	case a == 1:
+		return b, int(1)
+	default:
+		x := int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	b = int(0)
+	switch {
+	case a == 1:
+		return b, int(1)
+	default:
+		switch {
+		case a == 1:
+			return b, int(1)
+		default:
+			x := int(2)
+		}
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int, c int) {
+	b = int(0)
+	switch {
+	case a == 1:
+		return b, int(1)
+	default:
+		switch {
+		case a == 1:
+			return b, int(1)
+		default:
+			return int(1),int(2)
+		}
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) int {
+	switch a {
+	case 1:
+		return int(1)
+	default:
+		return int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+	case 1:
+		return int(1)
+	default:
+		x := int(2)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	case 1:
+		if ok {
+			return int(1)
+		} else {
+			return int(2)
+		}
+	default:
+		return int(3)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	case 1:
+		fallthrough
+	default:
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	case 1:
+		fallthrough
+	case 2:
+		fallthrough
+	default:
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	case 1:
+		fallthrough
+	case 2:
+		x := true
+	case 3:
+		fallthrough
+	default:
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	case 1:
+		fallthrough
+	case 2:
+		return int(1)
+	case 3:
+		fallthrough
+	case 4:
+		x := true
+	default:
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	default:
+		return int(1)
+	case 1:
+		fallthrough
+	case 2:
+		return int(1)
+	case 3:
+		fallthrough
+	case 4:
+		x := true
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	case 1:
+		switch a {
+		case 1:
+			return int(2)
+		default:
+			return int(3)
+		}
+	default:
+		return int(3)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, b int) int {
+	switch a {
+	case 1:
+		switch b {
+		case 1:
+			x := int(2)
+		default:
+			return int(3)
+		}
+	default:
+		return int(3)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, b int) int {
+	switch a {
+	case 1:
+		switch b {
+		case 1:
+			x := int(2)
+		case 2:
+			y := int(3)
+		}
+	default:
+		return int(3)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch {
+	case a == 1:
+		return int(1)
+	case a == 2:
+		return int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch {
+	case a == 1:
+		fallthrough
+	case a == 2:
+		return int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch {
+	case a == 1:
+		b = int(1)
+	case a == 2:
+		return int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch {
+	case a == 1:
+		b = int(1)
+	default:
+		return int(2)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int) {
+	switch {
+	case a == 1:
+		b = int(1)
+	default:
+		return int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int) {
+	switch {
+	case a == 1:
+		return int(1)
+	default:
+		return int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+	case 1:
+		x := true
+	case 2:
+		fallthrough
+	default:
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		b = int(1)
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		b = int(1)
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		return int(1)
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) int {
+	switch a {
+	default:
+		x := true
+	case 1:
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) int {
+	switch a {
+	case 1:
+		return int(1)
+	case 2:
+		fallthrough
+	default:
+		return int(2)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		b = int(1)
+	case 2:
+		x := true
+	default:
+		return int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		b = int(1)
+		return int(1)
+	default:
+		x := true
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int,c int) {
+	switch a {
+	case 1:
+		b = int(1)
+		c = int(1)
+	default:
+		x := true
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() int {
+	return int(1)
+}
+
+func f() int {
+	switch z=w(); z {
+	default:
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int,c int) {
+	switch {
+	case a == 1:
+		b = int(1)
+		c = int(1)
+	default:
+		x := true
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int,c int) {
+	switch {
+	case a == 1:
+		b = int(1)
+		c = int(1)
+	case a == 2:
+		fallthrough
+	case a == 3:
+		fallthrough
+	default:
+		x := true
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int,c int) {
+	switch {
+	case a == 1:
+		b = int(1)
+		c = int(1)
+	case a == 2:
+		fallthrough
+	case a == 3:
+		fallthrough
+	case a == 4:
+		x := true
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int,c int) {
+	switch {
+	case a == 1:
+		b = int(1)
+		c = int(1)
+	case a == 2:
+		fallthrough
+	case a == 3:
+		fallthrough
+	case a == 4:
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int,c int) {
+	switch {
+	case a == 1:
+		return int(1), int(1)
+	case a == 2:
+		fallthrough
+	default:
+		return int(1)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		x := true
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+	case 1:
+		b = int(1)
+	default:
+		b = int(2)
+	}
+	return b, int(0)
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (c int, b int) {
+	switch a {
+	case 1:
+		b = int(1)
+	default:
+		b = int(2)
+	}
+	return int(0), b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	case 1:
+		if ok {
+			return int(1)
+		} else {
+			return int(2)
+		}
+		x := true
+	default:
+		return int(3)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, ok bool) int {
+	switch a {
+	case 1:
+		if ok {
+			return int(1)
+		} else {
+			return int(2)
+		}
+		x := true
+		y := true
+	default:
+		return int(3)
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+	case 1:
+		b = int(1)
+	default:
+		c = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		return int(1)
+	case 2:
+		x := true
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		fallthrough
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, ok bool) (b int) {
+	switch a {
+	case 1:
+		if ok {
+			return int(1)
+		} else {
+			return int(2)
+		}
+		fallthrough
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		x := true
+	case 2:
+		return int(1)
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		x := true
+	case 2:
+		fallthrough
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		b = int(1)
+	default:
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		return int(1)
+	case 2:
+	default:
+		b = int(2)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+	case 1:
+		c = int(1)
+	case 2:
+		return int(1), int(2)
+	default:
+		b = int(3)
+		c = int(4)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+	case 1:
+		c = int(1)
+	case 2:
+		fallthrough
+	default:
+		b = int(2)
+		c = int(3)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+	case 1:
+		b = int(1)
+		c = int(2)
+	default:
+		b = int(3)
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		return int(1)
+	case 2:
+		return int(2)
+	default:
+		b = int(3)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+	case 1:
+		b = int(1)
+	case 2:
+		c = int(2)
+	default:
+		b = int(3)
+		c = int(4)
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func f(a int) (b int, c int) {
+	b = int(1)
+	switch a {
+	case 1:
+		c = int(2)
+	default:
+		c = int(3)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int) (b int, c int) {
+	switch a {
+	case 1:
+		c = int(1)
+	case 2:
+		b = int(1)
+		return int(1), int(2)
+	default:
+		b = int(2)
+	}
+	return b, int(0)
 }
 `,
 			},

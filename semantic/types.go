@@ -185,4 +185,5 @@ type stmtInfo struct {
 	returnFlowResult             returnFlow
 	returnedInputVarsInitialized []string
 	loopContext                  loopContext
+	switchCaseHasFallThrough     bool
 }
