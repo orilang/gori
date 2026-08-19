@@ -1012,6 +1012,11 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 	var cStmt stmtInfo
 	flow := flowFallsThrough
 	for i, stmt := range block.Stmts {
+		if flow == flowReturns {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unreachable code at %d:%d", stmt.Start().Line, stmt.End().Line)})
+			return
+		}
+
 		if _, ok := stmt.(*ast.BreakStmt); ok {
 			if i != len(block.Stmts)-1 {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("break must be the last statement of this block")})
@@ -2103,8 +2108,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		underlying := unwrapNamed(tagType)
 		switch underlying.(type) {
 		case *SumType:
-			c.checkSwitchStmtSumType(tagType, stmt)
-			return
+			return c.checkSwitchStmtSumType(tagType, stmt, returnInputVarsInitialized)
 		case *EnumType:
 			return c.checkSwitchStmtEnumType(tagType, stmt, returnInputVarsInitialized)
 		}
@@ -2426,14 +2430,47 @@ func (c *Checker) checkContinueStmt(_ *ast.ContinueStmt) {
 }
 
 // checkSwitchStmtSumType validates switch statement block
-func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt) {
+func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	underlying := unwrapNamed(tagType)
 	sm := underlying.(*SumType)
 
+	var (
+		cStmt                 stmtInfo
+		caseHasExitedNormally bool
+		caseHasNoReturn       bool
+		caseIsEmpty           bool
+	)
+
 	seen := make(map[string]bool, len(stmt.Cases))
+
+	intersection := slices.Clone(returnInputVarsInitialized)
+	intersectionFilter := func(sStmt stmtInfo) {
+		if sStmt.returnFlowResult == flowFallsThrough {
+			if !caseHasExitedNormally {
+				caseHasExitedNormally = true
+				intersection = slices.Clone(sStmt.returnedInputVarsInitialized)
+			} else {
+				var tmp []string
+				for _, vi := range intersection {
+					for _, rvi := range sStmt.returnedInputVarsInitialized {
+						if vi == rvi {
+							tmp = append(tmp, rvi)
+						}
+					}
+				}
+				intersection = slices.Clone(tmp)
+			}
+		}
+	}
+
 	for _, cc := range stmt.Cases {
 		if cc.Case.Kind == token.KWDefault {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("default is forbidden inside sum type switch")})
+			return
+		}
+
+		if len(cc.Values) != 1 {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("sum case must have exactly one variant")})
 			return
 		}
 
@@ -2499,7 +2536,21 @@ func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt) {
 		}
 
 		if cc.Body != nil {
-			c.checkSwitchSumBody(cc.Body, bindings)
+			cStmt = c.checkSwitchSumBody(cc.Body, bindings, returnInputVarsInitialized)
+
+			intersectionFilter(cStmt)
+			if cStmt.returnFlowResult == flowReturns {
+				continue
+			}
+
+			caseHasNoReturn = true
+			if len(cStmt.returnedInputVarsInitialized) == 0 {
+				caseIsEmpty = true
+			}
+		} else {
+			caseIsEmpty = true
+			caseHasExitedNormally = true
+			intersection = slices.Clone(returnInputVarsInitialized)
 		}
 	}
 
@@ -2509,6 +2560,16 @@ func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt) {
 			return
 		}
 	}
+
+	st.returnedInputVarsInitialized = slices.Clone(intersection)
+	if caseHasNoReturn || caseIsEmpty {
+		st.returnFlowResult = flowFallsThrough
+		return
+	}
+
+	st.returnFlowResult = flowReturns
+	st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
+	return
 }
 
 // fetchSumVariant fetches variant from sum type when found
@@ -2524,7 +2585,7 @@ func fetchSumVariant(name string, sm *SumType) (SumVariant, bool) {
 
 // checkSwitchSumBody loops over sum type switch base body for validation
 // and creates related statements
-func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
+func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol, returnInputVarsInitialized []string) (st stmtInfo) {
 	oldScope := c.scope
 	oldInSwitchCase := c.inSwitchCase
 	defer func() {
@@ -2533,8 +2594,7 @@ func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
 	}()
 	c.inSwitchCase = true
 
-	bodyScope := NewScope(c.scope)
-	c.scope = bodyScope
+	c.scope = NewScope(c.scope)
 
 	for _, b := range bindings {
 		if !c.declareNoShadow(c.scope, b, "variable") {
@@ -2542,14 +2602,28 @@ func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
 		}
 	}
 
+	var (
+		cStmt            stmtInfo
+		returnFlowResult returnFlow
+	)
+
+	cStmt.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 	for _, b := range body {
+		if returnFlowResult == flowReturns {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unreachable code at %d:%d", b.Start().Line, b.End().Line)})
+			return
+		}
+
 		if _, ok := b.(*ast.FallThroughStmt); ok {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden in sum switch type")})
 			return
 		}
 
-		c.checkStmt(b, nil)
+		cStmt = c.checkStmt(b, cStmt.returnedInputVarsInitialized)
+		returnFlowResult = cStmt.returnFlowResult
 	}
+
+	return cStmt
 }
 
 // checkSwitchStmtEnumType validates switch statement block

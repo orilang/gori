@@ -3197,6 +3197,22 @@ type Shape sum {
 
 func describe(s Shape) int {
 	switch s {
+			case Circle(r), Rect(w, h):
+				return w*h
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) int {
+	switch s {
 			case Circle(r):
 				return r
 			case Circle(x):
@@ -3393,7 +3409,7 @@ func describe(s Shape) int {
 			{Name: "test", Kind: SymVar, Type: TInt},
 			{Name: "test", Kind: SymVar, Type: TInt},
 		}
-		check.checkSwitchSumBody(nil, body)
+		check.checkSwitchSumBody(nil, body, nil)
 	})
 
 	t.Run("x17", func(t *testing.T) {
@@ -7405,6 +7421,233 @@ func action(l Color, x string) (a string, b string) {
 	case Yellow:
 		a = "a"
 		b = "b"
+	}
+	return
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
+
+	t.Run("x31", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+type Shape sum {
+  Circle(radius int)
+}
+
+func describe(s Shape) (b int) {
+	switch s {
+			case Circle(r):
+				return r
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type Shape sum {
+  Circle(radius int)
+}
+
+func describe(s Shape) (b int) {
+	switch s {
+			case Circle(r):
+				b = r
+				return
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type Shape sum {
+  Circle(radius int)
+}
+
+func describe(s Shape) (b int) {
+	switch s {
+			case Circle(r):
+				b = r
+	}
+	return
+}
+`,
+			},
+			{
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) (b int, c int) {
+	switch s {
+			case Circle(r):
+				return r, int(0)
+			case Rect(w, h):
+				return w*h, int(1)
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) (b int, c int) {
+	switch s {
+			case Circle(r):
+				b = r
+				c = int(0)
+			case Rect(w, h):
+				b = w*h
+				c = int(1)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) (b int, c int) {
+	switch s {
+			case Circle(r):
+				b = r
+				c = int(0)
+			case Rect(w, h):
+				b = w*h
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) (b int, c int) {
+	switch s {
+			case Circle(r):
+				b = r
+				c = int(0)
+			case Rect(w, h):
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape, ok bool) (b int, c int) {
+	switch s {
+			case Circle(r):
+				b = r
+				c = int(0)
+			case Rect(w, h):
+				if ok {
+					return w*h, int(1)
+				} else {
+					return int(0), int(1)
+				}
+				x := int(5)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+}
+
+func describe(s Shape) int {
+	switch s {
+		case Circle(r):
+			return r
+	}
+
+	x := int(5)
+	return x
+}
+`,
+			},
+			{
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) (b int, c int) {
+	switch s {
+		case Circle(r):
+			return r, int(0)
+
+		case Rect(w, h):
+			b = w*h
+			c = int(1)
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Shape sum {
+	Circle(radius int)
+	Rect(w int, h int)
+}
+
+func describe(s Shape) (b int, c int) {
+	switch s {
+		case Circle(r):
+			return r, int(0)
+
+		case Rect(w, h):
+			b = w*h
 	}
 	return
 }
