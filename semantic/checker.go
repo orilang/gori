@@ -2106,8 +2106,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			c.checkSwitchStmtSumType(tagType, stmt)
 			return
 		case *EnumType:
-			c.checkSwitchStmtEnumType(tagType, stmt)
-			return
+			return c.checkSwitchStmtEnumType(tagType, stmt, returnInputVarsInitialized)
 		}
 
 		if !IsComparable(tagType) {
@@ -2355,10 +2354,12 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 	bodyScope := NewScope(c.scope)
 	c.scope = bodyScope
 
-	var cStmt stmtInfo
-	cStmt.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
+	var (
+		cStmt            stmtInfo
+		returnFlowResult returnFlow
+	)
 
-	var returnFlowResult returnFlow
+	cStmt.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 	for i, b := range body {
 		if returnFlowResult == flowReturns {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unreachable code at %d:%d", b.Start().Line, b.End().Line)})
@@ -2552,11 +2553,38 @@ func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol) {
 }
 
 // checkSwitchStmtEnumType validates switch statement block
-func (c *Checker) checkSwitchStmtEnumType(tagType Type, stmt *ast.SwitchStmt) {
+func (c *Checker) checkSwitchStmtEnumType(tagType Type, stmt *ast.SwitchStmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	underlying := unwrapNamed(tagType)
 	en := underlying.(*EnumType)
 
+	var (
+		cStmt                 stmtInfo
+		caseHasExitedNormally bool
+		caseHasNoReturn       bool
+		caseIsEmpty           bool
+	)
 	seen := make(map[string]bool, len(stmt.Cases))
+
+	intersection := slices.Clone(returnInputVarsInitialized)
+	intersectionFilter := func(sStmt stmtInfo) {
+		if sStmt.returnFlowResult == flowFallsThrough {
+			if !caseHasExitedNormally {
+				caseHasExitedNormally = true
+				intersection = slices.Clone(sStmt.returnedInputVarsInitialized)
+			} else {
+				var tmp []string
+				for _, vi := range intersection {
+					for _, rvi := range sStmt.returnedInputVarsInitialized {
+						if vi == rvi {
+							tmp = append(tmp, rvi)
+						}
+					}
+				}
+				intersection = slices.Clone(tmp)
+			}
+		}
+	}
+
 	for _, cc := range stmt.Cases {
 		if cc.Case.Kind == token.KWDefault {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("default is forbidden inside enum type switch")})
@@ -2587,7 +2615,21 @@ func (c *Checker) checkSwitchStmtEnumType(tagType Type, stmt *ast.SwitchStmt) {
 		seen[variantName] = true
 
 		if cc.Body != nil {
-			c.checkSwitchEnumBody(cc.Body)
+			cStmt = c.checkSwitchEnumBody(cc.Body, returnInputVarsInitialized)
+
+			intersectionFilter(cStmt)
+			if cStmt.returnFlowResult == flowReturns {
+				continue
+			}
+
+			caseHasNoReturn = true
+			if len(cStmt.returnedInputVarsInitialized) == 0 {
+				caseIsEmpty = true
+			}
+		} else {
+			caseIsEmpty = true
+			caseHasExitedNormally = true
+			intersection = slices.Clone(returnInputVarsInitialized)
 		}
 	}
 
@@ -2597,6 +2639,16 @@ func (c *Checker) checkSwitchStmtEnumType(tagType Type, stmt *ast.SwitchStmt) {
 			return
 		}
 	}
+
+	st.returnedInputVarsInitialized = slices.Clone(intersection)
+	if caseHasNoReturn || caseIsEmpty {
+		st.returnFlowResult = flowFallsThrough
+		return
+	}
+
+	st.returnFlowResult = flowReturns
+	st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
+	return
 }
 
 // fetchEnumVariant fetches variant from enum type when found
@@ -2612,7 +2664,7 @@ func fetchEnumVariant(name string, en *EnumType) (string, bool) {
 
 // checkSwitchEnumBody loops over enum type switch base body for validation
 // and creates related statements
-func (c *Checker) checkSwitchEnumBody(body []ast.Stmt) {
+func (c *Checker) checkSwitchEnumBody(body []ast.Stmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	oldScope := c.scope
 	oldInSwitchCase := c.inSwitchCase
 	defer func() {
@@ -2621,16 +2673,29 @@ func (c *Checker) checkSwitchEnumBody(body []ast.Stmt) {
 	}()
 	c.inSwitchCase = true
 
-	bodyScope := NewScope(c.scope)
-	c.scope = bodyScope
+	c.scope = NewScope(c.scope)
 
+	var (
+		cStmt            stmtInfo
+		returnFlowResult returnFlow
+	)
+
+	cStmt.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 	for _, b := range body {
+		if returnFlowResult == flowReturns {
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unreachable code at %d:%d", b.Start().Line, b.End().Line)})
+			return
+		}
+
 		if _, ok := b.(*ast.FallThroughStmt); ok {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("fallthrough is forbidden in enum switch type")})
 			return
 		}
-		c.checkStmt(b, nil)
+		cStmt = c.checkStmt(b, cStmt.returnedInputVarsInitialized)
+		returnFlowResult = cStmt.returnFlowResult
 	}
+
+	return cStmt
 }
 
 // declareComptimeDecls declares all "comptime" declarations

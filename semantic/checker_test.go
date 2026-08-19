@@ -3402,6 +3402,7 @@ func describe(s Shape) int {
 			err  bool
 		}{
 			{
+				err: true,
 				data: `package main
 type Color enum {
   Red;Blue;Green;Yellow
@@ -7154,6 +7155,258 @@ func f(a int) (b int, c int) {
 		b = int(2)
 	}
 	return b, int(0)
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			result := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(result), 0, i)
+			} else {
+				assert.Equal(t, 0, len(result), i)
+			}
+		}
+	})
+
+	t.Run("x30", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	b := "red"
+	switch l {
+		case Red:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+	}
+	return b
+}
+`,
+			},
+			{
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	b := "red"
+	switch l {
+		case Red:
+			b = "red"
+		case Blue:
+			b = "blue"
+		case Green:
+			b = "green"
+		case Yellow:
+			b = "yellow"
+	}
+	return b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+		case Red:
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) (b string) {
+	switch l {
+		case Red:
+			b = "red"
+		case Blue:
+			b = "blue"
+		case Green:
+			b = "green"
+		case Yellow:
+			b = "yellow"
+	}
+	return b
+}
+`,
+			},
+			{
+				data: `package main
+type Color enum {
+	Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	switch l {
+	case Red:
+		return "red"
+	case Blue:
+		return "blue"
+	case Green:
+		return "green"
+	case Yellow:
+		return "yellow"
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+	Red;Blue;Green;Yellow
+}
+
+func action(l Color, ok bool) string {
+	switch l {
+	case Red:
+		return "red"
+	case Blue:
+		return "blue"
+	case Green:
+		return "green"
+	case Yellow:
+		if ok {
+			return "yellow"
+		} else {
+			return "green"
+		}
+		x := foo()
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type Color enum {
+	Red;Blue;Green;Yellow
+}
+
+func action(l Color) (b string) {
+	switch l {
+	case Red:
+		b = "red"
+		return
+	case Blue:
+		b = "blue"
+		return
+	case Green:
+		b = "green"
+		return
+	case Yellow:
+		b = "yellow"
+		return
+	}
+}
+`,
+			},
+			{
+				data: `package main
+type Color enum {
+	Red;Blue;Green;Yellow
+}
+
+func action(l Color) (a string, b string) {
+	switch l {
+	case Red:
+		a = "a"
+		b = "b"
+	case Blue:
+		a = "a"
+		b = "b"
+	case Green:
+		a = "a"
+		b = "b"
+	case Yellow:
+		a = "a"
+		b = "b"
+	}
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+	Red;Blue;Green;Yellow
+}
+
+func action(l Color) (b string) {
+	switch l {
+	case Red:
+		b = "red"
+		return
+	case Blue:
+		return
+	case Green:
+		return
+	case Yellow:
+		return
+	}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Color enum {
+	Red;Blue;Green;Yellow
+}
+
+func action(l Color, x string) (a string, b string) {
+	switch l {
+	case Red:
+		a = "a"
+		b = "b"
+	case Blue:
+		a = "a"
+		x = "blue"
+	case Green:
+		a = "a"
+		b = "b"
+	case Yellow:
+		a = "a"
+		b = "b"
+	}
+	return
 }
 `,
 			},
