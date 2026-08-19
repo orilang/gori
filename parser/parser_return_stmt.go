@@ -20,6 +20,10 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 
 	var args []ast.Expr
 	for p.kind() != token.RBrace && p.kind() != token.EOF {
+		if p.kind() == token.KWCase || p.kind() == token.KWDefault {
+			break
+		}
+
 		if p.kind() == token.Comma {
 			tok := p.next()
 			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", tok.Line, tok.Column, tok.Kind, tok.Value))

@@ -1088,6 +1088,112 @@ func x(){
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("tag_cases_x7", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+func f(a int) (b int) {
+	switch a {
+	case 1:
+		b = int(1)
+		return
+	case 2:
+  	fallthrough
+	default:
+		b = int(2)
+		return
+	}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @2:1 (kind=10)
+   Name: "f" @2:6 (kind=3)
+   Params
+    Param
+     Ident: "a" @2:8 (kind=3)
+     Type
+      NamedType
+       Ident: "int" @2:10 (kind=12)
+   Results
+    LParen: "(" @2:15 (kind=39)
+     Param
+      Ident: "b" @2:16 (kind=3)
+      Type
+       NamedType
+        Ident: "int" @2:18 (kind=12)
+    RParen: ")" @2:21 (kind=40)
+   Body
+    BlockStmt
+     LBrace: "{" @2:23 (kind=41)
+     Stmts
+      SwitchStmt
+       Switch: "switch" @3:2 (kind=34)
+       Tag:
+        IdentExpr
+         Name: "a" @3:9 (kind=3)
+       LBrace: "{" @3:11 (kind=41)
+       Case: "case" @4:2 (kind=35)
+        Values:
+         IntLitExpr
+          Value: "1" @4:7 (kind=4)
+       Colon: ":" @4:8 (kind=47)
+        Body:
+         AssignStmt
+          Left
+           IdentExpr
+            Name: "b" @5:3 (kind=3)
+          Operator: "=" @5:5 (kind=49)
+          Right
+           CallExpr
+            Callee
+             IdentExpr
+              Name: "int" @5:7 (kind=3)
+            LParen: "(" @5:10 (kind=39)
+            Args:
+             IntLitExpr
+              Value: "1" @5:11 (kind=4)
+            RParen: ")" @5:12 (kind=40)
+         ReturnStmt
+       Case: "case" @7:2 (kind=35)
+        Values:
+         IntLitExpr
+          Value: "2" @7:7 (kind=4)
+       Colon: ":" @7:8 (kind=47)
+        Body:
+         FallThroughStmt
+          FallThrough: "fallthrough" @8:4 (kind=37)
+       Case: "default" @9:2 (kind=36)
+       Colon: ":" @9:9 (kind=47)
+        Body:
+         AssignStmt
+          Left
+           IdentExpr
+            Name: "b" @10:3 (kind=3)
+          Operator: "=" @10:5 (kind=49)
+          Right
+           CallExpr
+            Callee
+             IdentExpr
+              Name: "int" @10:7 (kind=3)
+            LParen: "(" @10:10 (kind=39)
+            Args:
+             IntLitExpr
+              Value: "2" @10:11 (kind=4)
+            RParen: ")" @10:12 (kind=40)
+         ReturnStmt
+       RBrace: "}" @12:2 (kind=42)
+     RBrace: "}" @13:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("init_tag_cases_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
