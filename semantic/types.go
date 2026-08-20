@@ -176,14 +176,8 @@ const (
 	flowReturns
 )
 
-type loopContext struct {
-	breakFound       bool
-	breakInitialized map[string]struct{}
-}
-
 type stmtInfo struct {
 	returnFlowResult             returnFlow
 	returnedInputVarsInitialized []string
-	loopContext                  loopContext
 	switchCaseHasFallThrough     bool
 }

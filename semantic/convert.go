@@ -66,10 +66,7 @@ func IsIdentical(a, b Type) bool {
 	case *FuncMethod:
 		if t2, ok := b.(*FuncMethod); ok {
 			if t1.Name == t2.Name {
-				if !IsIdentical(t1.FuncType, t2.FuncType) {
-					return false
-				}
-				return true
+				return IsIdentical(t1.FuncType, t2.FuncType)
 			}
 		}
 
