@@ -550,18 +550,18 @@ type User struct {
 	t.Run("x7", func(t *testing.T) {
 		data :=
 			`package main
-const a int = 1
-const b float = 1.0
+const a int = int(1)
+const b float = float(1.0)
 const c bool = true
 const d string = "test"
-const e int = 1+1
-const f int = -1*2
-const g int = 1
-const h int = 1+g
+const e int = int(1)+int(1)
+const f int = -int(1)*int(2)
+const g int = int(1)
+const h int = int(1)+g
 func x() int {
-  return 1
+  return int(1)
 }
-const i int = 1+x()
+const i int = int(1)+x()
 type UserID int
 const j UserID = UserID(1)
 `
@@ -655,20 +655,20 @@ const j UserID = UserID(1)
 		data :=
 			`package main
 const a float = "test"
-const b int = 1+g
+const b int = int(1)+g
 func x() string {
 	return "string"
 }
 func y() (int,string) {
-	return 1
+	return int(1)
 }
 func z(a int, b int) int {
 	return a+b
 }
-const c int = 1+x()
-const cc int = x()+1
-const d int = 1+y()
-const dd int = y()+1
+const c int = int(1)+x()
+const cc int = x()+int(1)
+const d int = int(1)+y()
+const dd int = y()+int(1)
 const e int = z(1,"a"+1)
 const e1 int = z(1,"a"+1,5)
 const e2 int = z(1,1.1)
@@ -680,7 +680,7 @@ const l1 UserID = User(1,1)
 const l2 UserID = User(UserID(1))
 const l3 UserID = UserID(1) + User(1)
 const l4 UserID = UserID(true)
-const m int = !1
+const m int = !int(1)
 `
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		require.NoError(t, err)
@@ -694,8 +694,8 @@ const m int = !1
 	t.Run("x7_duplicate", func(t *testing.T) {
 		data :=
 			`package main
-const a int = 1
-const a float = 1.0
+const a int = int(1)
+const a float = float(1.0)
 `
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		require.NoError(t, err)
@@ -710,12 +710,12 @@ const a float = 1.0
 		data :=
 			`package main
 func fa() {
-	const a int = 0
-	var b int = 0
-	b = 1
-	x := b+1
+	const a int = int(0)
+	var b int = int(0)
+	b = int(1)
+	x := b+int(1)
 	x++
-	x = x*(b+10)
+	x = x*(b+int(10))
 	var s string = ""
 	const sl []string = []string{"a","b","c"}
 	s = sl[0]
@@ -810,20 +810,20 @@ func fempty() {}
 	t.Run("x8_error", func(t *testing.T) {
 		data :=
 			`package main
-const zz int = 0
+const zz int = int(0)
 func yy() (int, int){
   return 2,3
 }
 func y() {
-	const a int = 0
+	const a int = int(0)
 	a++
 	a = 5
-  var b int = 0
+  var b int = int(0)
 	b = true
 	bb := b
 	bb := b
-	z = 1
-	x := 1
+	z = int(1)
+	x := int(1)
 	x := xx
 	xx++
 	var s string = "a"
@@ -833,7 +833,7 @@ func y() {
 	const ar [5]int = [5]int{1,2,3}
 	b = ar[s]
 	y3 := yy()
-	y4 := 1+2
+	y4 := int(1)+int(2)
 	y5 := (1 + 2) + 3
 	y6 := 1 + (2 + 3)
 	y7 := -1
@@ -859,11 +859,11 @@ func y() {
 		data :=
 			`package main
 func y() {
-  const a int = 0
-  const a int = 0
+  const a int = int(0)
+  const a int = int(0)
   const aa int = true
-  var b int = 0
-  var b int = 0
+  var b int = int(0)
+  var b int = int(0)
   var c int = true
 	type User int
 	type User int
@@ -1349,12 +1349,13 @@ type User [!true]string
 			{
 				data: `package main
 func x(a int, b int, c int) int {
- if a < b {
-   if a < c {
-	   return c
-	 }
- } else {
-   return b
+	if a < b {
+		if a < c {
+			return c
+		}
+		return a
+	} else {
+		return b
  }
 }
 `,
@@ -1362,13 +1363,13 @@ func x(a int, b int, c int) int {
 			{
 				data: `package main
 func x(a int, b int, c int) int {
- if a < b {
-   return b
- } else if a < c {
-	 return c
- } else {
-   return a
- }
+	if a < b {
+		return b
+	} else if a < c {
+		return c
+	} else {
+		return a
+	}
 }
 `,
 			},
@@ -1376,9 +1377,9 @@ func x(a int, b int, c int) int {
 				err: true,
 				data: `package main
 func x(a int, b int, c int) int {
- if a {
-   return b
- }
+	if a {
+		return b
+	}
 }
 `,
 			},
@@ -2435,6 +2436,16 @@ func x(z string){
 			{
 				err: true,
 				data: `package main
+func x(){
+	var kk int = int(0)
+	var vv int32 = int32(0)
+	for kk,vv = range int(5) {}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
 func x(z int){
 	for z,z := range int(5) {
 		z = i
@@ -2934,10 +2945,11 @@ func x(a int) int {
 			{
 				data: `package main
 func x() int {
-  switch {
-    case 1 == 2:
-      return 0
+	switch {
+		case 1 == 2:
+			return 0
 	}
+	return 0
 }
 `,
 			},
@@ -3418,7 +3430,6 @@ func describe(s Shape) int {
 			err  bool
 		}{
 			{
-				err: true,
 				data: `package main
 type Color enum {
   Red;Blue;Green;Yellow
@@ -3673,7 +3684,8 @@ func x(a bool) int {
 			return int(0)
 		case xb():
 			return int(0)
-  }
+	}
+	return int(0)
 }
 `,
 			},
@@ -3687,7 +3699,8 @@ func x(a bool) int {
 			return int(0)
 		case 1 == 2:
 			return int(0)
-  }
+	}
+	return int(0)
 }
 `,
 			},
@@ -5217,6 +5230,19 @@ func (u User) f(ok bool) (a int) {
 `,
 			},
 			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool, a string) (a int) {
+	if ok {
+		a = int(1)
+	} else {
+		a = int(0)
+	}
+}
+`,
+			},
+			{
 				data: `package main
 type User struct {}
 func (u User) f(ok bool) (a int) {
@@ -6295,6 +6321,20 @@ func f(a int) (b int, c int) {
 `,
 			},
 			{
+				data: `package main
+func f(a int) (b int) {
+	switch {
+		case a == 1:
+			return int(1)
+		case a == 2:
+			fallthrough
+		default:
+			return int(2)
+	}
+}
+`,
+			},
+			{
 				err: true,
 				data: `package main
 func f(a int) (b int, c int) {
@@ -7205,7 +7245,6 @@ type Color enum {
 }
 
 func action(l Color) string {
-	b := "red"
 	switch l {
 		case Red:
 			return "red"
@@ -7216,7 +7255,6 @@ func action(l Color) string {
 		case Yellow:
 			return "yellow"
 	}
-	return b
 }
 `,
 			},
