@@ -9,7 +9,7 @@ import (
 	"github.com/orilang/gori/token"
 )
 
-// NewScope allows use to create new scope base on provided config.
+// NewScope allows us to create new scope base on provided config.
 // Scope must be used for
 // - package level type names
 // - function names
@@ -58,7 +58,8 @@ func (c *Checker) declareNoShadow(scope *Scope, sym *Symbol, kind string) bool {
 	return true
 }
 
-// Lookup allows us to loop over parent scope in order to find the provided one and returns its related Symbol if exists
+// Lookup allows us to loop over parent scope to find the provided symbol
+// and returns its related Symbol if exists
 func (s *Scope) Lookup(name string) *Symbol {
 	for scope := s; scope != nil; scope = scope.Parent {
 		if sym := scope.Symbols[name]; sym != nil {
@@ -97,7 +98,7 @@ func NewChecker() *Checker {
 	}
 }
 
-// Check performs the type checking step in order to validate
+// Check performs the type checking step to validate
 // all code definition structure and fill diagnostics when
 // errros are found
 func (c *Checker) Check(file *ast.File) []Diagnostics {
@@ -115,7 +116,7 @@ func (c *Checker) Check(file *ast.File) []Diagnostics {
 }
 
 // collectTopLevelSymbols collects top levels symbols names first
-// in order to make sure that all definitions exists before creating
+// to make sure that all definitions exists before creating
 // semantic objects and resolve remaining contents.
 // This prevents having types that does not exists.
 func (c *Checker) collectTopLevelSymbols(file *ast.File) {
@@ -315,7 +316,7 @@ func (c *Checker) resolveTypeDecls() {
 	}
 }
 
-// resolveType resolves the type passed as parameter in order to fetch and
+// resolveType resolves the type passed as parameter to fetch and
 // return its semantic type
 func (c *Checker) resolveType(t ast.Type) Type {
 	switch v := t.(type) {
@@ -726,7 +727,7 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 			if named, ok := c.checkExpr(sel.X).(*NamedType); ok {
 				if method, ok := c.lookupMethodType(named, sel.Selector.Value); ok {
 					if len(t.Args) != len(method.FuncType.Params) {
-						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments %s func params required %d got %d", method.Name, len(method.FuncType.Params), len(t.Args))})
+						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments for %s func params, expected %d got %d", method.Name, len(method.FuncType.Params), len(t.Args))})
 						return TInvalid
 					}
 					for k, v := range method.FuncType.Params {
@@ -740,7 +741,7 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 						return nil
 					}
 					if len(method.FuncType.Results) > 1 {
-						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %s func", method.Name)})
+						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %q func", method.Name)})
 						return TInvalid
 					}
 					return method.FuncType.Results[0].Type
@@ -781,7 +782,7 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 			return TInvalid
 		}
 		if len(t.Args) != len(fn.FuncType.Params) {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments %s func params required %d got %d", fn.Name, len(fn.FuncType.Params), len(t.Args))})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments for %s func params, expected %d got %d", fn.Name, len(fn.FuncType.Params), len(t.Args))})
 			return TInvalid
 		}
 		for k, v := range fn.FuncType.Params {
@@ -795,7 +796,7 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 			return nil
 		}
 		if len(fn.FuncType.Results) > 1 {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %s func", fn.Name)})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %q func", fn.Name)})
 			return TInvalid
 		}
 		return fn.FuncType.Results[0].Type
@@ -992,7 +993,7 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 	}
 }
 
-// checkBlockStmt loops over block statements in order to check/declare them
+// checkBlockStmt loops over block statements to check/declare them
 // within its dedicated local scope
 func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialized []string) (st stmtInfo) {
 	if block == nil {
@@ -1194,12 +1195,12 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 	name := exprName(decl.Left)
 	sym := c.scope.Lookup(name)
 	if sym == nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %q is undefined", name)})
 		return nil
 	}
 
 	if sym.Kind == SymConst {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
 		return nil
 	}
 
@@ -1253,7 +1254,7 @@ func isNumericExpr(expr ast.Expr) bool {
 }
 
 // checkDefineAssignStmt defines new assigment statement where x := y and y has already been defined.
-// define assigment like x = 1 is forbidden as we cannot infer the value type.
+// define assigment like x := 1 is forbidden as we cannot infer the value type. Is it an int? int32 etc?
 // An error is emitted if any
 func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
 	valueType := c.checkExprInCurrentMode(decl.Right)
@@ -1311,7 +1312,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 	}
 
 	if len(c.currentFunc.Results) != len(decl.Values) {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("number of returned values is invalid, wanted %d got %d", len(c.currentFunc.Results), len(decl.Values))})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d", len(c.currentFunc.Results), len(decl.Values))})
 		return flowFallsThrough
 	}
 
@@ -1347,17 +1348,17 @@ func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) {
 
 	sym := c.scope.Lookup(x.Name.Value)
 	if sym == nil {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %q is undefined", x.Name.Value)})
 		return
 	}
 
 	if sym.Kind == SymConst {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("const %s cannot be modified", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("const %q cannot be modified", x.Name.Value)})
 		return
 	}
 
 	if !IsNumeric(sym.Type) {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %s is a non-numeric type", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %q is a non-numeric type", x.Name.Value)})
 		return
 	}
 }
@@ -1714,13 +1715,13 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 
 		if thenStmt.returnFlowResult == flowReturns && elseStmt.returnFlowResult == flowFallsThrough {
 			st.returnFlowResult = flowFallsThrough
-			st.returnedInputVarsInitialized = elseStmt.returnedInputVarsInitialized
+			st.returnedInputVarsInitialized = slices.Clone(elseStmt.returnedInputVarsInitialized)
 			return
 		}
 
 		if thenStmt.returnFlowResult == flowFallsThrough && elseStmt.returnFlowResult == flowReturns {
 			st.returnFlowResult = flowFallsThrough
-			st.returnedInputVarsInitialized = thenStmt.returnedInputVarsInitialized
+			st.returnedInputVarsInitialized = slices.Clone(thenStmt.returnedInputVarsInitialized)
 			return
 		}
 
@@ -1736,7 +1737,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 	}
 
 	st.returnFlowResult = flowFallsThrough
-	st.returnedInputVarsInitialized = rvi
+	st.returnedInputVarsInitialized = slices.Clone(rvi)
 	return
 }
 
@@ -1877,12 +1878,12 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			name := exprName(stmt.Key)
 			sym := c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %q is undefined", name)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
 				return
 			}
 
@@ -1895,12 +1896,12 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			name = exprName(stmt.Value)
 			sym = c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %q is undefined", name)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
 				return
 			}
 
@@ -1929,12 +1930,12 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			name := exprName(stmt.Key)
 			sym := c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %s is undefined", name)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("assigment %q is undefined", name)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
 				return
 			}
 
@@ -1991,7 +1992,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 		}
 
 	default:
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("forbidden range token %s", stmt.Op.Value)})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("forbidden range token %q", stmt.Op.Value)})
 		return
 	}
 
@@ -2052,7 +2053,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			name := exprName(val.Left)
 			sym := c.scope.Lookup(name)
 			if sym != nil && sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %s value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
 				return
 			}
 
@@ -2129,7 +2130,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				dcount++
 
 				if dcount > 1 {
-					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("multiple default clause is forbidden, got %d", dcount)})
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("multiple default clauses are forbidden, got %d", dcount)})
 					return
 				}
 			}
@@ -2220,7 +2221,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				dcount++
 
 				if dcount > 1 {
-					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("multiple default clause is forbidden, got %d", dcount)})
+					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("multiple default clauses are forbidden, got %d", dcount)})
 					return
 				}
 			}
@@ -2310,8 +2311,8 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 	return
 }
 
-// constKey returns true if expression is a literal one. It will be used by basic switch case
-// in order to find duplicates
+// constKey returns true if expression is a literal one.
+// It will be used by basic switch case to find duplicates
 func (c *Checker) constKey(expr ast.Expr, typ Type) (constKey, bool) {
 	switch e := expr.(type) {
 	case *ast.IntLitExpr:
@@ -2401,7 +2402,7 @@ func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
 // checkBreakStmt produces an error when not into for loop statement
 func (c *Checker) checkBreakStmt(_ *ast.BreakStmt, returnInputVarsInitialized []string) []string {
 	if c.loopDepth == 0 {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("break is forbidden outside of loop")})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("break is forbidden outside of a loop")})
 		return nil
 	}
 
@@ -2425,7 +2426,7 @@ func (c *Checker) checkBreakStmt(_ *ast.BreakStmt, returnInputVarsInitialized []
 // checkContinueStmt produces an error when not into for loop statement
 func (c *Checker) checkContinueStmt(_ *ast.ContinueStmt) {
 	if c.loopDepth == 0 {
-		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("continue is forbidden outside of loop")})
+		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("continue is forbidden outside of a loop")})
 	}
 }
 
@@ -2493,7 +2494,7 @@ func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt, ret
 		}
 
 		if seen[variantName.Name] {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("duplicate variant name %s", variantName.Name)})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("duplicate variant name %q", variantName.Name)})
 			return
 		}
 		seen[variantName.Name] = true
@@ -2683,7 +2684,7 @@ func (c *Checker) checkSwitchStmtEnumType(tagType Type, stmt *ast.SwitchStmt, re
 		}
 
 		if seen[variantName] {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("duplicate variant name %s", variantName)})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("duplicate variant name %q", variantName)})
 			return
 		}
 		seen[variantName] = true
@@ -2908,7 +2909,7 @@ func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 
 		// this must stay as is. vars are only allowed in functions
 		if sym.Kind == SymVar && !c.inComptimeFunc {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable are forbidden with comptime outside of function")})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variables are forbidden with comptime outside of function")})
 			return TInvalid
 		}
 
@@ -2978,7 +2979,7 @@ func (c *Checker) checkComptimeCallExpr(expr *ast.CallExpr) Type {
 		}
 
 		if len(expr.Args) != len(fn.FuncType.Params) {
-			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime func length argument, want %d got %d", len(expr.Args), len(fn.FuncType.Params))})
+			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime func length argument, expected %d got %d", len(expr.Args), len(fn.FuncType.Params))})
 			return TInvalid
 		}
 
