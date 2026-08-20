@@ -210,8 +210,6 @@ type Files struct {
 // build the Abstract Syntax Tree (AST) and
 // perform the type checking
 type Check struct {
-	Tokens   []token.Token
-	Errors   []error
-	size     int
-	position int
+	Tokens []token.Token
+	Errors []error
 }
