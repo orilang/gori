@@ -21,10 +21,13 @@ func main() {
 		Commands: []*cli.Command{
 			commands.Lexer(),
 			commands.Parse(),
+			commands.Check(),
 		},
 	}
 
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err.Error())
+		return
 	}
+	log.Println("No errors found")
 }
