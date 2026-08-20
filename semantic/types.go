@@ -1,6 +1,9 @@
 package semantic
 
-import "github.com/orilang/gori/ast"
+import (
+	"github.com/orilang/gori/ast"
+	"github.com/orilang/gori/token"
+)
 
 type Type interface {
 	typeNode()
@@ -180,4 +183,35 @@ type stmtInfo struct {
 	returnFlowResult             returnFlow
 	returnedInputVarsInitialized []string
 	switchCaseHasFallThrough     bool
+}
+
+// Config holds file or directory to use for tokenization
+type Config struct {
+	// File to parse
+	File string
+
+	// Directory to take as input and list files to parse
+	Directory string
+
+	// Output when set to true outputs the AST
+	Output bool
+}
+
+// Files holds all files to use for tokenization
+type Files struct {
+	// Files holds the list of files to parse
+	Files []string
+
+	// output when set to true outputs the AST
+	output bool
+}
+
+// Check holds requirements with the tokens from the Lexer/Parser to
+// build the Abstract Syntax Tree (AST) and
+// perform the type checking
+type Check struct {
+	Tokens   []token.Token
+	Errors   []error
+	size     int
+	position int
 }
