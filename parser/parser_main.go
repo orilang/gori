@@ -285,9 +285,6 @@ func (p *Parser) parseBlock() *ast.BlockStmt {
 			continue
 		}
 
-		if p.kind() == token.RBrace {
-			break
-		}
 		stmts = append(stmts, p.parseStmt())
 	}
 	rb := p.expect(token.RBrace, "expected '}'")
