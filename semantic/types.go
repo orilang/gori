@@ -137,6 +137,8 @@ type Checker struct {
 	breakFound                bool
 	breakInputVarsInitialized []string
 	loopDepth                 int
+	program                   Program
+	programFileIndex          int
 }
 
 type constKind int
@@ -183,6 +185,8 @@ type stmtInfo struct {
 	returnFlowResult             returnFlow
 	returnedInputVarsInitialized []string
 	switchCaseHasFallThrough     bool
+	stmt                         Stmt
+	blockStmt                    []Stmt
 }
 
 // Config holds file or directory to use for tokenization

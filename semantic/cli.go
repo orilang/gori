@@ -39,8 +39,8 @@ func (f *Files) StartTypeChecking() error {
 		}
 
 		check := NewChecker()
-		result := check.Check(pr)
-		for _, v := range result {
+		_, diagnostics := check.Check(pr)
+		for _, v := range diagnostics {
 			return v.Err
 		}
 	}

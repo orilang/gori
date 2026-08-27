@@ -101,7 +101,11 @@ func NewChecker() *Checker {
 // Check performs the type checking step to validate
 // all code definition structure and fill diagnostics when
 // errros are found
-func (c *Checker) Check(file *ast.File) []Diagnostics {
+func (c *Checker) Check(file *ast.File) (Program, []Diagnostics) {
+	pf := &File{Package: file.PackageKW.Value}
+	c.program.Files = append(c.program.Files, pf)
+	c.programFileIndex = 0
+
 	c.collectTopLevelSymbols(file)
 	c.createTypeObjects()
 	c.resolveTypeDecls()
@@ -112,7 +116,11 @@ func (c *Checker) Check(file *ast.File) []Diagnostics {
 	c.checkComptimeValues()
 	c.checkTopLevelValues(file)
 	c.checkFuncBodies()
-	return c.errors
+
+	if len(c.errors) == 0 {
+		return c.program, nil
+	}
+	return Program{}, c.errors
 }
 
 // collectTopLevelSymbols collects top levels symbols names first
@@ -147,11 +155,12 @@ func (c *Checker) collectTopLevelSymbols(file *ast.File) {
 			}
 
 		case *ast.ConstDecl:
-			if !c.declareNoShadow(c.pkgScope, &Symbol{
+			sym := &Symbol{
 				Name: typeDeclName(decl),
 				Kind: SymConst,
 				Decl: decl,
-			}, "symbol") {
+			}
+			if !c.declareNoShadow(c.pkgScope, sym, "symbol") {
 				continue
 			}
 			c.constDecls = append(c.constDecls, d)
@@ -657,7 +666,7 @@ func (c *Checker) checkTopLevelValues(file *ast.File) {
 // An error is emitted if any
 func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	targetType := c.resolveType(decl.Type)
-	valueType := c.checkExpr(decl.Init)
+	valueType, expr := c.checkExpr(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", valueType, targetType)})
@@ -666,25 +675,27 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	sym := c.pkgScope.Lookup(typeDeclName(decl))
 	sym.Type = targetType
 	sym.Decl = decl
+
+	c.program.Files[c.programFileIndex].Decl = append(c.program.Files[c.programFileIndex].Decl, &ConstDecl{Name: sym.Name, Symbol: resolvedSymbol(sym), Eq: decl.Eq.Kind, Init: expr})
 }
 
 // checkExpr returns the type of the expression
-func (c *Checker) checkExpr(expr ast.Expr) Type {
+func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 	switch t := expr.(type) {
 	case *ast.IntLitExpr:
-		return TInt
+		return TInt, &IntLitExpr{Type: TInt, Value: t.Name.Value}
 
 	case *ast.FloatLitExpr:
-		return TFloat
+		return TFloat, &FloatLitExpr{Type: TFloat, Value: t.Name.Value}
 
 	case *ast.BoolLitExpr:
-		return TBool
+		return TBool, &BoolLitExpr{Type: TBool, Value: t.Name.Value}
 
 	case *ast.StringLitExpr:
-		return TString
+		return TString, &StringLitExpr{Type: TString, Value: t.Name.Value}
 
 	case *ast.SliceLitExpr:
-		return c.resolveType(t.Type)
+		return c.resolveType(t.Type), nil
 
 	case *ast.IdentExpr:
 		var sym *Symbol
@@ -694,159 +705,164 @@ func (c *Checker) checkExpr(expr ast.Expr) Type {
 			sym = c.pkgScope.Lookup(t.Name.Value)
 		}
 		if sym == nil || sym.Type == nil {
-			return TInvalid
+			return TInvalid, nil
 		}
-		return sym.Type
+		return sym.Type, &IdentExpr{Type: sym.Type, Symbol: resolvedSymbol(sym), Value: t.Name.Value}
 
 	case *ast.UnaryExpr:
-		right := c.checkExpr(t.Right)
+		right, ex := c.checkExpr(t.Right)
 		if SupportsUnaryOp(right, t.Operator.Kind) {
-			return right
+			return right, &UnaryExpr{Type: right, Operator: t.Operator.Kind, Right: ex}
 		}
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid unary operatation %s with type %s", t.Operator.Value, right.String())})
-		return TInvalid
+		return TInvalid, nil
 
 	case *ast.BinaryExpr:
-		left := c.checkExpr(t.Left)
-		right := c.checkExpr(t.Right)
+		left, lex := c.checkExpr(t.Left)
+		right, rex := c.checkExpr(t.Right)
 
 		if IsIdentical(left, right) && SupportsBinaryOp(left, t.Operator.Kind) {
 			switch t.Operator.Kind {
 			case token.Eq, token.Neq, token.And, token.Or, token.Lt, token.Lte, token.Gt, token.Gte:
-				return TBool
+				return TBool, &BinaryExpr{Type: TBool, Left: lex, Operator: t.Operator.Kind, Right: rex}
 
 			default:
-				return left
+				return left, &BinaryExpr{Type: left, Left: lex, Operator: t.Operator.Kind, Right: rex}
 			}
 		}
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid binary operation %q of type %s with type %s", t.Operator.Value, left.String(), right.String())})
-		return TInvalid
+		return TInvalid, nil
 
 	case *ast.CallExpr:
 		if sel, ok := t.Callee.(*ast.SelectorExpr); ok {
-			if named, ok := c.checkExpr(sel.X).(*NamedType); ok {
+			selx, _ := c.checkExpr(sel.X)
+			if named, ok := selx.(*NamedType); ok {
 				if method, ok := c.lookupMethodType(named, sel.Selector.Value); ok {
 					if len(t.Args) != len(method.FuncType.Params) {
 						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments for %s func params, expected %d got %d", method.Name, len(method.FuncType.Params), len(t.Args))})
-						return TInvalid
+						return TInvalid, nil
 					}
 					for k, v := range method.FuncType.Params {
-						x := c.checkExpr(t.Args[k])
+						x, _ := c.checkExpr(t.Args[k])
 						if !IsAssignableTo(v.Type, x) {
 							c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", v.Type, x)})
-							return TInvalid
+							return TInvalid, nil
 						}
 					}
 					if len(method.FuncType.Results) == 0 {
-						return nil
+						return nil, nil
 					}
 					if len(method.FuncType.Results) > 1 {
 						c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %q func", method.Name)})
-						return TInvalid
+						return TInvalid, nil
 					}
-					return method.FuncType.Results[0].Type
+					return method.FuncType.Results[0].Type, nil
 				}
 			}
 		}
 
-		calleeType := c.checkExpr(t.Callee)
+		var ce CallExpr
+		calleeType, calleeExpr := c.checkExpr(t.Callee)
 		if named, ok := calleeType.(*NamedType); ok {
 			if len(t.Args) != 1 {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", named.Name, len(t.Args))})
-				return TInvalid
+				return TInvalid, nil
 			}
-			arg := c.checkExpr(t.Args[0])
+			arg, _ := c.checkExpr(t.Args[0])
 			if IsConvertibleTo(arg, named) {
-				return named
+				return named, nil
 			}
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %#v to %s", arg, named.Name)})
-			return TInvalid
+			return TInvalid, nil
 		}
 
 		if builtin, ok := calleeType.(*BuiltinType); ok {
 			if len(t.Args) != 1 {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", expr, len(t.Args))})
-				return TInvalid
+				return TInvalid, nil
 			}
 
-			arg := c.checkExpr(t.Args[0])
+			arg, ex := c.checkExpr(t.Args[0])
 			if IsConvertibleTo(arg, builtin) {
-				return calleeType
+				return calleeType, &ConversionExpr{To: calleeType, Value: ex}
 			}
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot convert %#v to %#v", arg, builtin)})
-			return TInvalid
+			return TInvalid, nil
 		}
 
 		fn, ok := calleeType.(*FuncMethod)
 		if !ok {
-			return TInvalid
+			return TInvalid, nil
 		}
 		if len(t.Args) != len(fn.FuncType.Params) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments for %s func params, expected %d got %d", fn.Name, len(fn.FuncType.Params), len(t.Args))})
-			return TInvalid
+			return TInvalid, nil
 		}
 		for k, v := range fn.FuncType.Params {
-			x := c.checkExpr(t.Args[k])
+			x, argExpr := c.checkExpr(t.Args[k])
 			if !IsAssignableTo(v.Type, x) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", v.Type, x)})
-				return TInvalid
+				return TInvalid, nil
 			}
+			ce.Args = append(ce.Args, argExpr)
 		}
 		if len(fn.FuncType.Results) == 0 {
-			return nil
+			return nil, nil
 		}
 		if len(fn.FuncType.Results) > 1 {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("too many arguments returned by %q func", fn.Name)})
-			return TInvalid
+			return TInvalid, nil
 		}
-		return fn.FuncType.Results[0].Type
+		ce.Callee = calleeExpr
+		ce.CalleeType = calleeType
+		return fn.FuncType.Results[0].Type, &ce
 
 	case *ast.ParenExpr:
 		return c.checkExpr(t.Inner)
 
 	case *ast.IndexExpr:
-		baseType := c.checkExpr(t.X)
+		baseType, _ := c.checkExpr(t.X)
 		underlying := unwrapNamed(baseType)
-		index := c.checkExpr(t.Index)
+		index, _ := c.checkExpr(t.Index)
 
 		switch decl := underlying.(type) {
 		case *SliceType:
 			if !IsIdentical(index, TInt) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid index expression of type %#v", index)})
-				return TInvalid
+				return TInvalid, nil
 			}
-			return decl.Elem
+			return decl.Elem, nil
 
 		case *ArrayType:
 			if !IsIdentical(index, TInt) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid index expression of type %#v", index)})
-				return TInvalid
+				return TInvalid, nil
 			}
-			return decl.Elem
+			return decl.Elem, nil
 
 		case *MapType:
 			if !IsIdentical(decl.Key, index) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid map index expression of type %#v", index)})
-				return TInvalid
+				return TInvalid, nil
 			}
-			return decl.Value
+			return decl.Value, nil
 
 		case *HashMapType:
 			if !IsIdentical(decl.Key, index) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid hashmap index expression of type %#v", index)})
-				return TInvalid
+				return TInvalid, nil
 			}
-			return decl.Value
+			return decl.Value, nil
 
 		default:
-			return TInvalid
+			return TInvalid, nil
 		}
 
 	case *ast.SelectorExpr:
-		return c.checkSelectorExpr(t)
+		return c.checkSelectorExpr(t), nil
 
 	default:
-		return TInvalid
+		return TInvalid, nil
 	}
 }
 
@@ -926,6 +942,18 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("missing return statement")})
 		return
 	}
+
+	fd := &FuncDecl{
+		Name:    sym.Name,
+		Symbol:  resolvedSymbol(sym),
+		Params:  fnType.FuncType.Params,
+		Results: fnType.FuncType.Results,
+	}
+
+	if blockStmt.blockStmt != nil {
+		fd.Body = &BlockStmt{blockStmt.blockStmt}
+	}
+	c.program.Files[c.programFileIndex].Decl = append(c.program.Files[c.programFileIndex].Decl, fd)
 }
 
 // checkMethodBody validates method.
@@ -1010,7 +1038,10 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 	blockScope := NewScope(c.scope)
 	c.scope = blockScope
 
-	var cStmt stmtInfo
+	var (
+		cStmt stmtInfo
+		bStmt []Stmt
+	)
 	flow := flowFallsThrough
 	for i, stmt := range block.Stmts {
 		if flow == flowReturns {
@@ -1041,6 +1072,7 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 			cStmt = c.checkStmt(stmt, cStmt.returnedInputVarsInitialized)
 		}
 		returnInputVarsInitialized = slices.Clone(cStmt.returnedInputVarsInitialized)
+		bStmt = append(bStmt, cStmt.stmt)
 		if flow == flowFallsThrough && cStmt.returnFlowResult == flowReturns {
 			flow = flowReturns
 		}
@@ -1048,6 +1080,7 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 
 	st.returnFlowResult = flow
 	st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
+	st.blockStmt = bStmt
 	return
 }
 
@@ -1060,10 +1093,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 	case *ast.DeclStmt:
 		switch decl := t.Decl.(type) {
 		case *ast.ConstDecl:
-			c.checkScopeConstDecl(decl)
-
+			st.stmt = &DeclStmt{c.checkScopeConstDecl(decl)}
 		case *ast.VarDecl:
-			c.checkScopeVarDecl(decl)
+			st.stmt = &DeclStmt{c.checkScopeVarDecl(decl)}
 
 		case *ast.DefinedTypeDecl:
 			c.checkDefinedTypeDecl(decl)
@@ -1085,10 +1117,14 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		}
 
 	case *ast.AssignStmt:
-		returnInputVarsInitialized = c.checkAssigmentStmt(t, returnInputVarsInitialized)
+		rvi, cStmt := c.checkAssigmentStmt(t, returnInputVarsInitialized)
+		returnInputVarsInitialized = slices.Clone(rvi)
+		st.stmt = cStmt
 
 	case *ast.ReturnStmt:
-		flow = c.checkReturnStmt(t, returnInputVarsInitialized)
+		rflow, expr := c.checkReturnStmt(t, returnInputVarsInitialized)
+		flow = rflow
+		st.stmt = &ReturnStmt{expr}
 
 	case *ast.IncDecStmt:
 		c.checkIncDecStmt(t)
@@ -1128,13 +1164,13 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 
 // checkScopeConstDecl validates constant targetType and valueType.
 // An error is emitted if any
-func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) {
+func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 	targetType := c.checkTypeInCurrentMode(c.resolveType(decl.Type))
-	valueType := c.checkExprInCurrentMode(decl.Init)
+	valueType, expr := c.checkExprInCurrentMode(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType, targetType)})
-		return
+		return nil
 	}
 
 	if !c.declareNoShadow(c.scope, &Symbol{
@@ -1144,19 +1180,22 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) {
 		Decl:       decl,
 		IsComptime: c.inComptimeFunc,
 	}, "const") {
-		return
+		return nil
 	}
+
+	sym := c.scope.Lookup(decl.Name.Value)
+	return &ConstDecl{Name: sym.Name, Symbol: resolvedSymbol(sym), Eq: decl.Eq.Kind, Init: expr}
 }
 
 // checkScopeVarDecl validates constant targetType and valueType.
 // An error is emitted if any
-func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) {
+func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) Decl {
 	targetType := c.checkTypeInCurrentMode(c.resolveType(decl.Type))
-	valueType := c.checkExprInCurrentMode(decl.Init)
+	valueType, expr := c.checkExprInCurrentMode(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType, targetType)})
-		return
+		return nil
 	}
 
 	if !c.declareNoShadow(c.scope, &Symbol{
@@ -1166,13 +1205,16 @@ func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) {
 		Decl:       decl,
 		IsComptime: c.inComptimeFunc,
 	}, "variable") {
-		return
+		return nil
 	}
+
+	sym := c.scope.Lookup(decl.Name.Value)
+	return &VarDecl{Name: sym.Name, Symbol: resolvedSymbol(sym), Eq: decl.Eq.Kind, Init: expr}
 }
 
 // checkAssignableExpr returns valid assignable expression.
 // An error is emitted if any
-func (c *Checker) checkAssignableExpr(expr ast.Expr) Type {
+func (c *Checker) checkAssignableExpr(expr ast.Expr) (Type, Expr) {
 	switch t := expr.(type) {
 	case *ast.IdentExpr:
 		return c.checkExpr(t)
@@ -1181,11 +1223,11 @@ func (c *Checker) checkAssignableExpr(expr ast.Expr) Type {
 		return c.checkExpr(t)
 
 	case *ast.SelectorExpr:
-		return c.checkSelectorExpr(t)
+		return c.checkSelectorExpr(t), nil
 
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported expression %#v", expr)})
-		return TInvalid
+		return TInvalid, nil
 	}
 }
 
@@ -1204,15 +1246,17 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 		return nil
 	}
 
-	targetType := c.checkAssignableExpr(decl.Left)
-	valueType := c.checkExprInCurrentMode(decl.Right)
+	targetType, _ := c.checkAssignableExpr(decl.Left)
+	valueType, _ := c.checkExprInCurrentMode(decl.Right)
 
-	if IsInvalid(c.checkExprInCurrentMode(decl.Left)) {
+	left, _ := c.checkExprInCurrentMode(decl.Left)
+	if IsInvalid(left) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid variable type %T", targetType)})
 		return nil
 	}
 
-	if IsInvalid(c.checkExprInCurrentMode(decl.Right)) {
+	right, _ := c.checkExprInCurrentMode(decl.Right)
+	if IsInvalid(right) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})
 		return nil
 	}
@@ -1256,39 +1300,45 @@ func isNumericExpr(expr ast.Expr) bool {
 // checkDefineAssignStmt defines new assigment statement where x := y and y has already been defined.
 // define assigment like x := 1 is forbidden as we cannot infer the value type. Is it an int? int32 etc?
 // An error is emitted if any
-func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) {
-	valueType := c.checkExprInCurrentMode(decl.Right)
+func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
+	valueType, expr := c.checkExprInCurrentMode(decl.Right)
 	if IsInvalid(valueType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("expression %#v is invalid", decl.Right)})
-		return
+		return nil
 	}
 
 	if isNumericExpr(decl.Right) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot use numeric only expression with define assigment declaration (:=)")})
-		return
+		return nil
 	}
 
 	x, ok := decl.Left.(*ast.IdentExpr)
 	if !ok {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("variable %#v not an identifier", decl)})
-		return
+		return nil
 	}
 
-	if !c.declareNoShadow(c.scope, &Symbol{
+	sym := &Symbol{
 		Name:       x.Name.Value,
 		Kind:       SymVar,
 		Type:       valueType,
 		IsComptime: c.inComptimeFunc,
-	}, "variable") {
-		return
+	}
+	if !c.declareNoShadow(c.scope, sym, "variable") {
+		return nil
+	}
+
+	return &DefineAssigmentStmt{
+		Symbol: resolvedSymbol(sym),
+		Right:  expr,
 	}
 }
 
 // checkReturnStmt checks returned values statement types and length.
 // An error is emitted if any
-func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitialized []string) returnFlow {
+func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitialized []string) (returnFlow, []Expr) {
 	if decl == nil {
-		return flowFallsThrough
+		return flowFallsThrough, nil
 	}
 
 	// This is needed when we have named returned values initialized and only use "return" keyword.
@@ -1299,31 +1349,32 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 			for _, result := range c.currentFunc.Results {
 				if result.Name == "" {
 					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("naked return requires named return values")})
-					return flowFallsThrough
+					return flowFallsThrough, nil
 				}
 
 				if !slices.Contains(returnInputVarsInitialized, result.Name) {
 					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("returning uninitialized variable %q", result.Name)})
-					return flowFallsThrough
+					return flowFallsThrough, nil
 				}
 			}
-			return flowReturns
+			return flowReturns, nil
 		}
 	}
 
 	if len(c.currentFunc.Results) != len(decl.Values) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d", len(c.currentFunc.Results), len(decl.Values))})
-		return flowFallsThrough
+		return flowFallsThrough, nil
 	}
 
 	for k, v := range decl.Values {
-		expr := c.checkExprInCurrentMode(v)
+		expr, _ := c.checkExprInCurrentMode(v)
 		if !IsIdentical(c.currentFunc.Results[k].Type, expr) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("cannot use a value of type %T as %T in return statement", expr, c.currentFunc.Results[k].Type)})
-			return flowFallsThrough
+			return flowFallsThrough, nil
 		}
 	}
 
+	var expr []Expr
 	for _, dv := range decl.Values {
 		if x, ok := dv.(*ast.IdentExpr); ok {
 			for _, r := range c.currentFunc.Results {
@@ -1332,9 +1383,12 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 				}
 			}
 		}
+
+		_, e := c.checkExpr(dv)
+		expr = append(expr, e)
 	}
 
-	return flowReturns
+	return flowReturns, expr
 }
 
 // checkIncDecStmt validates increment/decrement statement.
@@ -1549,11 +1603,11 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	}
 
 	if _, ok := call.Callee.(*ast.SelectorExpr); ok {
-		_ = c.checkExprInCurrentMode(stmt.Expr)
+		_, _ = c.checkExprInCurrentMode(stmt.Expr)
 		return
 	}
 
-	calleType := c.checkExprInCurrentMode(call.Callee)
+	calleType, _ := c.checkExprInCurrentMode(call.Callee)
 	fn, ok := calleType.(*FuncMethod)
 	if !ok {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("callee type expression statement must be a function call got %#v", calleType)})
@@ -1565,13 +1619,13 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 		return
 	}
 
-	_ = c.checkExprInCurrentMode(stmt.Expr)
+	_, _ = c.checkExprInCurrentMode(stmt.Expr)
 }
 
 // checkSelectorExpr validates selector expression and return its type.
 // An error is emitted if any
 func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
-	baseType := c.checkExpr(expr.X)
+	baseType, _ := c.checkExpr(expr.X)
 	underlying := unwrapNamed(baseType)
 
 	switch t := underlying.(type) {
@@ -1638,7 +1692,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 		return
 	}
 
-	condType := c.checkExprInCurrentMode(stmt.Condition)
+	condType, _ := c.checkExprInCurrentMode(stmt.Condition)
 	if !IsBool(condType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("if condition must returned a boolean")})
 		st.returnFlowResult = flowFallsThrough
@@ -1772,7 +1826,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 	}
 
 	if stmt.Condition != nil {
-		condType := c.checkExprInCurrentMode(stmt.Condition)
+		condType, _ := c.checkExprInCurrentMode(stmt.Condition)
 		if !IsBool(condType) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("for condition must return a boolean")})
 			st.returnFlowResult = flowFallsThrough
@@ -1818,16 +1872,17 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 }
 
 // checkForStmt validates for assigment statement
-func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt, returnInputVarsInitialized []string) []string {
+func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt, returnInputVarsInitialized []string) ([]string, Stmt) {
+	var s Stmt
 	switch stmt.Operator.Kind {
 	case token.Assign, token.PlusEq, token.MinusEq:
 		returnInputVarsInitialized = c.checkSimpleAssignStmt(stmt, returnInputVarsInitialized)
 	case token.Define:
-		c.checkDefineAssignStmt(stmt)
+		s = c.checkDefineAssignStmt(stmt)
 	default:
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("unsupported assigment in for statement %#v", stmt)})
 	}
-	return returnInputVarsInitialized
+	return returnInputVarsInitialized, s
 }
 
 // checkRangeStmt validates range statement block
@@ -1853,7 +1908,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	c.scope = NewScope(c.scope)
 	c.breakFound = false
 
-	iteratorType := c.checkExprInCurrentMode(stmt.X)
+	iteratorType, _ := c.checkExprInCurrentMode(stmt.X)
 	if IsInvalid(iteratorType) {
 		c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("range expression is invalid")})
 		return
@@ -1887,7 +1942,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			key := c.checkExpr(stmt.Key)
+			key, _ := c.checkExpr(stmt.Key)
 			if stmt.Key.Name.Value != "_" && !IsAssignableTo(rangekeyType, key) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v", rangekeyType, key)})
 				return
@@ -1905,7 +1960,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			value := c.checkExpr(stmt.Value)
+			value, _ := c.checkExpr(stmt.Value)
 			if stmt.Value.Name.Value != "_" && !IsAssignableTo(rangeValueType, value) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range value type, expected %#v, got %#v", rangeValueType, value)})
 				return
@@ -1939,7 +1994,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			key := c.checkExpr(stmt.Key)
+			key, _ := c.checkExpr(stmt.Key)
 			if !IsAssignableTo(rangekeyType, key) {
 				c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v", rangekeyType, key)})
 				return
@@ -2100,7 +2155,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		// switch z:=w();z {
 		// switch z=w();z {
 		// the tag is "a" or the last z
-		tagType := c.checkExprInCurrentMode(stmt.Tag)
+		tagType, _ := c.checkExprInCurrentMode(stmt.Tag)
 		if IsInvalid(tagType) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag expression is invalid")})
 			return
@@ -2136,7 +2191,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			}
 
 			for _, v := range cc.Values {
-				vExpr := c.checkExprInCurrentMode(v)
+				vExpr, _ := c.checkExprInCurrentMode(v)
 				if !IsIdentical(tagType, vExpr) {
 					c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v", tagType, vExpr)})
 					return
@@ -2227,7 +2282,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			}
 
 			for _, v := range cc.Values {
-				vExpr := c.checkExprInCurrentMode(v)
+				vExpr, _ := c.checkExprInCurrentMode(v)
 				// TODO: Tagless switch duplicates is a job for the linter
 				// as it's difficult for the checker to properly handle every cases
 				// without any burden
@@ -2872,7 +2927,8 @@ func (c *Checker) isValidComptimeType(t Type) bool {
 func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 	switch t := expr.(type) {
 	case *ast.IntLitExpr, *ast.FloatLitExpr, *ast.BoolLitExpr, *ast.StringLitExpr:
-		return c.checkExpr(t)
+		ce, _ := c.checkExpr(t)
+		return ce
 
 	case *ast.ParenExpr:
 		return c.checkComptimeExpr(t.Inner)
@@ -2881,7 +2937,8 @@ func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 		if IsInvalid(c.checkComptimeExpr(t.Right)) {
 			return TInvalid
 		}
-		return c.checkExpr(expr)
+		ce, _ := c.checkExpr(expr)
+		return ce
 
 	case *ast.BinaryExpr:
 		left := c.checkComptimeExpr(t.Left)
@@ -2890,7 +2947,8 @@ func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime binary expression")})
 			return TInvalid
 		}
-		return c.checkExpr(expr)
+		ce, _ := c.checkExpr(expr)
+		return ce
 
 	case *ast.CallExpr:
 		return c.checkComptimeCallExpr(t)
@@ -3069,14 +3127,14 @@ func (c *Checker) checkComptimeFuncDecl(decl *ast.FuncDecl) {
 
 // checkExprInCurrentMode checks if we are in comptime func or not and returns expression Type.
 // When in comptime func we validate authorized expressions
-func (c *Checker) checkExprInCurrentMode(expr ast.Expr) Type {
+func (c *Checker) checkExprInCurrentMode(expr ast.Expr) (Type, Expr) {
 	if c.inComptimeFunc {
 		t := c.checkComptimeExpr(expr)
 		if !c.isValidComptimeType(t) {
 			c.errors = append(c.errors, Diagnostics{Err: fmt.Errorf("invalid comptime type")})
-			return TInvalid
+			return TInvalid, nil
 		}
-		return t
+		return t, nil
 	}
 	return c.checkExpr(expr)
 }
@@ -3098,4 +3156,18 @@ func (c *Checker) checkReturnVarsInitialized(a []string, s string) []string {
 		a = append(a, s)
 	}
 	return a
+}
+
+// resolvedSymbol resolves type checked Symbol for
+// the High-Level Intermediate Representation
+func resolvedSymbol(s *Symbol) ResolvedSymbol {
+	if s == nil {
+		return ResolvedSymbol{}
+	}
+
+	return ResolvedSymbol{
+		Name: s.Name,
+		Kind: s.Kind,
+		Type: s.Type,
+	}
 }
