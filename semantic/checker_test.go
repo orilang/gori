@@ -54,8 +54,9 @@ type User struct {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
+		_, diagnostics := check.Check(pr)
 
-		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(diagnostics))
 		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
 		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
 		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)
@@ -86,7 +87,8 @@ type User struct {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 	})
 
 	t.Run("x2", func(t *testing.T) {
@@ -172,8 +174,9 @@ type test interface{
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
+		_, diagnostics := check.Check(pr)
 
-		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(diagnostics))
 		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
 		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
 		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)
@@ -219,7 +222,8 @@ type test interface{
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 	})
 
 	t.Run("x3", func(t *testing.T) {
@@ -247,8 +251,9 @@ type Color enum {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
+		_, diagnostics := check.Check(pr)
 
-		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(diagnostics))
 		src := scope.Symbols["Color"].Type.(*EnumType)
 		dstE := check.pkgScope.Symbols["Color"].Type.(*NamedType)
 		dst := dstE.UnderlyingType.(*EnumType)
@@ -268,7 +273,8 @@ type Color enum {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 	})
 
 	t.Run("x4", func(t *testing.T) {
@@ -312,8 +318,9 @@ type test sum {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
+		_, diagnostics := check.Check(pr)
 
-		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(diagnostics))
 		assert.Equal(t, scope.Symbols["test"].Name, check.pkgScope.Symbols["test"].Name)
 		assert.Equal(t, scope.Symbols["test"].Kind, check.pkgScope.Symbols["test"].Kind)
 
@@ -339,7 +346,8 @@ type test sum {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 	})
 
 	t.Run("type_decl_name_lookup", func(t *testing.T) {
@@ -419,8 +427,9 @@ func ok(a UserID, b UserID) UserID {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
+		_, diagnostics := check.Check(pr)
 
-		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(diagnostics))
 		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
 		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
 		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)
@@ -466,7 +475,8 @@ func okk(a UserID, b UserID) UserID {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 	})
 
 	t.Run("x6", func(t *testing.T) {
@@ -510,8 +520,9 @@ type User struct {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
+		_, diagnostics := check.Check(pr)
 
-		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(diagnostics))
 		assert.Equal(t, scope.Symbols["User"].Name, check.pkgScope.Symbols["User"].Name)
 		assert.Equal(t, scope.Symbols["User"].Kind, check.pkgScope.Symbols["User"].Kind)
 		src := scope.Symbols["User"].Type.(*StructType)
@@ -592,8 +603,9 @@ const j UserID = UserID(1)
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
+		_, diagnostics := check.Check(pr)
 
-		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(diagnostics))
 		assert.Equal(t, scope.Symbols["a"].Name, check.pkgScope.Symbols["a"].Name)
 		assert.Equal(t, scope.Symbols["a"].Kind, check.pkgScope.Symbols["a"].Kind)
 		assert.Equal(t, scope.Symbols["a"].Type, check.pkgScope.Symbols["a"].Type)
@@ -688,7 +700,8 @@ const m int = !int(1)
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 	})
 
 	t.Run("x7_duplicate", func(t *testing.T) {
@@ -703,7 +716,8 @@ const a float = float(1.0)
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 	})
 
 	t.Run("x8", func(t *testing.T) {
@@ -788,8 +802,9 @@ func fempty() {}
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
+		_, diagnostics := check.Check(pr)
 
-		assert.Equal(t, 0, len(check.Check(pr)))
+		assert.Equal(t, 0, len(diagnostics))
 		assert.Equal(t, scope.Symbols["fa"].Name, check.pkgScope.Symbols["fa"].Name)
 		assert.Equal(t, scope.Symbols["fa"].Kind, check.pkgScope.Symbols["fa"].Kind)
 		fsrc := scope.Symbols["fa"].Type.(*FuncMethod)
@@ -851,7 +866,8 @@ func y() {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 		check.checkFuncBody(&ast.FuncDecl{Name: token.Token{Value: "zz"}})
 	})
 
@@ -899,7 +915,8 @@ func y() {
 		pr := parser.ParseFile()
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
-		assert.Greater(t, len(check.Check(pr)), 0)
+		_, diagnostics := check.Check(pr)
+		assert.Greater(t, len(diagnostics), 0)
 	})
 
 	t.Run("check_block_stmt", func(t *testing.T) {
@@ -1204,11 +1221,11 @@ func f(m hashmap[string]string) string {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -1328,11 +1345,11 @@ type User [!true]string
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -1393,11 +1410,11 @@ func x(a int, b int, c int) int {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -2297,11 +2314,11 @@ func f(first bool) (x int, y int, z int) {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -2698,11 +2715,11 @@ func f() int {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -2821,11 +2838,11 @@ func f() int8 {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -3080,11 +3097,11 @@ func doA() {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -3407,11 +3424,11 @@ func describe(s Shape) int {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -3608,11 +3625,11 @@ func action(l Color) string {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -3714,11 +3731,11 @@ func x(a bool) int {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -3903,11 +3920,11 @@ func (u User) name() string {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -4083,11 +4100,11 @@ func Z(a int) (int,int) {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -4199,11 +4216,11 @@ func f() {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -4273,11 +4290,11 @@ const Y int = X
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -4586,11 +4603,11 @@ comptime func id(b Bad) int {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 
@@ -4666,11 +4683,11 @@ func a() {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -4712,11 +4729,11 @@ func b() int {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -5072,11 +5089,11 @@ func f(ok bool) (a int, b int) {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -5473,11 +5490,11 @@ func (u User) f(ok bool) (a int, b int) {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -5920,11 +5937,11 @@ func f() int {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -7224,11 +7241,11 @@ func f(a int) (b int, c int) {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -7474,11 +7491,11 @@ func action(l Color, x string) (a string, b string) {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
@@ -7701,11 +7718,11 @@ func describe(s Shape) (b int, c int) {
 			require.Equal(t, 0, len(parser.Errors))
 			check := NewChecker()
 
-			result := check.Check(pr)
+			_, diagnostics := check.Check(pr)
 			if tc.err {
-				assert.Greater(t, len(result), 0, i)
+				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				assert.Equal(t, 0, len(result), i)
+				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
 	})
