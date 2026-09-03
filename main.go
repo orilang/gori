@@ -22,6 +22,7 @@ func main() {
 			commands.Lexer(),
 			commands.Parse(),
 			commands.Check(),
+			commands.Lower(),
 		},
 	}
 
