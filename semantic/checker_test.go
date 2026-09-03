@@ -55,8 +55,8 @@ type User struct {
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
 		_, diagnostics := check.Check(pr)
-
 		assert.Equal(t, 0, len(diagnostics))
+		assert.Equal(t, false, diagnostics.HasErrors())
 		assert.Equal(t, scope.Symbols["UserID"].Name, check.pkgScope.Symbols["UserID"].Name)
 		assert.Equal(t, scope.Symbols["UserID"].Kind, check.pkgScope.Symbols["UserID"].Kind)
 		xx := check.pkgScope.Symbols["UserID"].Type.(*NamedType)

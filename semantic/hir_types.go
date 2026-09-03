@@ -14,7 +14,7 @@ type Program struct {
 
 type File struct {
 	Package string
-	Decl    []Decl
+	Decls   []Decl
 }
 
 type Decl interface {
