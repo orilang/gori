@@ -109,3 +109,18 @@ func IsDefinedTypes(k Kind) bool {
 func IsBinaryType(k Kind) bool {
 	return binaryTypes[k]
 }
+
+func BinaryOpString(k Kind) string {
+	switch k {
+	default:
+		return "unknown"
+	case Plus:
+		return "add"
+	case Minus:
+		return "sub"
+	case Star:
+		return "mul"
+	case Slash:
+		return "div"
+	}
+}
