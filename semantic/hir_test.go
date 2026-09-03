@@ -28,8 +28,8 @@ const a int = int(0)
 		require.Equal(t, 1, len(program.Files))
 
 		pf := program.Files[0]
-		require.Equal(t, 1, len(pf.Decl))
-		target, ok := pf.Decl[0].(*ConstDecl)
+		require.Equal(t, 1, len(pf.Decls))
+		target, ok := pf.Decls[0].(*ConstDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "a", target.Name)
 		require.Equal(t, TInt, target.Symbol.Type)
@@ -59,8 +59,8 @@ const a string = "a"
 		require.Equal(t, 1, len(program.Files))
 
 		pf := program.Files[0]
-		require.Equal(t, 1, len(pf.Decl))
-		target, ok := pf.Decl[0].(*ConstDecl)
+		require.Equal(t, 1, len(pf.Decls))
+		target, ok := pf.Decls[0].(*ConstDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "a", target.Name)
 		require.NotNil(t, target.Symbol)
@@ -91,8 +91,8 @@ const a bool = true
 		require.Equal(t, 1, len(program.Files))
 
 		pf := program.Files[0]
-		require.Equal(t, 1, len(pf.Decl))
-		target, ok := pf.Decl[0].(*ConstDecl)
+		require.Equal(t, 1, len(pf.Decls))
+		target, ok := pf.Decls[0].(*ConstDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "a", target.Name)
 		require.NotNil(t, target.Symbol)
@@ -120,8 +120,8 @@ const a float64 = float64(0)
 		require.Equal(t, 1, len(program.Files))
 
 		pf := program.Files[0]
-		require.Equal(t, 1, len(pf.Decl))
-		target, ok := pf.Decl[0].(*ConstDecl)
+		require.Equal(t, 1, len(pf.Decls))
+		target, ok := pf.Decls[0].(*ConstDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "a", target.Name)
 		require.NotNil(t, target.Symbol)
@@ -152,8 +152,8 @@ const a int = int(0)
 		require.Equal(t, 1, len(program.Files))
 
 		pf := program.Files[0]
-		require.Equal(t, 1, len(pf.Decl))
-		target, ok := pf.Decl[0].(*ConstDecl)
+		require.Equal(t, 1, len(pf.Decls))
+		target, ok := pf.Decls[0].(*ConstDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "a", target.Name)
 		require.NotNil(t, target.Symbol)
@@ -185,9 +185,9 @@ const b int = a + int(1)
 		require.Equal(t, 1, len(program.Files))
 
 		pf := program.Files[0]
-		require.Equal(t, 2, len(pf.Decl))
+		require.Equal(t, 2, len(pf.Decls))
 
-		target, ok := pf.Decl[0].(*ConstDecl)
+		target, ok := pf.Decls[0].(*ConstDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "a", target.Name)
 		require.NotNil(t, target.Symbol)
@@ -201,7 +201,7 @@ const b int = a + int(1)
 		require.Equal(t, TInt, lit.Type)
 		require.Equal(t, "0", lit.Value)
 
-		target1, ok := pf.Decl[1].(*ConstDecl)
+		target1, ok := pf.Decls[1].(*ConstDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "b", target1.Name)
 		require.NotNil(t, target.Symbol)
@@ -246,9 +246,9 @@ func main() {
 		require.Equal(t, 1, len(program.Files))
 
 		pf := program.Files[0]
-		require.Equal(t, 1, len(pf.Decl))
+		require.Equal(t, 1, len(pf.Decls))
 
-		fn, ok := pf.Decl[0].(*FuncDecl)
+		fn, ok := pf.Decls[0].(*FuncDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, fn.Name, "main")
 		require.NotNil(t, fn.Symbol)
@@ -320,9 +320,9 @@ func main() {
 		require.Equal(t, 1, len(program.Files))
 
 		pf := program.Files[0]
-		require.Equal(t, 2, len(pf.Decl))
+		require.Equal(t, 2, len(pf.Decls))
 
-		fn, ok := pf.Decl[0].(*FuncDecl)
+		fn, ok := pf.Decls[0].(*FuncDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "add", fn.Name)
 		require.NotNil(t, fn.Symbol)
@@ -356,7 +356,7 @@ func main() {
 		require.Equal(t, TInt, right.Type)
 		require.Equal(t, "b", right.Value)
 
-		fn1, ok := pf.Decl[1].(*FuncDecl)
+		fn1, ok := pf.Decls[1].(*FuncDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, fn1.Name, "main")
 		require.NotNil(t, fn1.Symbol)

@@ -113,7 +113,8 @@ type Scope struct {
 	Symbols map[string]*Symbol
 }
 
-type Diagnostics struct {
+type Diagnostics []Diagnostic
+type Diagnostic struct {
 	Err error
 }
 
@@ -121,7 +122,7 @@ type Checker struct {
 	pkgScope                  *Scope // pkg only scope
 	scope                     *Scope // lexical scope during statement/expression
 	useScope                  bool
-	errors                    []Diagnostics
+	errors                    []Diagnostic
 	typeDecls                 []ast.TypeDecl
 	funcDecls                 []*ast.FuncDecl
 	methodDecls               []*ast.FuncDecl
