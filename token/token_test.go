@@ -428,4 +428,36 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, IsBinaryType(tc.input))
 		}
 	})
+
+	t.Run("binary_op_string", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected string
+		}{
+			{
+				input:    Plus,
+				expected: "add",
+			},
+			{
+				input:    Minus,
+				expected: "sub",
+			},
+			{
+				input:    Star,
+				expected: "mul",
+			},
+			{
+				input:    Slash,
+				expected: "div",
+			},
+			{
+				input:    And,
+				expected: "unknown",
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, BinaryOpString(tc.input))
+		}
+	})
 }
