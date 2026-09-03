@@ -1,0 +1,19 @@
+package main
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func action(l Color) string {
+	b := 0
+	switch l {
+		case Red:
+			return "red"
+		case Blue:
+			return "blue"
+		case Green:
+			return "green"
+		case Yellow:
+			return "yellow"
+	}
+	return b
+}

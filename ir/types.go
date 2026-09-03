@@ -1,0 +1,51 @@
+package ir
+
+type Program struct {
+	Funcs []*Func
+}
+
+type Func struct {
+	Name    string
+	Params  []Param
+	Results []Param
+	Blocks  []*Block
+}
+
+type Param struct {
+	Name string
+	Type string
+}
+
+type Block struct {
+	Name         string
+	Instructions []Instruction
+}
+
+type Instruction interface {
+	instrNode()
+}
+
+type Value string
+
+type Binary struct {
+	Result string
+	Op     string
+	Left   string
+	Right  string
+}
+
+type Return struct {
+	Name string
+}
+
+type Const struct {
+	Result string
+	Type   string
+	Value  string
+}
+
+type Call struct {
+	Result string
+	Name   string
+	Args   []string
+}
