@@ -20,7 +20,6 @@ func TestLower_Lower(t *testing.T) {
 		}{
 			{
 				data: `package main
-
 func multiply(a int, b int) int {
     return a * b + b * a
 }
@@ -45,7 +44,6 @@ entry:
 			},
 			{
 				data: `package main
-
 func add(a int, b int) int {
     return a + b
 }
@@ -54,6 +52,28 @@ func main() {
     x := add(int(1), int(2))
 }`,
 				expected: `func add(a:int, b:int) -> int
+entry:
+    t0 = add_int a, b
+    return t0
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = add(t0, t1)
+
+`,
+			},
+			{
+				data: `package main
+func add(a int, b int) (c int) {
+    return a + b
+}
+
+func main() {
+    x := add(int(1), int(2))
+}`,
+				expected: `func add(a:int, b:int) -> (c:int)
 entry:
     t0 = add_int a, b
     return t0
