@@ -454,6 +454,22 @@ func TestToken(t *testing.T) {
 				input:    And,
 				expected: "unknown",
 			},
+			{
+				input:    Gt,
+				expected: "gt",
+			},
+			{
+				input:    Gte,
+				expected: "gte",
+			},
+			{
+				input:    Lt,
+				expected: "lt",
+			},
+			{
+				input:    Lte,
+				expected: "lte",
+			},
 		}
 
 		for _, tc := range tests {

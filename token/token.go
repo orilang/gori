@@ -122,5 +122,13 @@ func BinaryOpString(k Kind) string {
 		return "mul"
 	case Slash:
 		return "div"
+	case Gt:
+		return "gt"
+	case Gte:
+		return "gte"
+	case Lt:
+		return "lt"
+	case Lte:
+		return "lte"
 	}
 }
