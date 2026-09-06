@@ -408,7 +408,115 @@ if_else_0:
     jump if_end_0
 
 if_end_0:
-    return c
+    return
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > 0 {
+      c = a
+    } else if a < 0 {
+      c = - int(1)
+    } else {
+      c = b
+    }
+    return
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = gt_bool a, 0
+    branch t0, if_then_0, if_else_0
+
+if_then_0:
+    c = a
+    jump if_end_0
+
+if_else_0:
+    t1 = lt_bool a, 0
+    branch t1, if_then_1, if_else_1
+
+if_then_1:
+    t2 = const_int 1
+    t3 = -t2
+    c = t3
+    jump if_end_1
+
+if_else_1:
+    c = b
+    jump if_end_1
+
+if_end_1:
+    jump if_end_0
+
+if_end_0:
+    return
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > 0 {
+      c = a
+    } else if a < 0 {
+      c = int(-1)
+    } else {
+      c = b
+    }
+    return
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = gt_bool a, 0
+    branch t0, if_then_0, if_else_0
+
+if_then_0:
+    c = a
+    jump if_end_0
+
+if_else_0:
+    t1 = lt_bool a, 0
+    branch t1, if_then_1, if_else_1
+
+if_then_1:
+    t2 = -1
+    t3 = const_int t2
+    c = t3
+    jump if_end_1
+
+if_else_1:
+    c = b
+    jump if_end_1
+
+if_end_1:
+    jump if_end_0
+
+if_end_0:
+    return
 
 func main()
 entry:
