@@ -132,6 +132,12 @@ type AssigmentStmt struct {
 	Right  Expr
 }
 
+type IfStmt struct {
+	Condition Expr
+	Then      []Stmt
+	Else      []Stmt
+}
+
 type ConversionExpr struct {
 	To    Type
 	Value Expr
