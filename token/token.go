@@ -132,3 +132,14 @@ func BinaryOpString(k Kind) string {
 		return "lte"
 	}
 }
+
+func UnaryOpString(k Kind) string {
+	switch k {
+	default:
+		return "unknown"
+	case Plus:
+		return "+"
+	case Minus:
+		return "-"
+	}
+}
