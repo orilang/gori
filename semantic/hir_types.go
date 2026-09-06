@@ -138,6 +138,18 @@ type IfStmt struct {
 	Else      []Stmt
 }
 
+type SwitchStmt struct {
+	Init  Stmt
+	Tag   Expr
+	Cases []CaseClauseStmt
+}
+
+type CaseClauseStmt struct {
+	Case   token.Kind
+	Values []Expr
+	Body   []Stmt
+}
+
 type ConversionExpr struct {
 	To    Type
 	Value Expr

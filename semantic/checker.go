@@ -2111,6 +2111,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 	}()
 
 	c.scope = NewScope(c.scope)
+	var sw SwitchStmt
 
 	if stmt.Init != nil {
 		// switch examples:
@@ -2133,6 +2134,8 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				}
 			}
 		}
+
+		sw.Init = cStmt.stmt
 	}
 
 	var (
@@ -2170,7 +2173,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		// switch z:=w();z {
 		// switch z=w();z {
 		// the tag is "a" or the last z
-		tagType, _ := c.checkExprInCurrentMode(stmt.Tag)
+		tagType, tagExpr := c.checkExprInCurrentMode(stmt.Tag)
 		if IsInvalid(tagType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag expression is invalid")})
 			return
@@ -2189,6 +2192,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			return
 		}
 
+		sw.Tag = tagExpr
 		if len(stmt.Cases) == 0 {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch statement has 0 cases")})
 			return
@@ -2205,24 +2209,33 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				}
 			}
 
+			swc := CaseClauseStmt{Case: cc.Case.Kind}
 			for _, v := range cc.Values {
-				vExpr, _ := c.checkExprInCurrentMode(v)
-				if !IsIdentical(tagType, vExpr) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v", tagType, vExpr)})
+				vType, vExpr := c.checkExprInCurrentMode(v)
+				if !IsIdentical(tagType, vType) {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v", tagType, vType)})
 					return
 				}
 
-				if ck, ok := c.constKey(v, vExpr); ok {
+				if ck, ok := c.constKey(v, vType); ok {
 					if seen[ck] {
 						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("duplicate case expression %s at %d:%d", ck.value, v.Start().Line, v.End().Line)})
 						return
 					}
 					seen[ck] = true
 				}
+
+				swc.Values = append(swc.Values, vExpr)
 			}
 
 			if cc.Body != nil {
 				sStmt := c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1, returnInputVarsInitialized)
+				if sStmt.stmt == nil {
+					swc.Body = sStmt.blockStmt
+				} else {
+					swc.Body = append(swc.Body, sStmt.stmt)
+				}
+				sw.Cases = append(sw.Cases, swc)
 
 				if sStmt.switchCaseHasFallThrough {
 					hasFallThrough = true
@@ -2296,20 +2309,29 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				}
 			}
 
+			swc := CaseClauseStmt{Case: cc.Case.Kind}
 			for _, v := range cc.Values {
-				vExpr, _ := c.checkExprInCurrentMode(v)
+				vType, vExpr := c.checkExprInCurrentMode(v)
 				// TODO: Tagless switch duplicates is a job for the linter
 				// as it's difficult for the checker to properly handle every cases
 				// without any burden
 
-				if !IsBool(vExpr) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch case expected boolean got %#v", vExpr)})
+				if !IsBool(vType) {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch case expected boolean got %#v", vType)})
 					return
 				}
+
+				swc.Values = append(swc.Values, vExpr)
 			}
 
 			if cc.Body != nil {
 				sStmt := c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1, returnInputVarsInitialized)
+				if sStmt.stmt == nil {
+					swc.Body = sStmt.blockStmt
+				} else {
+					swc.Body = append(swc.Body, sStmt.stmt)
+				}
+				sw.Cases = append(sw.Cases, swc)
 
 				if sStmt.switchCaseHasFallThrough {
 					hasFallThrough = true
@@ -2362,6 +2384,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		}
 	}
 
+	st.stmt = &sw
 	st.returnedInputVarsInitialized = slices.Clone(intersection)
 	if dcount == 0 {
 		st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
