@@ -39,6 +39,7 @@ entry:
     t0 = const_int 1
     t1 = const_int 2
     t2 = multiply(t0, t1)
+    x = t2
 
 `,
 			},
@@ -61,6 +62,7 @@ entry:
     t0 = const_int 1
     t1 = const_int 2
     t2 = add(t0, t1)
+    x = t2
 
 `,
 			},
@@ -83,6 +85,298 @@ entry:
     t0 = const_int 1
     t1 = const_int 2
     t2 = add(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > 0 {
+      return a
+		}
+    return b
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = gt_bool a, 0
+    branch t0, if_then_0, if_end_0
+
+if_then_0:
+    return a
+
+if_end_0:
+    return b
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > 0 {
+      return a
+		} else {
+      return b
+    }
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = gt_bool a, 0
+    branch t0, if_then_0, if_else_0
+
+if_then_0:
+    return a
+
+if_else_0:
+    return b
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func add(a int, b int) int {
+    return a + b
+}
+
+func main() {
+    a := float64(1)
+    x := add(int(a), int(2))
+}`,
+				expected: `func add(a:int, b:int) -> int
+entry:
+    t0 = add_int a, b
+    return t0
+
+func main()
+entry:
+    t0 = const_float64 1
+    a = t0
+    t1 = const_int a
+    t2 = const_int 2
+    t3 = add(t1, t2)
+    x = t3
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > int(0) {
+      return a
+    } else {
+      x := int(1)
+      return b
+    }
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = const_int 0
+    t1 = gt_bool a, t0
+    branch t1, if_then_0, if_else_0
+
+if_then_0:
+    return a
+
+if_else_0:
+    t2 = const_int 1
+    x = t2
+    return b
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > 0 {
+      return a
+    }
+    return b
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = gt_bool a, 0
+    branch t0, if_then_0, if_end_0
+
+if_then_0:
+    return a
+
+if_end_0:
+    return b
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > int(0) {
+      if a < int(2) {
+        return int(1)
+      }
+      return int(0)
+    } else {
+      x := int(1)
+      return b
+    }
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = const_int 0
+    t1 = gt_bool a, t0
+    branch t1, if_then_0, if_else_0
+
+if_then_0:
+    t2 = const_int 2
+    t3 = lt_bool a, t2
+    branch t3, if_then_1, if_end_1
+
+if_then_1:
+    t4 = const_int 1
+    return t4
+
+if_end_1:
+    t5 = const_int 0
+    return t5
+
+if_else_0:
+    t6 = const_int 1
+    x = t6
+    return b
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    c = int(1)
+    if a > int(0) {
+      c = a
+    } else {
+      return b
+    }
+    return c
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = const_int 1
+    c = t0
+    t1 = const_int 0
+    t2 = gt_bool a, t1
+    branch t2, if_then_0, if_else_0
+
+if_then_0:
+    c = a
+    jump if_end_0
+
+if_else_0:
+    return b
+
+if_end_0:
+    return c
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > 0 {
+      c = a
+    } else {
+      c = b
+    }
+    return c
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = gt_bool a, 0
+    branch t0, if_then_0, if_else_0
+
+if_then_0:
+    c = a
+    jump if_end_0
+
+if_else_0:
+    c = b
+    jump if_end_0
+
+if_end_0:
+    return c
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
 
 `,
 			},
@@ -158,6 +452,18 @@ entry:
 		l := NewLower(true)
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("dummy")})
 		l.decl(&semantic.VarDecl{Name: "plop"})
+		require.Equal(t, true, len(l.errors) > 0)
+	})
+
+	t.Run("expr_error", func(t *testing.T) {
+		l := NewLower(true)
+		l.lowerExpr(nil)
+		require.Equal(t, true, len(l.errors) > 0)
+	})
+
+	t.Run("stmt_error", func(t *testing.T) {
+		l := NewLower(true)
+		l.lowerStmt(nil)
 		require.Equal(t, true, len(l.errors) > 0)
 	})
 }

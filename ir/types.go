@@ -9,6 +9,7 @@ type Func struct {
 	Params  []Param
 	Results []Param
 	Blocks  []*Block
+	Label   string
 }
 
 type Param struct {
@@ -17,7 +18,6 @@ type Param struct {
 }
 
 type Block struct {
-	Name         string
 	Instructions []Instruction
 }
 
@@ -48,4 +48,26 @@ type Call struct {
 	Result string
 	Name   string
 	Args   []string
+}
+
+type Branch struct {
+	Condition string
+	True      string
+	False     string
+	Index     int
+}
+
+type Label struct {
+	Name  string
+	Index int
+}
+
+type Jump struct {
+	Name  string
+	Index int
+}
+
+type Assigment struct {
+	Result string
+	Value  string
 }
