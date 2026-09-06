@@ -71,3 +71,9 @@ type Assigment struct {
 	Result string
 	Value  string
 }
+
+type Unary struct {
+	Result   string
+	Operator string
+	Value    string
+}

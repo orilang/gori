@@ -68,6 +68,9 @@ func (d *dumper) node(indent int, n any) {
 	case *ir.Assigment:
 		d.line(indent, fmt.Sprintf("%s = %s", t.Result, t.Value))
 
+	case *ir.Unary:
+		d.line(indent, fmt.Sprintf("%s = %s%s", t.Result, t.Operator, t.Value))
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil intermediate representation)")

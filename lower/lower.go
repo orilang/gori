@@ -258,6 +258,17 @@ func (l *Lower) lowerExpr(t semantic.Expr) ir.Value {
 		l.tIndex++
 		return ir.Value(t)
 
+	case *semantic.UnaryExpr:
+		ex := l.lower(expr.Right)
+		t := fmt.Sprintf("t%d", l.tIndex)
+		l.instructions = append(l.instructions, &ir.Unary{
+			Result:   t,
+			Operator: token.UnaryOpString(expr.Operator),
+			Value:    string(ex),
+		})
+		l.tIndex++
+		return ir.Value(t)
+
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %T", expr)})
 	}
