@@ -1701,7 +1701,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 		return
 	}
 
-	condType, _ := c.checkExprInCurrentMode(stmt.Condition)
+	condType, condExpr := c.checkExprInCurrentMode(stmt.Condition)
 	if !IsBool(condType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("if condition must returned a boolean")})
 		st.returnFlowResult = flowFallsThrough
@@ -1713,13 +1713,16 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 		initializedIfThen, initializedIfElse bool
 		rvi                                  []string
 		thenStmt, elseStmt                   stmtInfo
+		hir                                  IfStmt
 	)
 
+	hir.Condition = condExpr
 	copyIf := slices.Clone(returnInputVarsInitialized)
 	copyElse := slices.Clone(returnInputVarsInitialized)
 	if stmt.Then != nil {
 		initializedIfThen = true
 		thenStmt = c.checkBlockStmt(stmt.Then, returnInputVarsInitialized)
+		hir.Then = thenStmt.blockStmt
 	}
 
 	if stmt.Else != nil {
@@ -1727,10 +1730,13 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 		switch t := stmt.Else.(type) {
 		case *ast.BlockStmt:
 			elseStmt = c.checkBlockStmt(t, returnInputVarsInitialized)
+			hir.Else = elseStmt.blockStmt
 		default:
 			elseStmt = c.checkStmt(t, returnInputVarsInitialized)
+			hir.Else = append(hir.Else, elseStmt.stmt)
 		}
 	}
+	st.stmt = &hir
 
 	if initializedIfThen && initializedIfElse {
 		if thenStmt.returnFlowResult == flowFallsThrough && elseStmt.returnFlowResult == flowFallsThrough {

@@ -23,3 +23,4 @@ func (*DeclStmt) stmtNode()      {}
 func (*ReturnStmt) stmtNode()    {}
 func (*AssigmentStmt) stmtNode() {}
 func (*BlockStmt) stmtNode()     {}
+func (*IfStmt) stmtNode()        {}
