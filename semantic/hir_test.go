@@ -302,6 +302,7 @@ func add(a int, b int) int {
 func main() {
     a := add(int(1), int(2))
 		b := int64(a)
+		b = int64(42)
 }
 `
 
@@ -365,9 +366,9 @@ func main() {
 		require.Equal(t, 0, len(fn1.Results))
 
 		require.NotNil(t, fn1.Body)
-		require.Equal(t, 2, len(fn1.Body.Stmts))
+		require.Equal(t, 3, len(fn1.Body.Stmts))
 
-		da, ok := fn1.Body.Stmts[0].(*DefineAssigmentStmt)
+		da, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
 		require.Equal(t, true, ok)
 		require.Equal(t, "a", da.Symbol.Name)
 		require.Equal(t, TInt, da.Symbol.Type)
@@ -398,7 +399,7 @@ func main() {
 		require.Equal(t, TInt, arg2.Type)
 		require.Equal(t, "2", arg2.Value)
 
-		da1, ok := fn1.Body.Stmts[1].(*DefineAssigmentStmt)
+		da1, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
 		require.Equal(t, true, ok)
 		require.Equal(t, "b", da1.Symbol.Name)
 		require.Equal(t, TInt64, da1.Symbol.Type)
@@ -411,5 +412,19 @@ func main() {
 		require.Equal(t, true, ok)
 		require.NotNil(t, dav1.Symbol)
 		require.Equal(t, "a", dav1.Value)
+
+		da2, ok := fn1.Body.Stmts[2].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, "b", da2.Symbol.Name)
+		require.Equal(t, TInt64, da2.Symbol.Type)
+
+		ceDar2, ok := da2.Right.(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt64, ceDar2.To)
+
+		dav2, ok := ceDar2.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.NotNil(t, dav2.Type)
+		require.Equal(t, "42", dav2.Value)
 	})
 }

@@ -1238,17 +1238,17 @@ func (c *Checker) checkAssignableExpr(expr ast.Expr) (Type, Expr) {
 
 // checkSimpleAssignStmt validates simple assigment statements like x = 1 where x has already been defined.
 // An error is emitted if any
-func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsInitialized []string) []string {
+func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsInitialized []string) ([]string, Stmt) {
 	name := exprName(decl.Left)
 	sym := c.scope.Lookup(name)
 	if sym == nil {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined", name)})
-		return nil
+		return nil, nil
 	}
 
 	if sym.Kind == SymConst {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
-		return nil
+		return nil, nil
 	}
 
 	targetType, _ := c.checkAssignableExpr(decl.Left)
@@ -1257,18 +1257,18 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 	left, _ := c.checkExprInCurrentMode(decl.Left)
 	if IsInvalid(left) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %T", targetType)})
-		return nil
+		return nil, nil
 	}
 
-	right, _ := c.checkExprInCurrentMode(decl.Right)
+	right, expr := c.checkExprInCurrentMode(decl.Right)
 	if IsInvalid(right) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})
-		return nil
+		return nil, nil
 	}
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType, targetType)})
-		return nil
+		return nil, nil
 	}
 
 	sym.Type = targetType
@@ -1279,7 +1279,11 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 			}
 		}
 	}
-	return returnInputVarsInitialized
+
+	return returnInputVarsInitialized, &AssigmentStmt{
+		Symbol: resolvedSymbol(sym),
+		Right:  expr,
+	}
 }
 
 // isNumericExpr detects if expression is a numeric only expression
@@ -1333,7 +1337,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		return nil
 	}
 
-	return &DefineAssigmentStmt{
+	return &AssigmentStmt{
 		Symbol: resolvedSymbol(sym),
 		Right:  expr,
 	}
@@ -1881,7 +1885,7 @@ func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt, returnInputVarsInitia
 	var s Stmt
 	switch stmt.Operator.Kind {
 	case token.Assign, token.PlusEq, token.MinusEq:
-		returnInputVarsInitialized = c.checkSimpleAssignStmt(stmt, returnInputVarsInitialized)
+		returnInputVarsInitialized, s = c.checkSimpleAssignStmt(stmt, returnInputVarsInitialized)
 	case token.Define:
 		s = c.checkDefineAssignStmt(stmt)
 	default:

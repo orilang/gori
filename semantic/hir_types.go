@@ -127,7 +127,7 @@ type ReturnStmt struct {
 	Values []Expr
 }
 
-type DefineAssigmentStmt struct {
+type AssigmentStmt struct {
 	Symbol ResolvedSymbol
 	Right  Expr
 }
