@@ -490,6 +490,10 @@ func TestToken(t *testing.T) {
 				input:    Minus,
 				expected: "-",
 			},
+			{
+				input:    PPlus,
+				expected: "unknown",
+			},
 		}
 
 		for _, tc := range tests {
