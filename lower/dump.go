@@ -44,7 +44,11 @@ func (d *dumper) node(indent int, n any) {
 		d.line(indent, fmt.Sprintf("%s = %s %s, %s", t.Result, t.Op, t.Left, t.Right))
 
 	case *ir.Return:
-		d.line(indent, fmt.Sprintf("return %s", t.Name))
+		if t.Name == "" {
+			d.line(indent, "return")
+		} else {
+			d.line(indent, fmt.Sprintf("return %s", t.Name))
+		}
 
 	case *ir.Const:
 		d.line(indent, fmt.Sprintf("%s = const_%s %s", t.Result, t.Type, t.Value))

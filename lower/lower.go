@@ -122,6 +122,11 @@ func (l *Lower) lower(input any) ir.Value {
 func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 	switch stmt := t.(type) {
 	case *semantic.ReturnStmt:
+		if len(stmt.Values) == 0 {
+			l.instructions = append(l.instructions, &ir.Return{})
+			return ir.Value("")
+		}
+
 		var rt []ir.Value
 		for _, v := range stmt.Values {
 			st := l.lower(v)
