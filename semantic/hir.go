@@ -19,7 +19,7 @@ func (*UnaryExpr) exprNode()      {}
 func (*BinaryExpr) exprNode()     {}
 func (*CallExpr) exprNode()       {}
 
-func (*DeclStmt) stmtNode()            {}
-func (*ReturnStmt) stmtNode()          {}
-func (*DefineAssigmentStmt) stmtNode() {}
-func (*BlockStmt) stmtNode()           {}
+func (*DeclStmt) stmtNode()      {}
+func (*ReturnStmt) stmtNode()    {}
+func (*AssigmentStmt) stmtNode() {}
+func (*BlockStmt) stmtNode()     {}
