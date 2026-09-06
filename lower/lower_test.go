@@ -380,6 +380,45 @@ entry:
 
 `,
 			},
+			{
+				data: `package main
+func f(a int, b int) (c int) {
+    if a > 0 {
+      c = a
+    } else {
+      c = b
+    }
+    return
+}
+
+func main() {
+    x := f(int(1), int(2))
+}`,
+				expected: `func f(a:int, b:int) -> (c:int)
+entry:
+    t0 = gt_bool a, 0
+    branch t0, if_then_0, if_else_0
+
+if_then_0:
+    c = a
+    jump if_end_0
+
+if_else_0:
+    c = b
+    jump if_end_0
+
+if_end_0:
+    return c
+
+func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    t2 = f(t0, t1)
+    x = t2
+
+`,
+			},
 		}
 
 		for i, tc := range tests {
