@@ -28,8 +28,8 @@ func (d *dumper) node(indent int, n any) {
 	case *ir.Func:
 		d.line(indent, "func "+t.Name+d.funcDecl("arg", t.Params)+d.funcDecl("", t.Results))
 		if t.Blocks != nil {
+			_, _ = fmt.Fprintf(d.w, "%s:\n", t.Label)
 			for _, block := range t.Blocks {
-				_, _ = fmt.Fprintf(d.w, "%s:\n", block.Name)
 				d.node(indent+2, block)
 			}
 		}
@@ -51,6 +51,18 @@ func (d *dumper) node(indent int, n any) {
 
 	case *ir.Call:
 		d.line(indent, fmt.Sprintf("%s = %s(%s)", t.Result, t.Name, strings.Join(t.Args, ", ")))
+
+	case *ir.Branch:
+		d.line(indent, fmt.Sprintf("branch %s, %s_%d, %s_%d", t.Condition, t.True, t.Index, t.False, t.Index))
+
+	case *ir.Label:
+		d.line(0, fmt.Sprintf("\n%s_%d:", t.Name, t.Index))
+
+	case *ir.Jump:
+		d.line(indent, fmt.Sprintf("jump %s_%d", t.Name, t.Index))
+
+	case *ir.Assigment:
+		d.line(indent, fmt.Sprintf("%s = %s", t.Result, t.Value))
 
 	default:
 		if n == nil {

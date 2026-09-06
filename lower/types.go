@@ -16,11 +16,11 @@ type Lower struct {
 	funcs  []*ir.Func
 	errors []Diagnostic
 
-	tIndex                        int
-	instructions                  []ir.Instruction
-	blocks                        []*ir.Block
-	blockName                     string
-	useCurrentInstructionForBlock bool // used by if/switch/for
+	tIndex       int
+	labelIndex   int
+	instructions []ir.Instruction
+	blocks       []*ir.Block
+	blockName    string
 }
 
 // Files holds all files to use for tokenization
