@@ -7726,4 +7726,8 @@ func describe(s Shape) (b int, c int) {
 			}
 		}
 	})
+
+	t.Run("dummy_resolved_symbol", func(t *testing.T) {
+		assert.Equal(t, ResolvedSymbol{}, resolvedSymbol(nil))
+	})
 }
