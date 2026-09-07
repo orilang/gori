@@ -150,6 +150,8 @@ type CaseClauseStmt struct {
 	Body   []Stmt
 }
 
+type FallThroughStmt token.Kind
+
 type ConversionExpr struct {
 	To    Type
 	Value Expr

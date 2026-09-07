@@ -658,4 +658,94 @@ func main() {
 			require.NotNil(t, cc.Body)
 		}
 	})
+
+	t.Run("x11", func(t *testing.T) {
+		data := `package main
+
+func main() {
+  a := int(0)
+
+  switch a {
+  case 1:
+    fallthrough
+  default:
+    a = int(1)
+  }
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		for _, d := range diagnostics {
+			fmt.Println(d.Err.Error())
+		}
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn1.Name, "main")
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 2, len(fn1.Body.Stmts))
+
+		da1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, "a", da1.Symbol.Name)
+		require.Equal(t, TInt, da1.Symbol.Type)
+
+		dar1, ok := da1.Right.(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, dar1.To)
+		arg1, ok := dar1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, arg1.Type)
+		require.Equal(t, "0", arg1.Value)
+
+		da2, ok := fn1.Body.Stmts[1].(*SwitchStmt)
+		require.Equal(t, true, ok)
+		require.Nil(t, da2.Init)
+		require.NotNil(t, da2.Tag)
+		swt, ok := da2.Tag.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.NotNil(t, swt.Symbol)
+		require.Equal(t, TInt, swt.Type)
+		require.Equal(t, "a", swt.Value)
+		require.NotNil(t, da2.Cases)
+		for ci, cc := range da2.Cases {
+			switch ci {
+			case 0:
+				require.Equal(t, token.KWCase, cc.Case)
+				require.Equal(t, 1, len(cc.Values))
+				swc, ok := cc.Values[0].(*IntLitExpr)
+				require.Equal(t, true, ok)
+				require.Equal(t, TInt, swc.Type)
+				require.Equal(t, "1", swc.Value)
+
+				require.NotNil(t, cc.Body)
+				require.Equal(t, 1, len(cc.Body))
+
+				_, ok = cc.Body[0].(*FallThroughStmt)
+				require.Equal(t, true, ok)
+
+			case 1:
+				require.Equal(t, token.KWDefault, cc.Case)
+				require.Equal(t, 0, len(cc.Values))
+				require.NotNil(t, cc.Body)
+			}
+		}
+	})
 }

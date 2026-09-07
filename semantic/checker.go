@@ -2464,7 +2464,7 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 			return
 		}
 
-		if _, ok := b.(*ast.FallThroughStmt); ok {
+		if ft, ok := b.(*ast.FallThroughStmt); ok {
 			if i != len(body)-1 {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough must be the last statement of the switch case body")})
 				return
@@ -2475,6 +2475,8 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 				return
 			}
 			cStmt.switchCaseHasFallThrough = true
+			f := FallThroughStmt(ft.FallThrough.Kind)
+			cStmt.stmt = &f
 			continue
 		}
 
@@ -2486,7 +2488,7 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 }
 
 // checkFallThroughStmt produces an error when not into switch case
-func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
+func (c *Checker) checkFallThroughStmt(stmt *ast.FallThroughStmt) {
 	if !c.inSwitchCase {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden outside of switch case")})
 	}
