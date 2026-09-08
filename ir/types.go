@@ -50,11 +50,13 @@ type Call struct {
 	Args   []string
 }
 
+type BranchSub struct {
+	Name  string
+	Index int
+}
 type Branch struct {
 	Condition string
-	True      string
-	False     string
-	Index     int
+	List      []BranchSub
 }
 
 type Label struct {
