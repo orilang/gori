@@ -470,6 +470,10 @@ func TestToken(t *testing.T) {
 				input:    Lte,
 				expected: "lte",
 			},
+			{
+				input:    Eq,
+				expected: "eq",
+			},
 		}
 
 		for _, tc := range tests {

@@ -130,6 +130,8 @@ func BinaryOpString(k Kind) string {
 		return "lt"
 	case Lte:
 		return "lte"
+	case Eq:
+		return "eq"
 	}
 }
 
