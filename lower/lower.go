@@ -150,11 +150,13 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 		l.labelIndex++
 
 		cond := l.lower(stmt.Condition)
-		br := &ir.Branch{Condition: string(cond), True: "if_then", False: "if_else", Index: labelIndex}
+		br := &ir.Branch{Condition: string(cond)}
+		br.List = append(br.List, ir.BranchSub{Name: "if_then", Index: labelIndex})
+
 		if len(stmt.Else) > 0 {
-			br.False = "if_else"
+			br.List = append(br.List, ir.BranchSub{Name: "if_else", Index: labelIndex})
 		} else {
-			br.False = "if_end"
+			br.List = append(br.List, ir.BranchSub{Name: "if_end", Index: labelIndex})
 		}
 		l.instructions = append(l.instructions, br)
 

@@ -57,7 +57,12 @@ func (d *dumper) node(indent int, n any) {
 		d.line(indent, fmt.Sprintf("%s = %s(%s)", t.Result, t.Name, strings.Join(t.Args, ", ")))
 
 	case *ir.Branch:
-		d.line(indent, fmt.Sprintf("branch %s, %s_%d, %s_%d", t.Condition, t.True, t.Index, t.False, t.Index))
+		var branches []string
+		for _, v := range t.List {
+			branches = append(branches, fmt.Sprintf("%s_%d", v.Name, v.Index))
+		}
+
+		d.line(indent, fmt.Sprintf("branch %s, %s", t.Condition, strings.Join(branches, ", ")))
 
 	case *ir.Label:
 		d.line(0, fmt.Sprintf("\n%s_%d:", t.Name, t.Index))
