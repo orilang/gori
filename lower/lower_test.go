@@ -13,7 +13,7 @@ import (
 )
 
 func TestLower_Lower(t *testing.T) {
-	t.Run("lower", func(t *testing.T) {
+	t.Run("x1", func(t *testing.T) {
 		tests := []struct {
 			data     string
 			expected string
@@ -89,6 +89,32 @@ entry:
 
 `,
 			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := semantic.NewChecker()
+
+			spr, diagnostics := check.Check(pr)
+			require.Equal(t, false, diagnostics.HasErrors())
+
+			l := NewLower(true)
+			lir, ldiagnostics := l.Lower(spr)
+			require.Equal(t, false, ldiagnostics.HasErrors())
+
+			assert.Equal(t, tc.expected, dump(lir), i)
+		}
+	})
+
+	t.Run("x2", func(t *testing.T) {
+		tests := []struct {
+			data     string
+			expected string
+		}{
 			{
 				data: `package main
 func f(a int, b int) (c int) {
@@ -548,7 +574,7 @@ entry:
 		}
 	})
 
-	t.Run("lower_dummy_tests", func(t *testing.T) {
+	t.Run("dummy_lower_tests", func(t *testing.T) {
 		tests := []struct {
 			data     any
 			expected ir.Value
@@ -588,27 +614,27 @@ entry:
 		}
 	})
 
-	t.Run("Lower_error", func(t *testing.T) {
+	t.Run("dummy_Lower_error", func(t *testing.T) {
 		l := NewLower(true)
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("dummy")})
 		_, diag := l.Lower(semantic.Program{})
 		require.Equal(t, true, diag.HasErrors())
 	})
 
-	t.Run("decl_error", func(t *testing.T) {
+	t.Run("dummy_decl_error", func(t *testing.T) {
 		l := NewLower(true)
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("dummy")})
 		l.decl(&semantic.VarDecl{Name: "plop"})
 		require.Equal(t, true, len(l.errors) > 0)
 	})
 
-	t.Run("expr_error", func(t *testing.T) {
+	t.Run("dummy_expr_error", func(t *testing.T) {
 		l := NewLower(true)
 		l.lowerExpr(nil)
 		require.Equal(t, true, len(l.errors) > 0)
 	})
 
-	t.Run("stmt_error", func(t *testing.T) {
+	t.Run("dummy_stmt_error", func(t *testing.T) {
 		l := NewLower(true)
 		l.lowerStmt(nil)
 		require.Equal(t, true, len(l.errors) > 0)
