@@ -2284,6 +2284,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				caseIsEmpty = true
 				caseHasExitedNormally = true
 				intersection = slices.Clone(returnInputVarsInitialized)
+				sw.Cases = append(sw.Cases, swc)
 			}
 		}
 	} else {
@@ -2380,6 +2381,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				caseIsEmpty = true
 				caseHasExitedNormally = true
 				intersection = slices.Clone(returnInputVarsInitialized)
+				sw.Cases = append(sw.Cases, swc)
 			}
 		}
 	}
