@@ -2456,6 +2456,7 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 
 	var (
 		cStmt            stmtInfo
+		stmts            []Stmt
 		returnFlowResult returnFlow
 	)
 
@@ -2478,19 +2479,22 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 			}
 			cStmt.switchCaseHasFallThrough = true
 			f := FallThroughStmt(ft.FallThrough.Kind)
-			cStmt.stmt = &f
+			stmts = append(stmts, &f)
 			continue
 		}
 
 		cStmt = c.checkStmt(b, cStmt.returnedInputVarsInitialized)
 		returnFlowResult = cStmt.returnFlowResult
+		stmts = append(stmts, cStmt.stmt)
 	}
 
+	cStmt.stmt = nil
+	cStmt.blockStmt = stmts
 	return cStmt
 }
 
 // checkFallThroughStmt produces an error when not into switch case
-func (c *Checker) checkFallThroughStmt(stmt *ast.FallThroughStmt) {
+func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
 	if !c.inSwitchCase {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden outside of switch case")})
 	}
