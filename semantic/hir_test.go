@@ -670,6 +670,7 @@ func main() {
     fallthrough
   default:
     a = int(1)
+    a = a+1
   }
 }
 `
@@ -745,6 +746,7 @@ func main() {
 				require.Equal(t, token.KWDefault, cc.Case)
 				require.Equal(t, 0, len(cc.Values))
 				require.NotNil(t, cc.Body)
+				require.Equal(t, 2, len(cc.Body))
 			}
 		}
 	})
