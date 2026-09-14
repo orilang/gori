@@ -58,17 +58,32 @@ func (d *dumper) node(indent int, n any) {
 
 	case *ir.Branch:
 		var branches []string
+		if t.Condition != "" {
+			branches = append(branches, t.Condition)
+		}
 		for _, v := range t.List {
-			branches = append(branches, fmt.Sprintf("%s_%d", v.Name, v.Index))
+			if v.NoSuffix {
+				branches = append(branches, v.Name)
+			} else {
+				branches = append(branches, fmt.Sprintf("%s_%d", v.Name, v.Index))
+			}
 		}
 
-		d.line(indent, fmt.Sprintf("branch %s, %s", t.Condition, strings.Join(branches, ", ")))
+		d.line(indent, fmt.Sprintf("branch %s", strings.Join(branches, ", ")))
 
 	case *ir.Label:
-		d.line(0, fmt.Sprintf("\n%s_%d:", t.Name, t.Index))
+		if t.NoSuffix {
+			d.line(0, fmt.Sprintf("\n%s:", t.Name))
+		} else {
+			d.line(0, fmt.Sprintf("\n%s_%d:", t.Name, t.Index))
+		}
 
 	case *ir.Jump:
-		d.line(indent, fmt.Sprintf("jump %s_%d", t.Name, t.Index))
+		if t.NoSuffix {
+			d.line(indent, fmt.Sprintf("jump %s", t.Name))
+		} else {
+			d.line(indent, fmt.Sprintf("jump %s_%d", t.Name, t.Index))
+		}
 
 	case *ir.Assigment:
 		d.line(indent, fmt.Sprintf("%s = %s", t.Result, t.Value))

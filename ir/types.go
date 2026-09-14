@@ -51,8 +51,9 @@ type Call struct {
 }
 
 type BranchSub struct {
-	Name  string
-	Index int
+	Name     string
+	Index    int
+	NoSuffix bool
 }
 type Branch struct {
 	Condition string
@@ -60,13 +61,15 @@ type Branch struct {
 }
 
 type Label struct {
-	Name  string
-	Index int
+	Name     string
+	Index    int
+	NoSuffix bool
 }
 
 type Jump struct {
-	Name  string
-	Index int
+	Name     string
+	Index    int
+	NoSuffix bool
 }
 
 type Assigment struct {

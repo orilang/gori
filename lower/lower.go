@@ -121,6 +121,7 @@ func (l *Lower) lower(input any) ir.Value {
 // lowerStmt lowers expr to later create an instruction
 func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 	switch stmt := t.(type) {
+	case *semantic.FallThroughStmt:
 	case *semantic.ReturnStmt:
 		if len(stmt.Values) == 0 {
 			l.instructions = append(l.instructions, &ir.Return{})
@@ -190,6 +191,267 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 		if !(thenTerminating && elseTerminating) {
 			l.instructions = append(l.instructions, end)
 		}
+
+	case *semantic.SwitchStmt:
+		labelIndex := l.labelIndex
+		l.labelIndex++
+
+		type branch struct {
+			name  string
+			index int
+			dft   bool
+		}
+
+		type swLabel struct {
+			label      string
+			branches   []branch
+			dft        bool
+			index      int
+			isMulti    bool
+			multiIndex int
+			value      semantic.Expr
+		}
+
+		type next struct {
+			jump  string
+			index int
+			dft   bool
+		}
+
+		type swCase struct {
+			dft   bool
+			casee string
+			index int
+			body  []semantic.Stmt
+			next  next
+		}
+
+		var (
+			swLabels   []swLabel
+			swCases    []swCase
+			nextJump   bool
+			hasDefault bool
+		)
+
+		idx := 1
+		for _, sc := range stmt.Cases {
+			swc := swLabel{}
+
+			switch len(sc.Values) {
+			case 0:
+				hasDefault = true
+				swc.dft = true
+				swc.label = fmt.Sprintf("switch_%d_default", labelIndex)
+				br := branch{name: swc.label, dft: true}
+				swc.branches = append(swc.branches, br)
+				lgl := len(swLabels)
+				if lgl > 0 {
+					swLabels[lgl-1].branches = append(swLabels[lgl-1].branches, br)
+				}
+				swLabels = append(swLabels, swc)
+
+				lgh := len(swCases)
+				if nextJump && lgh > 0 {
+					swCases[lgh-1].next.jump = swc.label
+					swCases[lgh-1].next.index = idx
+					swCases[lgh-1].next.dft = true
+				}
+
+				swCases = append(swCases, swCase{
+					dft:   true,
+					casee: swc.label,
+					body:  sc.Body,
+				})
+				idx++
+
+			case 1:
+				swc.label = fmt.Sprintf("switch_%d_check", labelIndex)
+				swc.index = idx
+				swc.value = sc.Values[0]
+				casee := fmt.Sprintf("switch_%d_case", labelIndex)
+				br := branch{name: casee, index: idx}
+				swc.branches = append(swc.branches, br)
+				lgl := len(swLabels)
+				if lgl > 0 {
+					br.name = swc.label
+					swLabels[lgl-1].branches = append(swLabels[lgl-1].branches, br)
+				}
+				swLabels = append(swLabels, swc)
+
+				lgh := len(swCases)
+				if nextJump && lgh > 0 {
+					swCases[lgh-1].next.jump = casee
+					swCases[lgh-1].next.index = idx
+				}
+
+				swCases = append(swCases, swCase{
+					casee: casee,
+					index: idx,
+					body:  sc.Body,
+				})
+
+				if isFallingThroughStmt(sc.Body) {
+					nextJump = true
+				} else {
+					nextJump = false
+				}
+
+				idx++
+
+			default:
+				swc.isMulti = true
+				swc.multiIndex = idx
+
+				casee := fmt.Sprintf("switch_%d_case", labelIndex)
+				lgh := len(swCases)
+				if nextJump && lgh > 0 {
+					swCases[lgh-1].next.jump = casee
+					swCases[lgh-1].next.index = idx
+				}
+
+				swCases = append(swCases, swCase{
+					casee: casee,
+					index: idx,
+					body:  sc.Body,
+				})
+
+				if isFallingThroughStmt(sc.Body) {
+					nextJump = true
+				} else {
+					nextJump = false
+				}
+
+				br := branch{name: casee, index: idx}
+				swc.branches = append(swc.branches, br)
+				for _, sv := range sc.Values {
+					swc.label = fmt.Sprintf("switch_%d_check", labelIndex)
+					swc.index = idx
+					swc.value = sv
+					lgl := len(swLabels)
+					if lgl > 0 {
+						br := branch{name: swc.label, index: idx}
+						swLabels[lgl-1].branches = append(swLabels[lgl-1].branches, br)
+					}
+					swLabels = append(swLabels, swc)
+					idx++
+				}
+			}
+		}
+
+		lgl := len(swLabels)
+		if lgl > 0 {
+			if hasDefault {
+				swLabels[lgl-1].branches = append(swLabels[lgl-1].branches, branch{
+					name: fmt.Sprintf("switch_%d_default", labelIndex),
+					dft:  true,
+				})
+			} else {
+				swLabels[lgl-1].branches = append(swLabels[lgl-1].branches, branch{
+					name: fmt.Sprintf("switch_%d_end", labelIndex),
+					dft:  true,
+				})
+			}
+		}
+
+		var (
+			tagValue ir.Value
+			result   string
+		)
+		if stmt.Init != nil {
+			tagValue = l.lower(stmt.Init)
+		}
+
+		if stmt.Tag != nil {
+			tagValue = l.lower(stmt.Tag)
+			result = fmt.Sprintf("t%d", l.tIndex)
+			l.tIndex++
+		}
+
+		for _, sc := range swLabels {
+			if !sc.dft {
+				lb := &ir.Label{
+					Name:     sc.label,
+					Index:    sc.index,
+					NoSuffix: sc.dft,
+				}
+				l.instructions = append(l.instructions, lb)
+
+				br := &ir.Branch{}
+				if stmt.Tag == nil {
+					br.Condition = string(l.lower(sc.value))
+				} else {
+					l.instructions = append(l.instructions, &ir.Binary{
+						Result: result,
+						Op:     token.BinaryOpString(token.Eq) + "_" + semantic.TBool.String(),
+						Left:   string(tagValue),
+						Right:  string(l.lower(sc.value)),
+					})
+					br.Condition = string(result)
+				}
+
+				if sc.isMulti {
+					for _, v := range sc.branches {
+						br.List = append(br.List, ir.BranchSub{
+							Name:     v.name,
+							Index:    v.index,
+							NoSuffix: v.dft,
+						})
+					}
+				} else {
+					for _, v := range sc.branches {
+						br.List = append(br.List, ir.BranchSub{
+							Name:     v.name,
+							Index:    v.index,
+							NoSuffix: v.dft,
+						})
+					}
+				}
+				l.instructions = append(l.instructions, br)
+			}
+		}
+
+		post := func(body []semantic.Stmt, next next) {
+			var isTerminating bool
+			for _, st := range body {
+				isTerminating = isTerminatingStmt(st)
+				if !isFallingThroughStmt([]semantic.Stmt{st}) {
+					l.lowerStmt(st)
+				}
+			}
+
+			if next.jump != "" {
+				l.instructions = append(l.instructions, &ir.Jump{
+					Name:     next.jump,
+					Index:    next.index,
+					NoSuffix: next.dft,
+				})
+			} else {
+				if !isTerminating {
+					l.instructions = append(l.instructions, &ir.Jump{
+						Name:     fmt.Sprintf("switch_%d_end", labelIndex),
+						NoSuffix: true,
+					})
+				}
+			}
+		}
+
+		for _, sc := range swCases {
+			lb := &ir.Label{
+				Name:  sc.casee,
+				Index: sc.index,
+			}
+			if sc.dft {
+				lb.NoSuffix = true
+			}
+			l.instructions = append(l.instructions, lb)
+
+			post(sc.body, sc.next)
+		}
+
+		l.instructions = append(l.instructions, &ir.Label{
+			Name:     fmt.Sprintf("switch_%d_end", labelIndex),
+			NoSuffix: true,
+		})
 
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %T", stmt)})
@@ -284,4 +546,22 @@ func isTerminatingStmt(stmt semantic.Stmt) bool {
 		return true
 	}
 	return false
+}
+
+// isFallingThroughStmt returns true if statement is fallthrough
+func isFallingThroughStmt(stmt []semantic.Stmt) bool {
+	switch len(stmt) {
+	case 0:
+		return false
+	case 1:
+		if _, ok := stmt[0].(*semantic.FallThroughStmt); ok {
+			return true
+		}
+		return false
+	default:
+		if _, ok := stmt[len(stmt)-1].(*semantic.FallThroughStmt); ok {
+			return true
+		}
+		return false
+	}
 }
