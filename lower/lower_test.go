@@ -1024,7 +1024,7 @@ func main() {
     a = a+1
     fallthrough
   case 6, 7:
-    a = f(2)
+    a = f(3)
     a = a+1
   default:
     a = int(1)
@@ -1085,7 +1085,7 @@ switch_0_case_4:
     jump switch_0_case_6
 
 switch_0_case_6:
-    t5 = f(2)
+    t5 = f(3)
     a = t5
     t6 = add_int a, 1
     a = t6
@@ -1120,7 +1120,7 @@ func main() {
     a = a+1
     fallthrough
   case a == 4:
-    a = f(2)
+    a = f(3)
     a = a+1
   default:
     a = int(1)
@@ -1167,7 +1167,7 @@ switch_0_case_3:
     jump switch_0_case_4
 
 switch_0_case_4:
-    t7 = f(2)
+    t7 = f(3)
     a = t7
     t8 = add_int a, 1
     a = t8
@@ -1204,7 +1204,7 @@ func main() {
   default:
     a = int(1)
   case a == 4:
-    a = f(2)
+    a = f(3)
     a = a+1
   }
 }`,
@@ -1228,7 +1228,7 @@ switch_0_check_2:
 
 switch_0_check_3:
     t3 = eq_bool a, 3
-    branch t3, switch_0_case_3, switch_0_default
+    branch t3, switch_0_case_3, switch_0_check_5
 
 switch_0_check_5:
     t4 = eq_bool a, 4
@@ -1251,16 +1251,234 @@ switch_0_case_3:
 switch_0_default:
     t7 = const_int 1
     a = t7
-    jump switch_0_case_5
+    jump switch_0_end
 
 switch_0_case_5:
-    t8 = f(2)
+    t8 = f(3)
     a = t8
     t9 = add_int a, 1
     a = t9
     jump switch_0_end
 
 switch_0_end:
+
+`,
+			},
+			{
+				data: `package main
+
+func f(a int) int {
+  return a * 2
+}
+
+func main() {
+  a := int(0)
+
+  switch {
+  case a == 1:
+  case a == 2:
+    a = 2
+    fallthrough
+  case a == 3:
+    a = f(2)
+    a = a+1
+  default:
+    a = int(1)
+  case a == 4:
+    a = f(3)
+    a = a+1
+  }
+}`,
+				expected: `func f(a:int) -> int
+entry:
+    t0 = mul_int a, 2
+    return t0
+
+func main()
+entry:
+    t0 = const_int 0
+    a = t0
+
+switch_0_check_1:
+    t1 = eq_bool a, 1
+    branch t1, switch_0_case_1, switch_0_check_2
+
+switch_0_check_2:
+    t2 = eq_bool a, 2
+    branch t2, switch_0_case_2, switch_0_check_3
+
+switch_0_check_3:
+    t3 = eq_bool a, 3
+    branch t3, switch_0_case_3, switch_0_check_5
+
+switch_0_check_5:
+    t4 = eq_bool a, 4
+    branch t4, switch_0_case_5, switch_0_default
+
+switch_0_case_1:
+    jump switch_0_end
+
+switch_0_case_2:
+    a = 2
+    jump switch_0_case_3
+
+switch_0_case_3:
+    t5 = f(2)
+    a = t5
+    t6 = add_int a, 1
+    a = t6
+    jump switch_0_end
+
+switch_0_default:
+    t7 = const_int 1
+    a = t7
+    jump switch_0_end
+
+switch_0_case_5:
+    t8 = f(3)
+    a = t8
+    t9 = add_int a, 1
+    a = t9
+    jump switch_0_end
+
+switch_0_end:
+
+`,
+			},
+			{
+				data: `package main
+
+func f(a int) int {
+  return a * 2
+}
+
+func main() {
+  a := int(0)
+
+  switch z := f(a);z {
+  case 1:
+  default:
+    a = int(1)
+  case 2, 3:
+    a = 2
+    fallthrough
+  case 4, 5:
+    a = f(2)
+    a = a+1
+    fallthrough
+  case 6, 7:
+    a = f(3)
+    a = a+1
+  }
+}`,
+				expected: `func f(a:int) -> int
+entry:
+    t0 = mul_int a, 2
+    return t0
+
+func main()
+entry:
+    t0 = const_int 0
+    a = t0
+    t1 = f(a)
+    z = t1
+
+switch_0_check_1:
+    t2 = eq_bool z, 1
+    branch t2, switch_0_case_1, switch_0_check_3
+
+switch_0_check_3:
+    t2 = eq_bool z, 2
+    branch t2, switch_0_case_3, switch_0_check_4
+
+switch_0_check_4:
+    t2 = eq_bool z, 3
+    branch t2, switch_0_case_3, switch_0_check_5
+
+switch_0_check_5:
+    t2 = eq_bool z, 4
+    branch t2, switch_0_case_5, switch_0_check_6
+
+switch_0_check_6:
+    t2 = eq_bool z, 5
+    branch t2, switch_0_case_5, switch_0_check_7
+
+switch_0_check_7:
+    t2 = eq_bool z, 6
+    branch t2, switch_0_case_7, switch_0_check_8
+
+switch_0_check_8:
+    t2 = eq_bool z, 7
+    branch t2, switch_0_case_7, switch_0_default
+
+switch_0_case_1:
+    jump switch_0_end
+
+switch_0_default:
+    t3 = const_int 1
+    a = t3
+    jump switch_0_end
+
+switch_0_case_3:
+    a = 2
+    jump switch_0_case_5
+
+switch_0_case_5:
+    t4 = f(2)
+    a = t4
+    t5 = add_int a, 1
+    a = t5
+    jump switch_0_case_7
+
+switch_0_case_7:
+    t6 = f(3)
+    a = t6
+    t7 = add_int a, 1
+    a = t7
+    jump switch_0_end
+
+switch_0_end:
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  a := int(0)
+
+  switch a {
+  default:
+    a = int(1)
+    fallthrough
+  case 1:
+    a = int(1)
+  }
+
+  a = int(2)
+}`,
+				expected: `func main()
+entry:
+    t0 = const_int 0
+    a = t0
+
+switch_0_check_2:
+    t1 = eq_bool a, 1
+    branch t1, switch_0_case_2, switch_0_default
+
+switch_0_default:
+    t2 = const_int 1
+    a = t2
+    jump switch_0_case_2
+
+switch_0_case_2:
+    t3 = const_int 1
+    a = t3
+    jump switch_0_end
+
+switch_0_end:
+    t4 = const_int 2
+    a = t4
 
 `,
 			},

@@ -203,13 +203,12 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 		}
 
 		type swLabel struct {
-			label      string
-			branches   []branch
-			dft        bool
-			index      int
-			isMulti    bool
-			multiIndex int
-			value      semantic.Expr
+			label    string
+			branches []branch
+			dft      bool
+			index    int
+			isMulti  bool
+			value    semantic.Expr
 		}
 
 		type next struct {
@@ -227,14 +226,15 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 		}
 
 		var (
-			swLabels   []swLabel
-			swCases    []swCase
-			nextJump   bool
-			hasDefault bool
+			swLabels         []swLabel
+			swCases          []swCase
+			isFallingThrough bool
+			hasDefault       bool
 		)
 
 		idx := 1
-		for _, sc := range stmt.Cases {
+		fillPrevBranch := -1
+		for k, sc := range stmt.Cases {
 			swc := swLabel{}
 
 			switch len(sc.Values) {
@@ -244,17 +244,32 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 				swc.label = fmt.Sprintf("switch_%d_default", labelIndex)
 				br := branch{name: swc.label, dft: true}
 				swc.branches = append(swc.branches, br)
+
 				lgl := len(swLabels)
-				if lgl > 0 {
+				if lgl > 0 && len(stmt.Cases)-1 == k {
+					// if last, fill previous label
 					swLabels[lgl-1].branches = append(swLabels[lgl-1].branches, br)
+				}
+				if lgl > 0 {
+					// default ONLY participates at case level when the previous one
+					// falltrough in here.
+					// It DOES NOT participates at label level and
+					// its placements remain irrelevant regarding the control flow graph (CFG)
+					fillPrevBranch = lgl - 1
 				}
 				swLabels = append(swLabels, swc)
 
 				lgh := len(swCases)
-				if nextJump && lgh > 0 {
+				if isFallingThrough && lgh > 0 {
 					swCases[lgh-1].next.jump = swc.label
 					swCases[lgh-1].next.index = idx
 					swCases[lgh-1].next.dft = true
+				}
+
+				if isFallingThroughStmt(sc.Body) {
+					isFallingThrough = true
+				} else {
+					isFallingThrough = false
 				}
 
 				swCases = append(swCases, swCase{
@@ -262,6 +277,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 					casee: swc.label,
 					body:  sc.Body,
 				})
+
 				idx++
 
 			case 1:
@@ -269,6 +285,12 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 				swc.index = idx
 				swc.value = sc.Values[0]
 				casee := fmt.Sprintf("switch_%d_case", labelIndex)
+
+				if fillPrevBranch != -1 {
+					br := branch{name: swc.label, index: idx}
+					swLabels[fillPrevBranch].branches = append(swLabels[fillPrevBranch].branches, br)
+					fillPrevBranch = -1
+				}
 				br := branch{name: casee, index: idx}
 				swc.branches = append(swc.branches, br)
 				lgl := len(swLabels)
@@ -279,9 +301,15 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 				swLabels = append(swLabels, swc)
 
 				lgh := len(swCases)
-				if nextJump && lgh > 0 {
+				if isFallingThrough && lgh > 0 {
 					swCases[lgh-1].next.jump = casee
 					swCases[lgh-1].next.index = idx
+				}
+
+				if isFallingThroughStmt(sc.Body) {
+					isFallingThrough = true
+				} else {
+					isFallingThrough = false
 				}
 
 				swCases = append(swCases, swCase{
@@ -289,24 +317,23 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 					index: idx,
 					body:  sc.Body,
 				})
-
-				if isFallingThroughStmt(sc.Body) {
-					nextJump = true
-				} else {
-					nextJump = false
-				}
 
 				idx++
 
 			default:
 				swc.isMulti = true
-				swc.multiIndex = idx
 
 				casee := fmt.Sprintf("switch_%d_case", labelIndex)
 				lgh := len(swCases)
-				if nextJump && lgh > 0 {
+				if isFallingThrough && lgh > 0 {
 					swCases[lgh-1].next.jump = casee
 					swCases[lgh-1].next.index = idx
+				}
+
+				if isFallingThroughStmt(sc.Body) {
+					isFallingThrough = true
+				} else {
+					isFallingThrough = false
 				}
 
 				swCases = append(swCases, swCase{
@@ -314,12 +341,6 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 					index: idx,
 					body:  sc.Body,
 				})
-
-				if isFallingThroughStmt(sc.Body) {
-					nextJump = true
-				} else {
-					nextJump = false
-				}
 
 				br := branch{name: casee, index: idx}
 				swc.branches = append(swc.branches, br)
@@ -327,6 +348,13 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 					swc.label = fmt.Sprintf("switch_%d_check", labelIndex)
 					swc.index = idx
 					swc.value = sv
+
+					if fillPrevBranch != -1 {
+						br := branch{name: swc.label, index: idx}
+						swLabels[fillPrevBranch].branches = append(swLabels[fillPrevBranch].branches, br)
+						fillPrevBranch = -1
+					}
+
 					lgl := len(swLabels)
 					if lgl > 0 {
 						br := branch{name: swc.label, index: idx}
