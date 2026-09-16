@@ -3,15 +3,12 @@ package lower
 import (
 	"bytes"
 
-	"github.com/orilang/gori/commons"
 	"github.com/orilang/gori/ir"
 )
 
 type Lower struct {
 	// output when set to true outputs the HIR
 	output bool
-
-	files *commons.Files
 
 	funcs  []*ir.Func
 	errors []Diagnostic
