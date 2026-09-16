@@ -190,7 +190,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 			}
 		}
 
-		if !thenr.returns || elser.returns {
+		if !thenr.returns && !elser.returns {
 			l.instructions = append(l.instructions, end)
 		}
 		data.returns = thenr.returns && elser.returns
