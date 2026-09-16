@@ -15,7 +15,4 @@ type Config struct {
 type Files struct {
 	// Files holds the list of files to parse
 	Files []string
-
-	// output when set to true outputs the AST
-	output bool
 }
