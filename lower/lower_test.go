@@ -1599,6 +1599,279 @@ switch_0_end:
 
 `,
 			},
+			{
+				data: `package main
+
+func main() {
+  x := int(0)
+  a := true
+  switch x {
+  case 1:
+    if a {
+      return
+    } else {
+      return
+    }
+  default:
+    return
+  }
+}`,
+				expected: `func main()
+entry:
+    t0 = const_int 0
+    x = t0
+    a = true
+
+switch_0_check_1:
+    t1 = eq_bool x, 1
+    branch t1, switch_0_case_1, switch_0_default
+
+switch_0_case_1:
+    branch a, if_then_1, if_else_1
+
+if_then_1:
+    return
+
+if_else_1:
+    return
+
+switch_0_default:
+    return
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  x := int(0)
+  a := int(1)
+  switch x {
+  default:
+    return
+  case 1:
+    a = int(1)
+  }
+}`,
+				expected: `func main()
+entry:
+    t0 = const_int 0
+    x = t0
+    t1 = const_int 1
+    a = t1
+
+switch_0_check_2:
+    t2 = eq_bool x, 1
+    branch t2, switch_0_case_2, switch_0_default
+
+switch_0_default:
+    return
+
+switch_0_case_2:
+    t3 = const_int 1
+    a = t3
+    jump switch_0_end
+
+switch_0_end:
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  x := int(0)
+  switch x {
+  case 1:
+    return
+  case 2:
+    return
+  default:
+    return
+  }
+}`,
+				expected: `func main()
+entry:
+    t0 = const_int 0
+    x = t0
+
+switch_0_check_1:
+    t1 = eq_bool x, 1
+    branch t1, switch_0_case_1, switch_0_check_2
+
+switch_0_check_2:
+    t1 = eq_bool x, 2
+    branch t1, switch_0_case_2, switch_0_default
+
+switch_0_case_1:
+    return
+
+switch_0_case_2:
+    return
+
+switch_0_default:
+    return
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  a := true
+  x := int(0)
+  if a {
+    switch x {
+    case 1:
+      return
+    default:
+      return
+    }
+  } else {
+    return
+  }
+}`,
+				expected: `func main()
+entry:
+    a = true
+    t0 = const_int 0
+    x = t0
+    branch a, if_then_0, if_else_0
+
+if_then_0:
+
+switch_1_check_1:
+    t1 = eq_bool x, 1
+    branch t1, switch_1_case_1, switch_1_default
+
+switch_1_case_1:
+    return
+
+switch_1_default:
+    return
+
+if_else_0:
+    return
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  a := true
+  x := int(0)
+  if a {
+    switch x {
+    case 1:
+      return
+    }
+  } else {
+    return
+  }
+  return
+}`,
+				expected: `func main()
+entry:
+    a = true
+    t0 = const_int 0
+    x = t0
+    branch a, if_then_0, if_else_0
+
+if_then_0:
+
+switch_1_check_1:
+    t1 = eq_bool x, 1
+    branch t1, switch_1_case_1, switch_1_end
+
+switch_1_case_1:
+    return
+
+switch_1_end:
+    jump if_end_0
+
+if_else_0:
+    return
+
+if_end_0:
+    return
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  a := int(0)
+  x := int(0)
+  switch x {
+  case 1:
+    a = int(0)
+    return
+  default:
+    a = int(2)
+    return
+  }
+}`,
+				expected: `func main()
+entry:
+    t0 = const_int 0
+    a = t0
+    t1 = const_int 0
+    x = t1
+
+switch_0_check_1:
+    t2 = eq_bool x, 1
+    branch t2, switch_0_case_1, switch_0_default
+
+switch_0_case_1:
+    t3 = const_int 0
+    a = t3
+    return
+
+switch_0_default:
+    t4 = const_int 2
+    a = t4
+    return
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  a := int(0)
+  x := int(0)
+  switch x {
+  case 1:
+    return
+  default:
+    a = int(2)
+  }
+}`,
+				expected: `func main()
+entry:
+    t0 = const_int 0
+    a = t0
+    t1 = const_int 0
+    x = t1
+
+switch_0_check_1:
+    t2 = eq_bool x, 1
+    branch t2, switch_0_case_1, switch_0_default
+
+switch_0_case_1:
+    return
+
+switch_0_default:
+    t3 = const_int 2
+    a = t3
+    jump switch_0_end
+
+switch_0_end:
+
+`,
+			},
 		}
 
 		for i, tc := range tests {
