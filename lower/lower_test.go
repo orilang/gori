@@ -152,7 +152,7 @@ entry:
 func f(a int, b int) (c int) {
     if a > 0 {
       return a
-		} else {
+    } else {
       return b
     }
 }
@@ -553,6 +553,123 @@ entry:
 
 `,
 			},
+			{
+				data: `package main
+
+func main() {
+  a := true
+  b := true
+  if a {
+    if b {
+        return
+    } else {
+        return
+    }
+  } else {
+    return
+  }
+}`,
+				expected: `func main()
+entry:
+    a = true
+    b = true
+    branch a, if_then_0, if_else_0
+
+if_then_0:
+    branch b, if_then_1, if_else_1
+
+if_then_1:
+    return
+
+if_else_1:
+    return
+
+if_else_0:
+    return
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  a := true
+  b := true
+  d := int(0)
+
+  if a {
+      if b {
+          return
+      }
+      d = int(1)
+  } else {
+      return
+  }
+  return
+}`,
+				expected: `func main()
+entry:
+    a = true
+    b = true
+    t0 = const_int 0
+    d = t0
+    branch a, if_then_0, if_else_0
+
+if_then_0:
+    branch b, if_then_1, if_end_1
+
+if_then_1:
+    return
+
+if_end_1:
+    t1 = const_int 1
+    d = t1
+    jump if_end_0
+
+if_else_0:
+    return
+
+if_end_0:
+    return
+
+`,
+			},
+			{
+				data: `package main
+
+func main() {
+  a := true
+  b := true
+
+  if a {
+      if b {
+          return
+      }
+      return
+  } else {
+      return
+  }
+}`,
+				expected: `func main()
+entry:
+    a = true
+    b = true
+    branch a, if_then_0, if_else_0
+
+if_then_0:
+    branch b, if_then_1, if_end_1
+
+if_then_1:
+    return
+
+if_end_1:
+    return
+
+if_else_0:
+    return
+
+`,
+			},
 		}
 
 		for i, tc := range tests {
@@ -609,7 +726,7 @@ entry:
 
 		for i, tc := range tests {
 			l := NewLower(true)
-			require.Equal(t, tc.expected, l.lower(tc.data), i)
+			require.Equal(t, tc.expected, l.lower(tc.data).value, i)
 			require.Equal(t, tc.err, len(l.errors) > 0, i)
 		}
 	})

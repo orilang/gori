@@ -40,3 +40,8 @@ type Diagnostic struct {
 type dumper struct {
 	w *bytes.Buffer
 }
+
+type infos struct {
+	value   ir.Value
+	returns bool
+}

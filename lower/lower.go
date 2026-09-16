@@ -94,7 +94,7 @@ func (l *Lower) fn(decl *semantic.FuncDecl) *ir.Func {
 }
 
 // lower lowers any input stmt/expr to later create an instruction
-func (l *Lower) lower(input any) ir.Value {
+func (l *Lower) lower(input any) (data infos) {
 	switch in := input.(type) {
 	case []semantic.Stmt:
 		for _, st := range in {
@@ -115,43 +115,47 @@ func (l *Lower) lower(input any) ir.Value {
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported input %T", in)})
 	}
 
-	return ir.Value("")
+	return
 }
 
 // lowerStmt lowers expr to later create an instruction
-func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
+func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 	switch stmt := t.(type) {
 	case *semantic.FallThroughStmt:
 	case *semantic.ReturnStmt:
+		data.returns = true
 		if len(stmt.Values) == 0 {
 			l.instructions = append(l.instructions, &ir.Return{})
-			return ir.Value("")
+			data.value = ir.Value("")
+			return
 		}
 
 		var rt []ir.Value
 		for _, v := range stmt.Values {
 			st := l.lower(v)
-			rt = append(rt, st)
+			rt = append(rt, st.value)
 			l.instructions = append(l.instructions, &ir.Return{
-				Name: string(st),
+				Name: string(st.value),
 			})
 		}
 
 		if len(rt) == 1 {
-			return rt[0]
+			data.value = rt[0]
+			return
 		}
 
 	case *semantic.AssigmentStmt:
-		t := l.lower(stmt.Right)
-		l.instructions = append(l.instructions, &ir.Assigment{Result: stmt.Symbol.Name, Value: string(t)})
-		return ir.Value(stmt.Symbol.Name)
+		right := l.lower(stmt.Right)
+		l.instructions = append(l.instructions, &ir.Assigment{Result: stmt.Symbol.Name, Value: string(right.value)})
+		data.value = ir.Value(stmt.Symbol.Name)
+		return
 
 	case *semantic.IfStmt:
 		labelIndex := l.labelIndex
 		l.labelIndex++
 
 		cond := l.lower(stmt.Condition)
-		br := &ir.Branch{Condition: string(cond)}
+		br := &ir.Branch{Condition: string(cond.value)}
 		br.List = append(br.List, ir.BranchSub{Name: "if_then", Index: labelIndex})
 
 		if len(stmt.Else) > 0 {
@@ -165,32 +169,31 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 		jump := &ir.Jump{Name: "if_end", Index: labelIndex}
 		end := &ir.Label{Name: "if_end", Index: labelIndex}
 
-		var thenTerminating bool
+		var thenr infos
 		for _, v := range stmt.Then {
-			thenTerminating = isTerminatingStmt(v)
-			_ = l.lower(v)
+			thenr = l.lower(v)
 		}
 
-		if !thenTerminating {
+		if !thenr.returns {
 			l.instructions = append(l.instructions, jump)
 		}
 
-		var elseTerminating bool
+		var elser infos
 		if len(stmt.Else) > 0 {
 			l.instructions = append(l.instructions, &ir.Label{Name: "if_else", Index: labelIndex})
 			for _, v := range stmt.Else {
-				elseTerminating = isTerminatingStmt(v)
-				_ = l.lower(v)
+				elser = l.lower(v)
 			}
 
-			if !elseTerminating {
+			if !elser.returns {
 				l.instructions = append(l.instructions, jump)
 			}
 		}
 
-		if !(thenTerminating && elseTerminating) {
+		if !(thenr.returns && elser.returns) {
 			l.instructions = append(l.instructions, end)
 		}
+		data.returns = thenr.returns && elser.returns
 
 	case *semantic.SwitchStmt:
 		labelIndex := l.labelIndex
@@ -386,11 +389,11 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 			result   string
 		)
 		if stmt.Init != nil {
-			tagValue = l.lower(stmt.Init)
+			tagValue = l.lower(stmt.Init).value
 		}
 
 		if stmt.Tag != nil {
-			tagValue = l.lower(stmt.Tag)
+			tagValue = l.lower(stmt.Tag).value
 			result = fmt.Sprintf("t%d", l.tIndex)
 			l.tIndex++
 		}
@@ -406,13 +409,13 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 
 				br := &ir.Branch{}
 				if stmt.Tag == nil {
-					br.Condition = string(l.lower(sc.value))
+					br.Condition = string(l.lower(sc.value).value)
 				} else {
 					l.instructions = append(l.instructions, &ir.Binary{
 						Result: result,
 						Op:     token.BinaryOpString(token.Eq) + "_" + semantic.TBool.String(),
 						Left:   string(tagValue),
-						Right:  string(l.lower(sc.value)),
+						Right:  string(l.lower(sc.value).value),
 					})
 					br.Condition = string(result)
 				}
@@ -439,9 +442,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 		}
 
 		post := func(body []semantic.Stmt, next next) {
-			var isTerminating bool
 			for _, st := range body {
-				isTerminating = isTerminatingStmt(st)
 				if !isFallingThroughStmt([]semantic.Stmt{st}) {
 					l.lowerStmt(st)
 				}
@@ -454,7 +455,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 					NoSuffix: next.dft,
 				})
 			} else {
-				if !isTerminating {
+				if !data.returns {
 					l.instructions = append(l.instructions, &ir.Jump{
 						Name:     fmt.Sprintf("switch_%d_end", labelIndex),
 						NoSuffix: true,
@@ -485,26 +486,31 @@ func (l *Lower) lowerStmt(t semantic.Stmt) ir.Value {
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %T", stmt)})
 	}
 
-	return ir.Value("")
+	return
 }
 
 // lowerExpr lowers expr to later create an instruction
-func (l *Lower) lowerExpr(t semantic.Expr) ir.Value {
+func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 	switch expr := t.(type) {
 	case *semantic.IntLitExpr:
-		return ir.Value(expr.Value)
+		data.value = ir.Value(expr.Value)
+		return
 
 	case *semantic.FloatLitExpr:
-		return ir.Value(expr.Value)
+		data.value = ir.Value(expr.Value)
+		return
 
 	case *semantic.BoolLitExpr:
-		return ir.Value(expr.Value)
+		data.value = ir.Value(expr.Value)
+		return
 
 	case *semantic.StringLitExpr:
-		return ir.Value(expr.Value)
+		data.value = ir.Value(expr.Value)
+		return
 
 	case *semantic.IdentExpr:
-		return ir.Value(expr.Value)
+		data.value = ir.Value(expr.Value)
+		return
 
 	case *semantic.BinaryExpr:
 		left := l.lower(expr.Left)
@@ -514,12 +520,13 @@ func (l *Lower) lowerExpr(t semantic.Expr) ir.Value {
 		l.instructions = append(l.instructions, &ir.Binary{
 			Result: t,
 			Op:     token.BinaryOpString(expr.Operator) + "_" + expr.Type.String(),
-			Left:   string(left),
-			Right:  string(right),
+			Left:   string(left.value),
+			Right:  string(right.value),
 		})
 
 		l.tIndex++
-		return ir.Value(t)
+		data.value = ir.Value(t)
+		return
 
 	case *semantic.ConversionExpr:
 		value := l.lower(expr.Value)
@@ -527,28 +534,30 @@ func (l *Lower) lowerExpr(t semantic.Expr) ir.Value {
 		l.instructions = append(l.instructions, &ir.Const{
 			Result: t,
 			Type:   expr.To.String(),
-			Value:  string(value),
+			Value:  string(value.value),
 		})
 
 		l.tIndex++
-		return ir.Value(t)
+		data.value = ir.Value(t)
+		return
 
 	case *semantic.CallExpr:
 		var args []string
 		for _, v := range expr.Args {
-			args = append(args, string(l.lower(v)))
+			args = append(args, string(l.lower(v).value))
 		}
 
 		callee := l.lower(expr.Callee)
 		t := fmt.Sprintf("t%d", l.tIndex)
 		l.instructions = append(l.instructions, &ir.Call{
 			Result: t,
-			Name:   string(callee),
+			Name:   string(callee.value),
 			Args:   args,
 		})
 
 		l.tIndex++
-		return ir.Value(t)
+		data.value = ir.Value(t)
+		return
 
 	case *semantic.UnaryExpr:
 		ex := l.lower(expr.Right)
@@ -556,24 +565,17 @@ func (l *Lower) lowerExpr(t semantic.Expr) ir.Value {
 		l.instructions = append(l.instructions, &ir.Unary{
 			Result:   t,
 			Operator: token.UnaryOpString(expr.Operator),
-			Value:    string(ex),
+			Value:    string(ex.value),
 		})
 		l.tIndex++
-		return ir.Value(t)
+		data.value = ir.Value(t)
+		return
 
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %T", expr)})
 	}
 
-	return ir.Value("")
-}
-
-// isTerminatingStmt returns true if statement is return/break/continue
-func isTerminatingStmt(stmt semantic.Stmt) bool {
-	if _, ok := stmt.(*semantic.ReturnStmt); ok {
-		return true
-	}
-	return false
+	return
 }
 
 // isFallingThroughStmt returns true if statement is fallthrough
