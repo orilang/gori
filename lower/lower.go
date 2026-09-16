@@ -441,10 +441,12 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 			}
 		}
 
-		post := func(body []semantic.Stmt, next next) {
+		post := func(body []semantic.Stmt, next next) bool {
+			var returns bool
 			for _, st := range body {
 				if !isFallingThroughStmt([]semantic.Stmt{st}) {
-					l.lowerStmt(st)
+					result := l.lowerStmt(st)
+					returns = result.returns
 				}
 			}
 
@@ -455,16 +457,18 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 					NoSuffix: next.dft,
 				})
 			} else {
-				if !data.returns {
+				if !returns {
 					l.instructions = append(l.instructions, &ir.Jump{
 						Name:     fmt.Sprintf("switch_%d_end", labelIndex),
 						NoSuffix: true,
 					})
 				}
 			}
+			return returns
 		}
 
-		for _, sc := range swCases {
+		var returns bool
+		for k, sc := range swCases {
 			lb := &ir.Label{
 				Name:  sc.casee,
 				Index: sc.index,
@@ -474,13 +478,21 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 			}
 			l.instructions = append(l.instructions, lb)
 
-			post(sc.body, sc.next)
+			result := post(sc.body, sc.next)
+			if k == 0 {
+				returns = result
+			} else {
+				returns = returns && result
+			}
 		}
 
-		l.instructions = append(l.instructions, &ir.Label{
-			Name:     fmt.Sprintf("switch_%d_end", labelIndex),
-			NoSuffix: true,
-		})
+		data.returns = hasDefault && returns
+		if !data.returns {
+			l.instructions = append(l.instructions, &ir.Label{
+				Name:     fmt.Sprintf("switch_%d_end", labelIndex),
+				NoSuffix: true,
+			})
+		}
 
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %T", stmt)})
