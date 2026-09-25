@@ -18,6 +18,7 @@ func (*StringLitExpr) exprNode()  {}
 func (*UnaryExpr) exprNode()      {}
 func (*BinaryExpr) exprNode()     {}
 func (*CallExpr) exprNode()       {}
+func (*SelectorExpr) exprNode()   {}
 
 func (*DeclStmt) stmtNode()        {}
 func (*ReturnStmt) stmtNode()      {}
