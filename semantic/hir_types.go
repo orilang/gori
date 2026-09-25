@@ -30,11 +30,12 @@ type Stmt interface {
 }
 
 type ResolvedSymbol struct {
-	Name     string
-	Kind     SymbolKind
-	Type     Type
-	IsBlank  bool
-	FromFunc bool
+	Name         string
+	Kind         SymbolKind
+	Type         Type
+	IsBlank      bool
+	FromFunc     bool
+	IsMultiValue bool
 }
 
 type ConstDecl struct {
@@ -197,10 +198,11 @@ type BinaryExpr struct {
 }
 
 type CallExpr struct {
-	Callee     Expr
-	CalleeType Type
-	Args       []Expr
-	FromFunc   bool
+	Callee             Expr
+	CalleeType         Type
+	Args               []Expr
+	FromFunc           bool
+	ReturnedValueCount int
 }
 
 type SelectorExpr struct {

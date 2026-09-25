@@ -7733,7 +7733,7 @@ func describe(s Shape) (b int, c int) {
 	})
 
 	t.Run("dummy_resolved_symbol", func(t *testing.T) {
-		assert.Equal(t, ResolvedSymbol{}, resolvedSymbol(nil, false))
+		assert.Equal(t, ResolvedSymbol{}, resolvedSymbol(nil, false, false))
 	})
 
 	t.Run("x32", func(t *testing.T) {
@@ -8123,6 +8123,24 @@ func main() {
 			{
 				data: `package main
 func foo() (string, int) { return "yes", int(1) }
+func bar() (string, int) {
+  return foo()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo() (string, string, int) { return "yes", "no", int(1) }
+func bar() (string, int) {
+  return foo()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo() (string, string) { return "yes", "no" }
 func bar() (string, int) {
   return foo()
 }

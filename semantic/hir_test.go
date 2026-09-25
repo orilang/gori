@@ -33,6 +33,7 @@ const a int = int(0)
 		require.Equal(t, true, ok)
 		require.Equal(t, "a", target.Name)
 		require.Equal(t, TInt, target.Symbol.Type)
+		require.Equal(t, false, target.Symbol.FromFunc)
 		ce, ok := target.Init.(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, ce.To)
@@ -126,6 +127,7 @@ const a float64 = float64(0)
 		require.Equal(t, "a", target.Name)
 		require.NotNil(t, target.Symbol)
 		require.Equal(t, TFloat64, target.Symbol.Type)
+		require.Equal(t, false, target.Symbol.FromFunc)
 		ce, ok := target.Init.(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TFloat64, ce.To)
@@ -158,6 +160,7 @@ const a int = int(0)
 		require.Equal(t, "a", target.Name)
 		require.NotNil(t, target.Symbol)
 		require.Equal(t, target.Symbol.Type, TInt)
+		require.Equal(t, false, target.Symbol.FromFunc)
 		ce, ok := target.Init.(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, ce.To)
@@ -192,6 +195,7 @@ const b int = a + int(1)
 		require.Equal(t, "a", target.Name)
 		require.NotNil(t, target.Symbol)
 		require.Equal(t, TInt, target.Symbol.Type)
+		require.Equal(t, false, target.Symbol.FromFunc)
 
 		ce, ok := target.Init.(*ConversionExpr)
 		require.Equal(t, true, ok)
@@ -206,6 +210,7 @@ const b int = a + int(1)
 		require.Equal(t, "b", target1.Name)
 		require.NotNil(t, target.Symbol)
 		require.Equal(t, TInt, target1.Symbol.Type)
+		require.Equal(t, false, target1.Symbol.FromFunc)
 
 		init1, ok := target1.Init.(*BinaryExpr)
 		require.Equal(t, true, ok)
@@ -265,6 +270,7 @@ func main() {
 		require.Equal(t, "a", cs.Name)
 		require.NotNil(t, cs.Symbol)
 		require.Equal(t, TInt, cs.Symbol.Type)
+		require.Equal(t, false, cs.Symbol.FromFunc)
 
 		ce, ok := cs.Init.(*ConversionExpr)
 		require.Equal(t, true, ok)
@@ -373,6 +379,7 @@ func main() {
 		require.Equal(t, 1, len(da.Symbol))
 		require.Equal(t, "a", da.Symbol[0].Name)
 		require.Equal(t, TInt, da.Symbol[0].Type)
+		require.Equal(t, true, da.Symbol[0].FromFunc)
 
 		require.Equal(t, 1, len(da.Right))
 		dar, ok := da.Right[0].(*CallExpr)
@@ -406,6 +413,7 @@ func main() {
 		require.Equal(t, 1, len(da1.Symbol))
 		require.Equal(t, "b", da1.Symbol[0].Name)
 		require.Equal(t, TInt64, da1.Symbol[0].Type)
+		require.Equal(t, false, da1.Symbol[0].FromFunc)
 
 		require.Equal(t, 1, len(da1.Right))
 		ceDar1, ok := da1.Right[0].(*ConversionExpr)
@@ -416,12 +424,14 @@ func main() {
 		require.Equal(t, true, ok)
 		require.NotNil(t, dav1.Symbol)
 		require.Equal(t, "a", dav1.Value)
+		require.Equal(t, false, dav1.Symbol.FromFunc)
 
 		da2, ok := fn1.Body.Stmts[2].(*AssigmentStmt)
 		require.Equal(t, true, ok)
 		require.Equal(t, 1, len(da2.Symbol))
 		require.Equal(t, "b", da2.Symbol[0].Name)
 		require.Equal(t, TInt64, da2.Symbol[0].Type)
+		require.Equal(t, false, da2.Symbol[0].FromFunc)
 
 		require.Equal(t, 1, len(da2.Right))
 		ceDar2, ok := da2.Right[0].(*ConversionExpr)
@@ -925,9 +935,11 @@ func f() {
 		require.Equal(t, 2, len(da.Symbol))
 		require.Equal(t, "a", da.Symbol[0].Name)
 		require.Equal(t, TString, da.Symbol[0].Type)
+		require.Equal(t, true, da.Symbol[0].FromFunc)
 
 		require.Equal(t, "_", da.Symbol[1].Name)
 		require.Equal(t, TInt, da.Symbol[1].Type)
+		require.Equal(t, true, da.Symbol[1].FromFunc)
 
 		require.Equal(t, 1, len(da.Right))
 		dar, ok := da.Right[0].(*CallExpr)
@@ -935,15 +947,6 @@ func f() {
 		fnx, ok := dar.CalleeType.(*FuncMethod)
 		require.Equal(t, true, ok)
 		require.Equal(t, "test", fnx.Name)
-
-		// dar, ok := da.Right[0].(*IdentExpr)
-		// require.Equal(t, true, ok)
-		// dat, ok := dar.Type.(*FuncMethod)
-		// require.Equal(t, true, ok)
-		// require.Equal(t, dat, dar.Type)
-		// require.Equal(t, "test", dar.Value)
-		// require.Equal(t, "test", dar.Symbol.Name)
-		// require.Equal(t, dar.Type, dar.Symbol.Type)
 	})
 
 	t.Run("x14", func(t *testing.T) {
@@ -1018,9 +1021,11 @@ func f() {
 		require.Equal(t, 2, len(da.Symbol))
 		require.Equal(t, "a", da.Symbol[0].Name)
 		require.Equal(t, TString, da.Symbol[0].Type)
+		require.Equal(t, true, da.Symbol[0].FromFunc)
 
 		require.Equal(t, "b", da.Symbol[1].Name)
 		require.Equal(t, TInt, da.Symbol[1].Type)
+		require.Equal(t, true, da.Symbol[1].FromFunc)
 
 		require.Equal(t, 1, len(da.Right))
 		dar, ok := da.Right[0].(*CallExpr)
@@ -1102,6 +1107,7 @@ func f() {
 		require.Equal(t, 2, len(da.Symbol))
 		require.Equal(t, "a", da.Symbol[0].Name)
 		require.Equal(t, TString, da.Symbol[0].Type)
+		require.Equal(t, true, da.Symbol[0].FromFunc)
 
 		require.Equal(t, "_", da.Symbol[1].Name)
 		require.NotNil(t, da.Symbol[1].Type)
@@ -1203,9 +1209,11 @@ func f() {
 		require.Equal(t, 2, len(da.Symbol))
 		require.Equal(t, "a", da.Symbol[0].Name)
 		require.Equal(t, TString, da.Symbol[0].Type)
+		require.Equal(t, true, da.Symbol[0].FromFunc)
 
 		require.Equal(t, "b", da.Symbol[1].Name)
 		require.Equal(t, TInt, da.Symbol[1].Type)
+		require.Equal(t, true, da.Symbol[1].FromFunc)
 
 		require.Equal(t, 2, len(da.Right))
 		ca1, ok := da.Right[0].(*CallExpr)
@@ -1321,9 +1329,11 @@ func f() {
 		require.Equal(t, 2, len(da1.Symbol))
 		require.Equal(t, "a", da1.Symbol[0].Name)
 		require.Equal(t, TString, da1.Symbol[0].Type)
+		require.Equal(t, false, da1.Symbol[0].FromFunc)
 
 		require.Equal(t, "b", da1.Symbol[1].Name)
 		require.Equal(t, TInt, da1.Symbol[1].Type)
+		require.Equal(t, false, da1.Symbol[1].FromFunc)
 
 		require.Equal(t, 2, len(da1.Right))
 		darv1, ok := da1.Right[0].(*StringLitExpr)
@@ -1341,13 +1351,16 @@ func f() {
 		require.Equal(t, "1", darv2.Value)
 
 		da2, ok := fn3.Body.Stmts[1].(*AssigmentStmt)
+		fmt.Printf("DA2 %#v\n", da2)
 		require.Equal(t, true, ok)
 		require.Equal(t, 2, len(da2.Symbol))
 		require.Equal(t, "a", da2.Symbol[0].Name)
 		require.Equal(t, TString, da2.Symbol[0].Type)
+		require.Equal(t, false, da2.Symbol[0].FromFunc)
 
 		require.Equal(t, "b", da2.Symbol[1].Name)
 		require.Equal(t, TInt, da2.Symbol[1].Type)
+		require.Equal(t, false, da2.Symbol[1].FromFunc)
 
 		require.Equal(t, 2, len(da2.Right))
 		ca1, ok := da2.Right[0].(*CallExpr)
@@ -1595,6 +1608,7 @@ func f() {
 		require.Equal(t, true, ok)
 		require.Equal(t, 1, len(da2.Symbol))
 		require.Equal(t, "a", da2.Symbol[0].Name)
+		require.Equal(t, false, da2.Symbol[0].FromFunc)
 		require.Equal(t, TInt, da2.Symbol[0].Type)
 
 		require.Equal(t, 1, len(da2.Right))
