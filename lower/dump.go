@@ -44,17 +44,21 @@ func (d *dumper) node(indent int, n any) {
 		d.line(indent, fmt.Sprintf("%s = %s %s, %s", t.Result, t.Op, t.Left, t.Right))
 
 	case *ir.Return:
-		if t.Name == "" {
+		if len(t.Values) == 0 {
 			d.line(indent, "return")
 		} else {
-			d.line(indent, fmt.Sprintf("return %s", t.Name))
+			d.line(indent, fmt.Sprintf("return %s", strings.Join(t.Values, ", ")))
 		}
 
 	case *ir.Const:
 		d.line(indent, fmt.Sprintf("%s = const_%s %s", t.Result, t.Type, t.Value))
 
 	case *ir.Call:
-		d.line(indent, fmt.Sprintf("%s = %s(%s)", t.Result, t.Name, strings.Join(t.Args, ", ")))
+		if t.FromFunc {
+			d.line(indent, fmt.Sprintf("%s = call %s(%s)", t.Result, t.Name, strings.Join(t.Args, ", ")))
+		} else {
+			d.line(indent, fmt.Sprintf("%s = %s(%s)", t.Result, t.Name, strings.Join(t.Args, ", ")))
+		}
 
 	case *ir.Branch:
 		var branches []string
@@ -87,6 +91,9 @@ func (d *dumper) node(indent int, n any) {
 
 	case *ir.Assigment:
 		d.line(indent, fmt.Sprintf("%s = %s", t.Result, t.Value))
+
+	case *ir.Extract:
+		d.line(indent, fmt.Sprintf("%s = extract %s, %d", t.Result, t.Value, t.Index))
 
 	case *ir.Unary:
 		d.line(indent, fmt.Sprintf("%s = %s%s", t.Result, t.Operator, t.Value))
@@ -134,6 +141,6 @@ func (d *dumper) funcDecl(kind string, param []ir.Param) string {
 				l = append(l, v.Name+":"+v.Type)
 			}
 		}
-		return "(" + strings.Join(l, ", ") + ")"
+		return " -> (" + strings.Join(l, ", ") + ")"
 	}
 }

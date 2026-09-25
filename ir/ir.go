@@ -9,4 +9,5 @@ func (*Branch) instrNode()    {}
 func (*Label) instrNode()     {}
 func (*Jump) instrNode()      {}
 func (*Assigment) instrNode() {}
+func (*Extract) instrNode()   {}
 func (*Unary) instrNode()     {}

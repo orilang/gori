@@ -38,7 +38,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = multiply(t0, t1)
+    t2 = call multiply(t0, t1)
     x = t2
 
 `,
@@ -61,7 +61,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = add(t0, t1)
+    t2 = call add(t0, t1)
     x = t2
 
 `,
@@ -84,7 +84,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = add(t0, t1)
+    t2 = call add(t0, t1)
     x = t2
 
 `,
@@ -142,7 +142,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -175,7 +175,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -201,7 +201,7 @@ entry:
     a = t0
     t1 = const_int a
     t2 = const_int 2
-    t3 = add(t1, t2)
+    t3 = call add(t1, t2)
     x = t3
 
 `,
@@ -238,7 +238,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -270,7 +270,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -320,7 +320,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -362,7 +362,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -401,7 +401,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -440,7 +440,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -494,7 +494,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -548,7 +548,7 @@ func main()
 entry:
     t0 = const_int 1
     t1 = const_int 2
-    t2 = f(t0, t1)
+    t2 = call f(t0, t1)
     x = t2
 
 `,
@@ -718,16 +718,21 @@ if_else_0:
 				expected: ir.Value("1.0"),
 			},
 			{
-				data:     semantic.StringLitExpr{Type: semantic.TInt, Value: "yes"},
-				expected: ir.Value(""),
-				err:      true,
+				data: semantic.StringLitExpr{Type: semantic.TInt, Value: "yes"},
+				err:  true,
 			},
 		}
 
 		for i, tc := range tests {
 			l := NewLower(true)
-			require.Equal(t, tc.expected, l.lower(tc.data).value, i)
-			require.Equal(t, tc.err, len(l.errors) > 0, i)
+			result := l.lower(tc.data)
+			if tc.err {
+				require.Equal(t, tc.err, len(l.errors) > 0, i)
+			} else {
+				var ex []ir.Value
+				ex = append(ex, tc.expected)
+				require.Equal(t, ex, result.values, i)
+			}
 		}
 	})
 
@@ -741,7 +746,7 @@ if_else_0:
 	t.Run("dummy_decl_error", func(t *testing.T) {
 		l := NewLower(true)
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("dummy")})
-		l.decl(&semantic.VarDecl{Name: "plop"})
+		l.decl(&semantic.InterfaceDecl{})
 		require.Equal(t, true, len(l.errors) > 0)
 	})
 
@@ -880,17 +885,17 @@ switch_0_check_3:
     branch t2, switch_0_case_2, switch_0_default
 
 switch_0_case_1:
-    t6 = foo()
+    t6 = call foo()
     b = t6
     jump switch_0_end
 
 switch_0_case_2:
-    t7 = bar()
+    t7 = call bar()
     b = t7
     jump switch_0_end
 
 switch_0_default:
-    t8 = baz()
+    t8 = call baz()
     b = t8
     jump switch_0_end
 
@@ -924,7 +929,7 @@ func main()
 entry:
     t0 = const_int 0
     a = t0
-    t1 = f(a)
+    t1 = call f(a)
     z = t1
 
 switch_0_check_1:
@@ -1013,7 +1018,7 @@ func main()
 entry:
     t0 = const_int 0
     a = t0
-    t1 = f(a)
+    t1 = call f(a)
     z = t1
 
 switch_0_check_1:
@@ -1037,7 +1042,7 @@ switch_0_check_5:
     branch t2, switch_0_case_4, switch_0_default
 
 switch_0_case_1:
-    t3 = f(a)
+    t3 = call f(a)
     t4 = mul_int t3, 2
     a = t4
     jump switch_0_end
@@ -1046,7 +1051,7 @@ switch_0_case_2:
     jump switch_0_case_4
 
 switch_0_case_4:
-    t5 = f(a)
+    t5 = call f(a)
     t6 = mul_int t5, 3
     a = t6
     jump switch_0_end
@@ -1088,7 +1093,7 @@ func main()
 entry:
     t0 = const_int 0
     a = t0
-    t1 = f(a)
+    t1 = call f(a)
     z = t1
 
 switch_0_check_1:
@@ -1107,7 +1112,7 @@ switch_0_case_1:
     jump switch_0_case_3
 
 switch_0_case_3:
-    t3 = f(a)
+    t3 = call f(a)
     t4 = mul_int t3, 2
     a = t4
     jump switch_0_end
@@ -1156,7 +1161,7 @@ func main()
 entry:
     t0 = const_int 0
     a = t0
-    t1 = f(a)
+    t1 = call f(a)
     z = t1
 
 switch_0_check_1:
@@ -1195,14 +1200,14 @@ switch_0_case_2:
     jump switch_0_case_4
 
 switch_0_case_4:
-    t3 = f(2)
+    t3 = call f(2)
     a = t3
     t4 = add_int a, 1
     a = t4
     jump switch_0_case_6
 
 switch_0_case_6:
-    t5 = f(3)
+    t5 = call f(3)
     a = t5
     t6 = add_int a, 1
     a = t6
@@ -1277,14 +1282,14 @@ switch_0_case_2:
     jump switch_0_case_3
 
 switch_0_case_3:
-    t5 = f(2)
+    t5 = call f(2)
     a = t5
     t6 = add_int a, 1
     a = t6
     jump switch_0_case_4
 
 switch_0_case_4:
-    t7 = f(3)
+    t7 = call f(3)
     a = t7
     t8 = add_int a, 1
     a = t8
@@ -1359,7 +1364,7 @@ switch_0_case_2:
     jump switch_0_case_3
 
 switch_0_case_3:
-    t5 = f(2)
+    t5 = call f(2)
     a = t5
     t6 = add_int a, 1
     a = t6
@@ -1371,7 +1376,7 @@ switch_0_default:
     jump switch_0_end
 
 switch_0_case_5:
-    t8 = f(3)
+    t8 = call f(3)
     a = t8
     t9 = add_int a, 1
     a = t9
@@ -1440,7 +1445,7 @@ switch_0_case_2:
     jump switch_0_case_3
 
 switch_0_case_3:
-    t5 = f(2)
+    t5 = call f(2)
     a = t5
     t6 = add_int a, 1
     a = t6
@@ -1452,7 +1457,7 @@ switch_0_default:
     jump switch_0_end
 
 switch_0_case_5:
-    t8 = f(3)
+    t8 = call f(3)
     a = t8
     t9 = add_int a, 1
     a = t9
@@ -1497,7 +1502,7 @@ func main()
 entry:
     t0 = const_int 0
     a = t0
-    t1 = f(a)
+    t1 = call f(a)
     z = t1
 
 switch_0_check_1:
@@ -1541,14 +1546,14 @@ switch_0_case_3:
     jump switch_0_case_5
 
 switch_0_case_5:
-    t4 = f(2)
+    t4 = call f(2)
     a = t4
     t5 = add_int a, 1
     a = t5
     jump switch_0_case_7
 
 switch_0_case_7:
-    t6 = f(3)
+    t6 = call f(3)
     a = t6
     t7 = add_int a, 1
     a = t7
@@ -1892,4 +1897,470 @@ switch_0_end:
 			assert.Equal(t, tc.expected, dump(lir), i)
 		}
 	})
+
+	t.Run("x4", func(t *testing.T) {
+		tests := []struct {
+			data     string
+			expected string
+		}{
+			{
+				data: `package main
+func test1() string {
+  return "yes"
+}
+
+func test2() int {
+  return int(0)
+}
+
+func f() {
+  a, b := "no",int(1)
+  a,_ = test1(),test2()
+}`,
+				expected: `func test1() -> string
+entry:
+    return "yes"
+
+func test2() -> int
+entry:
+    t0 = const_int 0
+    return t0
+
+func f()
+entry:
+    t0 = const_int 1
+    a = "no"
+    b = t0
+    t1 = call test1()
+    t2 = call test2()
+    a = t1
+
+`,
+			},
+			{
+				data: `package main
+func test1() string {
+  return "yes"
+}
+
+func test2() int {
+  return int(0)
+}
+
+func f() {
+  a,b := test1(),test2()
+}`,
+				expected: `func test1() -> string
+entry:
+    return "yes"
+
+func test2() -> int
+entry:
+    t0 = const_int 0
+    return t0
+
+func f()
+entry:
+    t0 = call test1()
+    t1 = call test2()
+    a = t0
+    b = t1
+
+`,
+			},
+			{
+				data: `package main
+func test() (string, int) {
+  return "yes", int(1)
+}
+
+func f() {
+  a, b := test()
+}`,
+				expected: `func test() -> (string, int)
+entry:
+    t0 = const_int 1
+    return "yes", t0
+
+func f()
+entry:
+    t0 = call test()
+    a = extract t0, 0
+    b = extract t0, 1
+
+`,
+			},
+			{
+				data: `package main
+func test() (string, int) {
+  return "yes", int(1)
+}
+
+func f() {
+  a, _ := test()
+}`,
+				expected: `func test() -> (string, int)
+entry:
+    t0 = const_int 1
+    return "yes", t0
+
+func f()
+entry:
+    t0 = call test()
+    a = extract t0, 0
+
+`,
+			},
+			{
+				data: `package main
+func test() int {
+  return int(0)
+}
+
+func f() {
+	_ := test()
+}`,
+				expected: `func test() -> int
+entry:
+    t0 = const_int 0
+    return t0
+
+func f()
+entry:
+    t0 = call test()
+
+`,
+			},
+			{
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+	_,_ := test()
+}`,
+				expected: `func test() -> (int, int)
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    return t0, t1
+
+func f()
+entry:
+    t0 = call test()
+
+`,
+			},
+			{
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+	a,_ := test()
+}`,
+				expected: `func test() -> (int, int)
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    return t0, t1
+
+func f()
+entry:
+    t0 = call test()
+    a = extract t0, 0
+
+`,
+			},
+			{
+				data: `package main
+func f() {
+  a,b := int(0), int(1)
+}`,
+				expected: `func f()
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    a = t0
+    b = t1
+
+`,
+			},
+			{
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  _,_ = test()
+}`,
+				expected: `func test() -> (int, int)
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    return t0, t1
+
+func f()
+entry:
+    t0 = call test()
+
+`,
+			},
+			{
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a := int(0)
+  a,_ = test()
+}`,
+				expected: `func test() -> (int, int)
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    return t0, t1
+
+func f()
+entry:
+    t0 = const_int 0
+    a = t0
+    t1 = call test()
+    a = extract t1, 0
+
+`,
+			},
+			{
+				data: `package main
+func f() {
+  a,b,c := int(0),int(1),int(2)
+  a,b = int(0), int(1)
+}`,
+				expected: `func f()
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    t2 = const_int 2
+    a = t0
+    b = t1
+    c = t2
+    t3 = const_int 0
+    t4 = const_int 1
+    a = t3
+    b = t4
+
+`,
+			},
+			{
+				data: `package main
+func test1() string {
+  return "yes"
+}
+
+func test2() int {
+  return int(0)
+}
+
+func f() {
+  a, b := "no",int(1)
+  a,b = test1(),test2()
+}`,
+				expected: `func test1() -> string
+entry:
+    return "yes"
+
+func test2() -> int
+entry:
+    t0 = const_int 0
+    return t0
+
+func f()
+entry:
+    t0 = const_int 1
+    a = "no"
+    b = t0
+    t1 = call test1()
+    t2 = call test2()
+    a = t1
+    b = t2
+
+`,
+			},
+			{
+				data: `package main
+func test1() (a string, b int) {
+  return "yes", int(0)
+}
+
+func f() {
+  a,b := test1()
+}`,
+				expected: `func test1() -> (a:string, b:int)
+entry:
+    t0 = const_int 0
+    return "yes", t0
+
+func f()
+entry:
+    t0 = call test1()
+    a = extract t0, 0
+    b = extract t0, 1
+
+`,
+			},
+			{
+				data: `package main
+func test(a int) (b int, c int) {
+  return int(0), int(1)
+}
+
+func f() {
+  var a int = int(0)
+  var b int = int(0)
+  a,b = test(int(0))
+}`,
+				expected: `func test(a:int) -> (b:int, c:int)
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    return t0, t1
+
+func f()
+entry:
+    t0 = const_int 0
+    a = const_int t0
+    t1 = const_int 0
+    b = const_int t1
+    t2 = const_int 0
+    t3 = call test(t2)
+    a = extract t3, 0
+    b = extract t3, 1
+
+`,
+			},
+			{
+				data: `package main
+func main() {
+  a, b := int(1), int(2)
+  a, b = b, a
+}`,
+				expected: `func main()
+entry:
+    t0 = const_int 1
+    t1 = const_int 2
+    a = t0
+    b = t1
+    a = b
+    b = a
+
+`,
+			},
+			{
+				data: `package main
+func test(a int) (b int, c int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a,b := test(int(0))
+  a, b = b, int(3)
+}`,
+				expected: `func test(a:int) -> (b:int, c:int)
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    return t0, t1
+
+func f()
+entry:
+    t0 = const_int 0
+    t1 = call test(t0)
+    a = extract t1, 0
+    b = extract t1, 1
+    t2 = const_int 3
+    a = b
+    b = t2
+
+`,
+			},
+			{
+				data: `package main
+func test(a int) (b int, c int) {
+  return int(0), int(1)
+}
+func foo() int {
+  return int(0)
+}
+func bar(a int) int {
+  return a
+}
+func foo1(a int) int {
+  return int(0)
+}
+
+func f() {
+  a,b := test(int(0))
+  a, b = foo(), bar(a)
+  a, _ = b, foo1(a)
+}`,
+				expected: `func test(a:int) -> (b:int, c:int)
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    return t0, t1
+
+func foo() -> int
+entry:
+    t0 = const_int 0
+    return t0
+
+func bar(a:int) -> int
+entry:
+    return a
+
+func foo1(a:int) -> int
+entry:
+    t0 = const_int 0
+    return t0
+
+func f()
+entry:
+    t0 = const_int 0
+    t1 = call test(t0)
+    a = extract t1, 0
+    b = extract t1, 1
+    t2 = call foo()
+    t3 = call bar(a)
+    a = t2
+    b = t3
+    t4 = call foo1(a)
+    a = b
+
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := semantic.NewChecker()
+
+			spr, diagnostics := check.Check(pr)
+			require.Equal(t, false, diagnostics.HasErrors())
+
+			l := NewLower(true)
+			lir, ldiagnostics := l.Lower(spr)
+			require.Equal(t, false, ldiagnostics.HasErrors())
+
+			assert.Equal(t, tc.expected, dump(lir), i)
+		}
+	})
+
 }

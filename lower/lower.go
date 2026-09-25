@@ -52,6 +52,14 @@ func (l *Lower) decl(decl semantic.Decl) {
 	case *semantic.FuncDecl:
 		l.funcs = append(l.funcs, l.fn(t))
 
+	case *semantic.VarDecl:
+		init := l.lower(t.Init)
+		l.instructions = append(l.instructions, &ir.Const{
+			Result: t.Symbol.Name,
+			Type:   t.Symbol.Type.String(),
+			Value:  singleValue(init.values),
+		})
+
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported declaration %T", t)})
 	}
@@ -126,28 +134,49 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		data.returns = true
 		if len(stmt.Values) == 0 {
 			l.instructions = append(l.instructions, &ir.Return{})
-			data.value = ir.Value("")
+			data.values = append(data.values, ir.Value(""))
 			return
 		}
 
 		var rt []ir.Value
+		irr := &ir.Return{}
 		for _, v := range stmt.Values {
 			st := l.lower(v)
-			rt = append(rt, st.value)
-			l.instructions = append(l.instructions, &ir.Return{
-				Name: string(st.value),
-			})
+			rt = append(rt, st.values...)
+			for _, rv := range st.values {
+				irr.Values = append(irr.Values, string(rv))
+			}
 		}
 
-		if len(rt) == 1 {
-			data.value = rt[0]
-			return
-		}
+		l.instructions = append(l.instructions, irr)
+		data.values = rt
+		return
 
 	case *semantic.AssigmentStmt:
-		right := l.lower(stmt.Right)
-		l.instructions = append(l.instructions, &ir.Assigment{Result: stmt.Symbol.Name, Value: string(right.value)})
-		data.value = ir.Value(stmt.Symbol.Name)
+		var results []infos
+		for _, sr := range stmt.Right {
+			results = append(results, l.lower(sr))
+		}
+
+		for k := range stmt.Right {
+			if len(stmt.Right) > 1 {
+				if !stmt.Symbol[k].IsBlank {
+					l.instructions = append(l.instructions, &ir.Assigment{Result: stmt.Symbol[k].Name, Value: singleValue(results[k].values)})
+					data.values = append(data.values, ir.Value(stmt.Symbol[k].Name))
+				}
+			} else {
+				for sk, ss := range stmt.Symbol {
+					if !ss.IsBlank {
+						if ss.FromFunc && ss.IsMultiValue {
+							l.instructions = append(l.instructions, &ir.Extract{Result: ss.Name, Value: singleValue(results[k].values), Index: sk})
+						} else {
+							l.instructions = append(l.instructions, &ir.Assigment{Result: ss.Name, Value: singleValue(results[k].values)})
+						}
+						data.values = append(data.values, ir.Value(ss.Name))
+					}
+				}
+			}
+		}
 		return
 
 	case *semantic.IfStmt:
@@ -155,7 +184,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		l.labelIndex++
 
 		cond := l.lower(stmt.Condition)
-		br := &ir.Branch{Condition: string(cond.value)}
+		br := &ir.Branch{Condition: singleValue(cond.values)}
 		br.List = append(br.List, ir.BranchSub{Name: "if_then", Index: labelIndex})
 
 		if len(stmt.Else) > 0 {
@@ -385,16 +414,13 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 			}
 		}
 
-		var (
-			tagValue ir.Value
-			result   string
-		)
+		var tagValue, result string
 		if stmt.Init != nil {
-			tagValue = l.lower(stmt.Init).value
+			tagValue = singleValue(l.lower(stmt.Init).values)
 		}
 
 		if stmt.Tag != nil {
-			tagValue = l.lower(stmt.Tag).value
+			tagValue = singleValue(l.lower(stmt.Tag).values)
 			result = fmt.Sprintf("t%d", l.tIndex)
 			l.tIndex++
 		}
@@ -410,13 +436,13 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 
 				br := &ir.Branch{}
 				if stmt.Tag == nil {
-					br.Condition = string(l.lower(sc.value).value)
+					br.Condition = singleValue(l.lower(sc.value).values)
 				} else {
 					l.instructions = append(l.instructions, &ir.Binary{
 						Result: result,
 						Op:     token.BinaryOpString(token.Eq) + "_" + semantic.TBool.String(),
-						Left:   string(tagValue),
-						Right:  string(l.lower(sc.value).value),
+						Left:   tagValue,
+						Right:  singleValue(l.lower(sc.value).values),
 					})
 					br.Condition = string(result)
 				}
@@ -495,6 +521,9 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 			})
 		}
 
+	case *semantic.DeclStmt:
+		l.decl(stmt.Decl)
+
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %T", stmt)})
 	}
@@ -506,23 +535,23 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 	switch expr := t.(type) {
 	case *semantic.IntLitExpr:
-		data.value = ir.Value(expr.Value)
+		data.values = append(data.values, ir.Value(expr.Value))
 		return
 
 	case *semantic.FloatLitExpr:
-		data.value = ir.Value(expr.Value)
+		data.values = append(data.values, ir.Value(expr.Value))
 		return
 
 	case *semantic.BoolLitExpr:
-		data.value = ir.Value(expr.Value)
+		data.values = append(data.values, ir.Value(expr.Value))
 		return
 
 	case *semantic.StringLitExpr:
-		data.value = ir.Value(expr.Value)
+		data.values = append(data.values, ir.Value(expr.Value))
 		return
 
 	case *semantic.IdentExpr:
-		data.value = ir.Value(expr.Value)
+		data.values = append(data.values, ir.Value(expr.Value))
 		return
 
 	case *semantic.BinaryExpr:
@@ -533,12 +562,12 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		l.instructions = append(l.instructions, &ir.Binary{
 			Result: t,
 			Op:     token.BinaryOpString(expr.Operator) + "_" + expr.Type.String(),
-			Left:   string(left.value),
-			Right:  string(right.value),
+			Left:   singleValue(left.values),
+			Right:  singleValue(right.values),
 		})
 
 		l.tIndex++
-		data.value = ir.Value(t)
+		data.values = append(data.values, ir.Value(t))
 		return
 
 	case *semantic.ConversionExpr:
@@ -547,29 +576,30 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		l.instructions = append(l.instructions, &ir.Const{
 			Result: t,
 			Type:   expr.To.String(),
-			Value:  string(value.value),
+			Value:  singleValue(value.values),
 		})
 
 		l.tIndex++
-		data.value = ir.Value(t)
+		data.values = append(data.values, ir.Value(t))
 		return
 
 	case *semantic.CallExpr:
 		var args []string
 		for _, v := range expr.Args {
-			args = append(args, string(l.lower(v).value))
+			args = append(args, singleValue(l.lower(v).values))
 		}
 
 		callee := l.lower(expr.Callee)
 		t := fmt.Sprintf("t%d", l.tIndex)
 		l.instructions = append(l.instructions, &ir.Call{
-			Result: t,
-			Name:   string(callee.value),
-			Args:   args,
+			Result:   t,
+			Name:     singleValue(callee.values),
+			Args:     args,
+			FromFunc: expr.FromFunc,
 		})
 
 		l.tIndex++
-		data.value = ir.Value(t)
+		data.values = append(data.values, ir.Value(t))
 		return
 
 	case *semantic.UnaryExpr:
@@ -578,10 +608,10 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		l.instructions = append(l.instructions, &ir.Unary{
 			Result:   t,
 			Operator: token.UnaryOpString(expr.Operator),
-			Value:    string(ex.value),
+			Value:    singleValue(ex.values),
 		})
 		l.tIndex++
-		data.value = ir.Value(t)
+		data.values = append(data.values, ir.Value(t))
 		return
 
 	default:
@@ -607,4 +637,13 @@ func isFallingThroughStmt(stmt []semantic.Stmt) bool {
 		}
 		return false
 	}
+}
+
+// singleValue returns "" if the slice is empty
+// otherwise the related string
+func singleValue(s []ir.Value) string {
+	if len(s) == 0 {
+		return ""
+	}
+	return string(s[0])
 }

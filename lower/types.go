@@ -39,6 +39,6 @@ type dumper struct {
 }
 
 type infos struct {
-	value   ir.Value
+	values  []ir.Value
 	returns bool
 }
