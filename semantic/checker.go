@@ -681,7 +681,7 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	sym.Type = targetType
 	sym.Decl = decl
 
-	c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, &ConstDecl{Name: sym.Name, Symbol: resolvedSymbol(sym, false), Init: expr})
+	c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, &ConstDecl{Name: sym.Name, Symbol: resolvedSymbol(sym, false, false), Init: expr})
 }
 
 // checkExpr returns the type of the expression
@@ -712,7 +712,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		if sym == nil || sym.Type == nil {
 			return TInvalid, nil
 		}
-		return sym.Type, &IdentExpr{Type: sym.Type, Symbol: resolvedSymbol(sym, false), Value: t.Name.Value}
+		return sym.Type, &IdentExpr{Type: sym.Type, Symbol: resolvedSymbol(sym, false, false), Value: t.Name.Value}
 
 	case *ast.UnaryExpr:
 		right, ex := c.checkExpr(t.Right)
@@ -765,6 +765,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 					}
 					ce.Callee = &selx
 					ce.CalleeType = method
+					ce.ReturnedValueCount = len(method.FuncType.Results)
 					if len(method.FuncType.Results) > 1 {
 						return method, &ce
 					}
@@ -824,6 +825,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		}
 		ce.Callee = calleeExpr
 		ce.CalleeType = calleeType
+		ce.ReturnedValueCount = len(fn.FuncType.Results)
 		if len(fn.FuncType.Results) > 1 {
 			return calleeType, &ce
 		}
@@ -957,7 +959,7 @@ func (c *Checker) checkFuncBody(fn *ast.FuncDecl) {
 
 	fd := &FuncDecl{
 		Name:    sym.Name,
-		Symbol:  resolvedSymbol(sym, true),
+		Symbol:  resolvedSymbol(sym, true, len(fnType.FuncType.Results) > 1),
 		Params:  fnType.FuncType.Params,
 		Results: fnType.FuncType.Results,
 	}
@@ -1196,7 +1198,7 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 	}
 
 	sym := c.scope.Lookup(decl.Name.Value)
-	return &ConstDecl{Name: sym.Name, Symbol: resolvedSymbol(sym, false), Init: expr}
+	return &ConstDecl{Name: sym.Name, Symbol: resolvedSymbol(sym, false, false), Init: expr}
 }
 
 // checkScopeVarDecl validates constant targetType and valueType.
@@ -1221,7 +1223,7 @@ func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) Decl {
 	}
 
 	sym := c.scope.Lookup(decl.Name.Value)
-	return &VarDecl{Name: sym.Name, Symbol: resolvedSymbol(sym, false), Init: expr}
+	return &VarDecl{Name: sym.Name, Symbol: resolvedSymbol(sym, false, false), Init: expr}
 }
 
 // checkAssignableExpr returns valid assignable expression.
@@ -1271,23 +1273,30 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 			return nil, nil
 		}
 
-		fn, isFunc := rightType.(*FuncMethod)
-		_, isCall := right.(*ast.CallExpr)
-		isMultiValueCall := isFunc && isCall && len(fn.FuncType.Results) > 1
+		var (
+			fm     *FuncMethod
+			isFunc bool
+		)
+		fn, fromFunc := rightExpr.(*CallExpr)
+		if fromFunc {
+			fm, isFunc = fn.CalleeType.(*FuncMethod)
+		}
+		isValidCall := fromFunc && fn.FromFunc && isFunc
+		isMultiValueCall := fromFunc && fn.FromFunc && isFunc && fn.ReturnedValueCount > 1
 		if isMultiValueCall {
-			if len(fn.FuncType.Results) > 1 && len(decl.Right) > 1 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple assignments with multiple funcs return values are forbidden, expected 1 value type, got %d at %d:%d", len(fn.FuncType.Results), decl.Start().Line, decl.End().Line)})
+			if len(fm.FuncType.Results) > 1 && len(decl.Right) > 1 {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple assignments with multiple funcs return values are forbidden, expected 1 value type, got %d at %d:%d", len(fm.FuncType.Results), decl.Start().Line, decl.End().Line)})
 				return nil, nil
 			}
 
 			// single/multiple lhs and 1 rhs
 			if len(decl.Right) == 1 {
-				if len(fn.FuncType.Results) != len(decl.Left) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assignment mismatch, expected %d variables, got %d at %d:%d", len(fn.FuncType.Results), len(decl.Left), decl.Start().Line, decl.End().Line)})
+				if len(fm.FuncType.Results) != len(decl.Left) {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assignment mismatch, expected %d variables, got %d at %d:%d", len(fm.FuncType.Results), len(decl.Left), decl.Start().Line, decl.End().Line)})
 					return nil, nil
 				}
 
-				for k, fnv := range fn.FuncType.Results {
+				for k, fnv := range fm.FuncType.Results {
 					var sym *Symbol
 					valueType := c.checkTypeInCurrentMode(fnv.Type)
 					left := decl.Left[k]
@@ -1335,7 +1344,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 							}
 						}
 					}
-					stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, isCall))
+					stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, isValidCall, isMultiValueCall))
 				}
 
 				stmt.Right = append(stmt.Right, rightExpr)
@@ -1395,7 +1404,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 			}
 		}
 
-		stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, false))
+		stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, false, false))
 		stmt.Right = append(stmt.Right, rightExpr)
 	}
 
@@ -1431,6 +1440,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		right := decl.Right[0]
 
 		valueType, expr := c.checkExprInCurrentMode(right)
+		fn, fromFunc := expr.(*CallExpr)
 		if IsInvalid(valueType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid", right)})
 			return nil
@@ -1442,9 +1452,15 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 			return nil
 		}
 
-		fn, isFunc := valueType.(*FuncMethod)
-		_, isCall := right.(*ast.CallExpr)
-		isValidCall := isFunc && isCall
+		var (
+			fm     *FuncMethod
+			isFunc bool
+		)
+		if fromFunc {
+			fm, isFunc = fn.CalleeType.(*FuncMethod)
+		}
+		isValidCall := fromFunc && fn.FromFunc && isFunc
+		isMultiValueCall := fromFunc && fn.FromFunc && isFunc && fn.ReturnedValueCount > 1
 		for index, left := range decl.Left {
 			x, ok := left.(*ast.IdentExpr)
 			if !ok {
@@ -1454,15 +1470,15 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 
 			var sym *Symbol
 			if isValidCall {
-				if len(fn.FuncType.Results) != len(decl.Left) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assignment mismatch, expected %d variables, got %d at %d:%d", len(fn.FuncType.Results), len(decl.Left), decl.Start().Line, decl.End().Line)})
+				if fn.ReturnedValueCount != len(decl.Left) {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assignment mismatch, expected %d variables, got %d at %d:%d", fn.ReturnedValueCount, len(decl.Left), decl.Start().Line, decl.End().Line)})
 					return nil
 				}
 
 				sym = &Symbol{
 					Name:       x.Name.Value,
 					Kind:       SymVar,
-					Type:       fn.FuncType.Results[index].Type,
+					Type:       fm.FuncType.Results[index].Type,
 					IsComptime: c.inComptimeFunc,
 				}
 			} else {
@@ -1482,7 +1498,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 			if !c.declareNoShadow(c.scope, sym, "variable") {
 				return nil
 			}
-			stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, isValidCall))
+			stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, isValidCall, isMultiValueCall))
 		}
 		return stmt
 	}
@@ -1495,6 +1511,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 	stmt := &AssigmentStmt{}
 	for k, right := range decl.Right {
 		valueType, expr := c.checkExprInCurrentMode(right)
+		fn, fromFunc := expr.(*CallExpr)
 		if IsInvalid(valueType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid", right)})
 			return nil
@@ -1512,12 +1529,10 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 			return nil
 		}
 
-		fn, isFunc := valueType.(*FuncMethod)
-		_, isCall := right.(*ast.CallExpr)
-		isValidCall := isFunc && isCall
-		isMultiValueCall := isFunc && isCall && len(fn.FuncType.Results) > 1
+		isValidCall := fromFunc && fn.FromFunc
+		isMultiValueCall := fromFunc && fn.FromFunc && fn.ReturnedValueCount > 1
 		if isMultiValueCall {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple assignments with multiple funcs return values are forbidden, expected 1 value type, got %d at %d:%d", len(fn.FuncType.Results), decl.Start().Line, decl.End().Line)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple assignments with multiple funcs return values are forbidden, expected 1 value type, got %d at %d:%d", fn.ReturnedValueCount, decl.Start().Line, decl.End().Line)})
 			return nil
 		}
 
@@ -1530,7 +1545,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		if !c.declareNoShadow(c.scope, sym, "variable") {
 			return nil
 		}
-		stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, isValidCall))
+		stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, isValidCall, isMultiValueCall))
 	}
 	return stmt
 }
@@ -3439,17 +3454,18 @@ func (c *Checker) checkReturnVarsInitialized(a []string, s string) []string {
 
 // resolvedSymbol resolves type checked Symbol for
 // the High-Level Intermediate Representation
-func resolvedSymbol(s *Symbol, fromFunc bool) ResolvedSymbol {
+func resolvedSymbol(s *Symbol, fromFunc bool, isMultiValue bool) ResolvedSymbol {
 	if s == nil {
 		return ResolvedSymbol{}
 	}
 
 	return ResolvedSymbol{
-		Name:     s.Name,
-		Kind:     s.Kind,
-		Type:     s.Type,
-		IsBlank:  isBlank(s.Name),
-		FromFunc: fromFunc,
+		Name:         s.Name,
+		Kind:         s.Kind,
+		Type:         s.Type,
+		IsBlank:      isBlank(s.Name),
+		FromFunc:     fromFunc,
+		IsMultiValue: isMultiValue,
 	}
 }
 
