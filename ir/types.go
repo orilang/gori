@@ -35,7 +35,7 @@ type Binary struct {
 }
 
 type Return struct {
-	Name string
+	Values []string
 }
 
 type Const struct {
@@ -45,9 +45,10 @@ type Const struct {
 }
 
 type Call struct {
-	Result string
-	Name   string
-	Args   []string
+	Result   string
+	Name     string
+	Args     []string
+	FromFunc bool
 }
 
 type BranchSub struct {
@@ -75,6 +76,12 @@ type Jump struct {
 type Assigment struct {
 	Result string
 	Value  string
+}
+
+type Extract struct {
+	Result string
+	Value  string
+	Index  int
 }
 
 type Unary struct {
