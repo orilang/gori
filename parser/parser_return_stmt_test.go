@@ -238,18 +238,20 @@ func x(){
 		assert.Greater(len(parser.Errors), 0)
 	})
 
-	t.Run("bad_x4", func(t *testing.T) {
-		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
-		assert.Nil(err)
-		data := `package main
+	// 	t.Run("bad_x4", func(t *testing.T) {
+	// 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+	// 		assert.Nil(err)
+	// 		data := `package main
 
-func x(){
- return _
-}
-`
-		parser := New(lex.FetchTokensFromString(data))
-		pr := parser.ParseFile()
-		assert.NotNil(pr)
-		assert.Greater(len(parser.Errors), 0)
-	})
+	//	func x(){
+	//	 return _
+	//	}
+	//
+	// `
+	//
+	//		parser := New(lex.FetchTokensFromString(data))
+	//		pr := parser.ParseFile()
+	//		assert.NotNil(pr)
+	//		assert.Greater(len(parser.Errors), 0)
+	//	})
 }

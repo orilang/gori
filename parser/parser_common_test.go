@@ -213,4 +213,34 @@ type test struct{
 		parse.position = len(lex.Tokens)
 		assert.Equal(false, parse.lookForInSliceHeader(token.Colon))
 	})
+
+	t.Run("lookup_multiple_assigments_success", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `a, b := c()
+`
+		parser := New(lex.FetchTokensFromString(data))
+		_, ok := parser.lookupMultipleAssigments()
+		assert.Equal(true, ok)
+	})
+
+	t.Run("lookup_multiple_assigments_error", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `a, b += c()
+`
+		parser := New(lex.FetchTokensFromString(data))
+		_, ok := parser.lookupMultipleAssigments()
+		assert.Equal(false, ok)
+	})
+
+	t.Run("lookup_multiple_assigments_false", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `*`
+		parser := New(lex.FetchTokensFromString(data))
+		parser.position = 6
+		_, ok := parser.lookupMultipleAssigments()
+		assert.Equal(false, ok)
+	})
 }

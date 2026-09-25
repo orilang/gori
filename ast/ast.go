@@ -133,8 +133,19 @@ func (x *ConstDecl) End() token.Token   { return x.Init.End() }
 func (x *VarDecl) Start() token.Token { return x.VarKW }
 func (x *VarDecl) End() token.Token   { return x.Init.End() }
 
-func (x *AssignStmt) Start() token.Token { return x.Left.Start() }
-func (x *AssignStmt) End() token.Token   { return x.Right.End() }
+func (x *AssignStmt) Start() token.Token {
+	if x.Left != nil {
+		return x.Left[0].Start()
+	}
+	return token.Token{}
+}
+
+func (x *AssignStmt) End() token.Token {
+	if x.Right != nil {
+		return x.Right[0].Start()
+	}
+	return token.Token{}
+}
 
 func (x *BadStmt) Start() token.Token { return x.From }
 func (x *BadStmt) End() token.Token   { return x.To }

@@ -223,10 +223,14 @@ func (d *dumper) node(indent int, n any) {
 	case *AssignStmt:
 		d.line(indent, "AssignStmt")
 		d.line(indent+1, "Left")
-		d.expr(indent+2, v.Left)
+		for _, ve := range v.Left {
+			d.expr(indent+2, ve)
+		}
 		d.kv(indent+1, "Operator", v.Operator)
 		d.line(indent+1, "Right")
-		d.expr(indent+2, v.Right)
+		for _, ve := range v.Right {
+			d.expr(indent+2, ve)
+		}
 
 	case *ExprStmt:
 		d.expr(indent, v.Expr)

@@ -831,6 +831,519 @@ func x(){
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("multiple_assigments_x1", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int,int){
+  return int(0),int(1)
+}
+
+func b(){
+  c, d := a()
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "a" @3:6 (kind=3)
+   Params
+    (none)
+   Results
+    LParen: "(" @3:9 (kind=39)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:10 (kind=12)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:14 (kind=12)
+    RParen: ")" @3:17 (kind=40)
+   Body
+    BlockStmt
+     LBrace: "{" @3:18 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:10 (kind=3)
+         LParen: "(" @4:13 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "0" @4:14 (kind=4)
+         RParen: ")" @4:15 (kind=40)
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:17 (kind=3)
+         LParen: "(" @4:20 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "1" @4:21 (kind=4)
+         RParen: ")" @4:22 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "b" @7:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @7:9 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "c" @8:3 (kind=3)
+        IdentExpr
+         Name: "d" @8:6 (kind=3)
+       Operator: ":=" @8:8 (kind=50)
+       Right
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:11 (kind=3)
+         LParen: "(" @8:12 (kind=39)
+         RParen: ")" @8:13 (kind=40)
+     RBrace: "}" @9:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("multiple_assigments_x2", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int,int){
+  return int(0),int(1)
+}
+
+func b(){
+  c, d = a()
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "a" @3:6 (kind=3)
+   Params
+    (none)
+   Results
+    LParen: "(" @3:9 (kind=39)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:10 (kind=12)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:14 (kind=12)
+    RParen: ")" @3:17 (kind=40)
+   Body
+    BlockStmt
+     LBrace: "{" @3:18 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:10 (kind=3)
+         LParen: "(" @4:13 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "0" @4:14 (kind=4)
+         RParen: ")" @4:15 (kind=40)
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:17 (kind=3)
+         LParen: "(" @4:20 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "1" @4:21 (kind=4)
+         RParen: ")" @4:22 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "b" @7:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @7:9 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "c" @8:3 (kind=3)
+        IdentExpr
+         Name: "d" @8:6 (kind=3)
+       Operator: "=" @8:8 (kind=49)
+       Right
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:10 (kind=3)
+         LParen: "(" @8:11 (kind=39)
+         RParen: ")" @8:12 (kind=40)
+     RBrace: "}" @9:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("multiple_assigments_x3", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int){
+  return int(0)
+}
+
+func b(){
+  c, d := a(),a()
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "a" @3:6 (kind=3)
+   Params
+    (none)
+   Results
+    LParen: "(" @3:9 (kind=39)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:10 (kind=12)
+    RParen: ")" @3:13 (kind=40)
+   Body
+    BlockStmt
+     LBrace: "{" @3:14 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:10 (kind=3)
+         LParen: "(" @4:13 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "0" @4:14 (kind=4)
+         RParen: ")" @4:15 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "b" @7:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @7:9 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "c" @8:3 (kind=3)
+        IdentExpr
+         Name: "d" @8:6 (kind=3)
+       Operator: ":=" @8:8 (kind=50)
+       Right
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:11 (kind=3)
+         LParen: "(" @8:12 (kind=39)
+         RParen: ")" @8:13 (kind=40)
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:15 (kind=3)
+         LParen: "(" @8:16 (kind=39)
+         RParen: ")" @8:17 (kind=40)
+     RBrace: "}" @9:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("multiple_assigments_x4", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int){
+  return int(0)
+}
+
+func b(){
+  c, d := a(),a() // comment
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "a" @3:6 (kind=3)
+   Params
+    (none)
+   Results
+    LParen: "(" @3:9 (kind=39)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:10 (kind=12)
+    RParen: ")" @3:13 (kind=40)
+   Body
+    BlockStmt
+     LBrace: "{" @3:14 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:10 (kind=3)
+         LParen: "(" @4:13 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "0" @4:14 (kind=4)
+         RParen: ")" @4:15 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "b" @7:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @7:9 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "c" @8:3 (kind=3)
+        IdentExpr
+         Name: "d" @8:6 (kind=3)
+       Operator: ":=" @8:8 (kind=50)
+       Right
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:11 (kind=3)
+         LParen: "(" @8:12 (kind=39)
+         RParen: ")" @8:13 (kind=40)
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:15 (kind=3)
+         LParen: "(" @8:16 (kind=39)
+         RParen: ")" @8:17 (kind=40)
+     RBrace: "}" @9:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("multiple_assigments_x5", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int){
+  return int(0)
+}
+
+func b(){
+  _, _ := a(),a()
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "a" @3:6 (kind=3)
+   Params
+    (none)
+   Results
+    LParen: "(" @3:9 (kind=39)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:10 (kind=12)
+    RParen: ")" @3:13 (kind=40)
+   Body
+    BlockStmt
+     LBrace: "{" @3:14 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:10 (kind=3)
+         LParen: "(" @4:13 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "0" @4:14 (kind=4)
+         RParen: ")" @4:15 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "b" @7:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @7:9 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "_" @8:3 (kind=3)
+        IdentExpr
+         Name: "_" @8:6 (kind=3)
+       Operator: ":=" @8:8 (kind=50)
+       Right
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:11 (kind=3)
+         LParen: "(" @8:12 (kind=39)
+         RParen: ")" @8:13 (kind=40)
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:15 (kind=3)
+         LParen: "(" @8:16 (kind=39)
+         RParen: ")" @8:17 (kind=40)
+     RBrace: "}" @9:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("multiple_assigments_x6", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int, int){
+  return int(0),int(0)
+}
+
+func b(){
+  _,_ = a()
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "a" @3:6 (kind=3)
+   Params
+    (none)
+   Results
+    LParen: "(" @3:9 (kind=39)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:10 (kind=12)
+     Param
+      Type
+       NamedType
+        Ident: "int" @3:15 (kind=12)
+    RParen: ")" @3:18 (kind=40)
+   Body
+    BlockStmt
+     LBrace: "{" @3:19 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:10 (kind=3)
+         LParen: "(" @4:13 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "0" @4:14 (kind=4)
+         RParen: ")" @4:15 (kind=40)
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "int" @4:17 (kind=3)
+         LParen: "(" @4:20 (kind=39)
+         Args:
+          IntLitExpr
+           Value: "0" @4:21 (kind=4)
+         RParen: ")" @4:22 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "b" @7:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @7:9 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "_" @8:3 (kind=3)
+        IdentExpr
+         Name: "_" @8:5 (kind=3)
+       Operator: "=" @8:7 (kind=49)
+       Right
+        CallExpr
+         Callee
+          IdentExpr
+           Name: "a" @8:9 (kind=3)
+         LParen: "(" @8:10 (kind=39)
+         RParen: ")" @8:11 (kind=40)
+     RBrace: "}" @9:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("bad_return_types_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
@@ -1097,6 +1610,101 @@ func () x()(){}
 		data := `package main
 
 func (x map[string]string) x()(){}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
+
+	t.Run("bad_multiple_assigments_x1", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int,int){
+  return int(0),int(1)
+}
+
+func b(){
+  c,, d := a()
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
+
+	t.Run("bad_multiple_assigments_x2", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int,int){
+  return int(0),int(1)
+}
+
+func b(){
+  c, := a()
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
+
+	t.Run("bad_multiple_assigments_x3", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int,int){
+  return int(0),int(1)
+}
+
+func b(){
+  c,d := a(),
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
+
+	t.Run("bad_multiple_assigments_x4", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int,int){
+  return int(0),int(1)
+}
+
+func b(){
+  c,d := a(), // comment
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
+
+	t.Run("bad_multiple_assigments_x5", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func a()(int,int){
+  return int(0),int(1)
+}
+
+func b(){
+  c,d := ,
+}
 `
 		parser := New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()

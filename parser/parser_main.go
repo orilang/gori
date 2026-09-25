@@ -221,6 +221,42 @@ func (p *Parser) lookForInSliceHeader(k token.Kind) bool {
 	return false
 }
 
+// lookupMultipleAssigments loops against for statements to find
+// provided token Kind and returns true when found
+func (p *Parser) lookupMultipleAssigments() (token.Kind, bool) {
+	origin, pos := p.position, p.position
+	if pos >= len(p.Tokens) {
+		return token.Illegal, false
+	}
+
+	newlineSincePrev := func() bool {
+		return p.Tokens[pos].Line > p.Tokens[origin].Line
+	}
+
+	var (
+		found bool
+		kind  token.Kind
+	)
+	for p.Tokens[pos].Kind != token.EOF && !newlineSincePrev() {
+		if p.Tokens[pos].Kind == token.Assign || p.Tokens[pos].Kind == token.Define {
+			found = true
+			kind = p.Tokens[pos].Kind
+			break
+		}
+		pos++
+	}
+
+	if found {
+		for i := origin; i < pos; i++ {
+			if p.Tokens[i].Kind == token.Comma {
+				return kind, true
+			}
+		}
+	}
+
+	return token.Illegal, false
+}
+
 // ParseFile returns the content of the file being parsed
 func (p *Parser) ParseFile() *ast.File {
 	kw := p.expect(token.KWPackage, "expected 'package'")
@@ -364,6 +400,10 @@ func (p *Parser) parseStmt() ast.Stmt {
 		}
 	}
 
+	if kind, ok := p.lookupMultipleAssigments(); ok {
+		return p.parseStmtExprMutipleAssigment(kind)
+	}
+
 	left := p.parseExpr(LOWEST)
 	_, iok := left.(*ast.IdentExpr)
 	_, sok := left.(*ast.SelectorExpr)
@@ -460,7 +500,7 @@ func (p *Parser) parsePrefix() ast.Expr {
 		expr = &ast.StringLitExpr{Name: p.next()}
 
 	case token.Ident:
-		expr = &ast.IdentExpr{Name: p.expectValidIdent(p.kind(), true, "expected valid ident")}
+		expr = &ast.IdentExpr{Name: p.expectValidIdent(p.kind(), false, "expected valid ident")}
 
 	case token.LParen:
 		expr = p.parseGroupExpr()
@@ -607,13 +647,64 @@ func (p *Parser) parseCallExpr(left ast.Expr) ast.Expr {
 
 // parseStmtExpr returns expressions for parseStmt func
 func (p *Parser) parseStmtExpr(left ast.Expr) *ast.AssignStmt {
-	op := p.peek()
-	_ = p.next()
-	return &ast.AssignStmt{
-		Left:     left,
-		Operator: op,
-		Right:    p.parseExpr(LOWEST),
+	op := p.next()
+	x := &ast.AssignStmt{Operator: op}
+	x.Left = append(x.Left, left)
+	x.Right = append(x.Right, p.parseExpr(LOWEST))
+	return x
+}
+
+// parseStmtExprMutipleAssigment returns expressions for parseStmt func
+func (p *Parser) parseStmtExprMutipleAssigment(kind token.Kind) *ast.AssignStmt {
+	x := &ast.AssignStmt{}
+	lhs := true
+
+	for p.kind() != token.RBrace && p.kind() != token.EOF {
+		if lhs {
+			if p.peek().Value == "_" {
+				x.Left = append(x.Left, &ast.IdentExpr{Name: p.next()})
+			} else {
+				if kind == token.Define {
+					x.Left = append(x.Left, &ast.IdentExpr{Name: p.expectValidIdent(token.Ident, true, "expected valid ident")})
+				} else {
+					x.Left = append(x.Left, p.parseExpr(LOWEST))
+				}
+			}
+
+			if p.kind() == token.Comma {
+				_ = p.next()
+				continue
+			}
+
+			if p.kind() == token.Assign || p.kind() == token.Define {
+				x.Operator = p.next()
+				lhs = false
+			}
+		} else {
+			x.Right = append(x.Right, p.parseExpr(LOWEST))
+
+			if p.kind() == token.Comment {
+				_ = p.next()
+			}
+
+			if p.kind() == token.Comma {
+				comma := p.next()
+				if p.newlineSincePrev() || p.kind() == token.Comment {
+					p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected expression after ',', got %v %q", comma.Line, comma.Column, comma.Kind, comma.Value))
+					p.consumeTo(token.RParen)
+					return nil
+				}
+
+				continue
+			}
+
+			if p.newlineSincePrev() {
+				break
+			}
+		}
 	}
+
+	return x
 }
 
 // isPublic returns if the field is public or not

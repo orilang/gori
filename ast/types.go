@@ -176,9 +176,9 @@ type CallExpr struct {
 
 // AssignStmt handles assignement expressions
 type AssignStmt struct {
-	Left     Expr
+	Left     []Expr
 	Operator token.Token
-	Right    Expr
+	Right    []Expr
 }
 
 // ExprStmt is used by Stmt
