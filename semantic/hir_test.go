@@ -370,10 +370,12 @@ func main() {
 
 		da, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "a", da.Symbol.Name)
-		require.Equal(t, TInt, da.Symbol.Type)
+		require.Equal(t, 1, len(da.Symbol))
+		require.Equal(t, "a", da.Symbol[0].Name)
+		require.Equal(t, TInt, da.Symbol[0].Type)
 
-		dar, ok := da.Right.(*CallExpr)
+		require.Equal(t, 1, len(da.Right))
+		dar, ok := da.Right[0].(*CallExpr)
 		require.Equal(t, true, ok)
 
 		dav, ok := dar.Callee.(*IdentExpr)
@@ -401,10 +403,12 @@ func main() {
 
 		da1, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "b", da1.Symbol.Name)
-		require.Equal(t, TInt64, da1.Symbol.Type)
+		require.Equal(t, 1, len(da1.Symbol))
+		require.Equal(t, "b", da1.Symbol[0].Name)
+		require.Equal(t, TInt64, da1.Symbol[0].Type)
 
-		ceDar1, ok := da1.Right.(*ConversionExpr)
+		require.Equal(t, 1, len(da1.Right))
+		ceDar1, ok := da1.Right[0].(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt64, ceDar1.To)
 
@@ -415,10 +419,12 @@ func main() {
 
 		da2, ok := fn1.Body.Stmts[2].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "b", da2.Symbol.Name)
-		require.Equal(t, TInt64, da2.Symbol.Type)
+		require.Equal(t, 1, len(da2.Symbol))
+		require.Equal(t, "b", da2.Symbol[0].Name)
+		require.Equal(t, TInt64, da2.Symbol[0].Type)
 
-		ceDar2, ok := da2.Right.(*ConversionExpr)
+		require.Equal(t, 1, len(da2.Right))
+		ceDar2, ok := da2.Right[0].(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt64, ceDar2.To)
 
@@ -476,10 +482,12 @@ func main() {
 
 		da1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "a", da1.Symbol.Name)
-		require.Equal(t, TInt, da1.Symbol.Type)
+		require.Equal(t, 1, len(da1.Right))
+		require.Equal(t, "a", da1.Symbol[0].Name)
+		require.Equal(t, TInt, da1.Symbol[0].Type)
 
-		dar1, ok := da1.Right.(*ConversionExpr)
+		require.Equal(t, 1, len(da1.Right))
+		dar1, ok := da1.Right[0].(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, dar1.To)
 		arg1, ok := dar1.Value.(*IntLitExpr)
@@ -489,10 +497,12 @@ func main() {
 
 		da2, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "b", da2.Symbol.Name)
-		require.Equal(t, TInt, da2.Symbol.Type)
+		require.Equal(t, 1, len(da2.Symbol))
+		require.Equal(t, "b", da2.Symbol[0].Name)
+		require.Equal(t, TInt, da2.Symbol[0].Type)
 
-		dar2, ok := da2.Right.(*ConversionExpr)
+		require.Equal(t, 1, len(da2.Right))
+		dar2, ok := da2.Right[0].(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, dar2.To)
 		arg2, ok := dar2.Value.(*IntLitExpr)
@@ -587,10 +597,12 @@ func main() {
 
 		da1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "a", da1.Symbol.Name)
-		require.Equal(t, TInt, da1.Symbol.Type)
+		require.Equal(t, 1, len(da1.Symbol))
+		require.Equal(t, "a", da1.Symbol[0].Name)
+		require.Equal(t, TInt, da1.Symbol[0].Type)
 
-		dar1, ok := da1.Right.(*ConversionExpr)
+		require.Equal(t, 1, len(da1.Right))
+		dar1, ok := da1.Right[0].(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, dar1.To)
 		arg1, ok := dar1.Value.(*IntLitExpr)
@@ -600,10 +612,12 @@ func main() {
 
 		da2, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "b", da2.Symbol.Name)
-		require.Equal(t, TInt, da2.Symbol.Type)
+		require.Equal(t, 1, len(da2.Symbol))
+		require.Equal(t, "b", da2.Symbol[0].Name)
+		require.Equal(t, TInt, da2.Symbol[0].Type)
 
-		dar2, ok := da2.Right.(*ConversionExpr)
+		require.Equal(t, 1, len(da2.Right))
+		dar2, ok := da2.Right[0].(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, dar2.To)
 		arg2, ok := dar2.Value.(*IntLitExpr)
@@ -613,10 +627,12 @@ func main() {
 
 		da3, ok := fn1.Body.Stmts[2].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "c", da3.Symbol.Name)
-		require.Equal(t, TInt, da3.Symbol.Type)
+		require.Equal(t, 1, len(da3.Symbol))
+		require.Equal(t, "c", da3.Symbol[0].Name)
+		require.Equal(t, TInt, da3.Symbol[0].Type)
 
-		dar3, ok := da3.Right.(*ConversionExpr)
+		require.Equal(t, 1, len(da3.Right))
+		dar3, ok := da3.Right[0].(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, dar2.To)
 		arg3, ok := dar3.Value.(*IntLitExpr)
@@ -705,10 +721,12 @@ func main() {
 
 		da1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
 		require.Equal(t, true, ok)
-		require.Equal(t, "a", da1.Symbol.Name)
-		require.Equal(t, TInt, da1.Symbol.Type)
+		require.Equal(t, 1, len(da1.Symbol))
+		require.Equal(t, "a", da1.Symbol[0].Name)
+		require.Equal(t, TInt, da1.Symbol[0].Type)
 
-		dar1, ok := da1.Right.(*ConversionExpr)
+		require.Equal(t, 1, len(da1.Right))
+		dar1, ok := da1.Right[0].(*ConversionExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, dar1.To)
 		arg1, ok := dar1.Value.(*IntLitExpr)
@@ -749,5 +767,846 @@ func main() {
 				require.Equal(t, 2, len(cc.Body))
 			}
 		}
+	})
+
+	t.Run("x12", func(t *testing.T) {
+		data := `package main
+func test() (string, int) {
+  return "yes", int(1)
+}
+
+func f() {
+  _,_ := test()
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		for _, d := range diagnostics {
+			fmt.Println(d.Err.Error())
+		}
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		fn, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", fn.Name)
+		require.NotNil(t, fn.Symbol)
+		require.Equal(t, SymFunc, fn.Symbol.Kind)
+		require.Equal(t, 0, len(fn.Params))
+		require.Equal(t, 2, len(fn.Results))
+		require.Equal(t, TString, fn.Results[0].Type)
+		require.Equal(t, TInt, fn.Results[1].Type)
+
+		require.NotNil(t, fn.Body)
+		rs, ok := fn.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(rs.Values))
+
+		rv1, ok := rs.Values[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, rv1.Type)
+		require.Equal(t, "\"yes\"", rv1.Value)
+
+		rv2, ok := rs.Values[1].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rv2.To)
+		v2, ok := rv2.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, v2.Type)
+		require.Equal(t, "1", v2.Value)
+
+		fn1, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn1.Name, "f")
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		da, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da.Symbol))
+		require.Equal(t, "_", da.Symbol[0].Name)
+		require.Equal(t, TString, da.Symbol[0].Type)
+
+		require.Equal(t, "_", da.Symbol[1].Name)
+		require.Equal(t, TInt, da.Symbol[1].Type)
+
+		require.Equal(t, 1, len(da.Right))
+		dar, ok := da.Right[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		fnx, ok := dar.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", fnx.Name)
+	})
+
+	t.Run("x13", func(t *testing.T) {
+		data := `package main
+func test() (string, int) {
+  return "yes", int(1)
+}
+
+func f() {
+  a,_ := test()
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		for _, d := range diagnostics {
+			fmt.Println(d.Err.Error())
+		}
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		fn, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", fn.Name)
+		require.NotNil(t, fn.Symbol)
+		require.Equal(t, SymFunc, fn.Symbol.Kind)
+		require.Equal(t, 0, len(fn.Params))
+		require.Equal(t, 2, len(fn.Results))
+		require.Equal(t, TString, fn.Results[0].Type)
+		require.Equal(t, TInt, fn.Results[1].Type)
+
+		require.NotNil(t, fn.Body)
+		rs, ok := fn.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(rs.Values))
+
+		rv1, ok := rs.Values[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, rv1.Type)
+		require.Equal(t, "\"yes\"", rv1.Value)
+
+		rv2, ok := rs.Values[1].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rv2.To)
+		v2, ok := rv2.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, v2.Type)
+		require.Equal(t, "1", v2.Value)
+
+		fn1, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn1.Name, "f")
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		da, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da.Symbol))
+		require.Equal(t, "a", da.Symbol[0].Name)
+		require.Equal(t, TString, da.Symbol[0].Type)
+
+		require.Equal(t, "_", da.Symbol[1].Name)
+		require.Equal(t, TInt, da.Symbol[1].Type)
+
+		require.Equal(t, 1, len(da.Right))
+		dar, ok := da.Right[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		fnx, ok := dar.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", fnx.Name)
+
+		// dar, ok := da.Right[0].(*IdentExpr)
+		// require.Equal(t, true, ok)
+		// dat, ok := dar.Type.(*FuncMethod)
+		// require.Equal(t, true, ok)
+		// require.Equal(t, dat, dar.Type)
+		// require.Equal(t, "test", dar.Value)
+		// require.Equal(t, "test", dar.Symbol.Name)
+		// require.Equal(t, dar.Type, dar.Symbol.Type)
+	})
+
+	t.Run("x14", func(t *testing.T) {
+		data := `package main
+func test() (string, int) {
+  return "yes", int(1)
+}
+
+func f() {
+  a, b := test()
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		for _, d := range diagnostics {
+			fmt.Println(d.Err.Error())
+		}
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		fn, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", fn.Name)
+		require.NotNil(t, fn.Symbol)
+		require.Equal(t, SymFunc, fn.Symbol.Kind)
+		require.Equal(t, 0, len(fn.Params))
+		require.Equal(t, 2, len(fn.Results))
+		require.Equal(t, TString, fn.Results[0].Type)
+		require.Equal(t, TInt, fn.Results[1].Type)
+
+		require.NotNil(t, fn.Body)
+		rs, ok := fn.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(rs.Values))
+
+		rv1, ok := rs.Values[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, rv1.Type)
+		require.Equal(t, "\"yes\"", rv1.Value)
+
+		rv2, ok := rs.Values[1].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rv2.To)
+		v2, ok := rv2.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, v2.Type)
+		require.Equal(t, "1", v2.Value)
+
+		fn1, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn1.Name, "f")
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		da, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da.Symbol))
+		require.Equal(t, "a", da.Symbol[0].Name)
+		require.Equal(t, TString, da.Symbol[0].Type)
+
+		require.Equal(t, "b", da.Symbol[1].Name)
+		require.Equal(t, TInt, da.Symbol[1].Type)
+
+		require.Equal(t, 1, len(da.Right))
+		dar, ok := da.Right[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		fnx, ok := dar.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", fnx.Name)
+	})
+
+	t.Run("x15", func(t *testing.T) {
+		data := `package main
+func test() (string, int) {
+  return "yes", int(1)
+}
+
+func f() {
+  a, _ := test()
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		for _, d := range diagnostics {
+			fmt.Println(d.Err.Error())
+		}
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		fn, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", fn.Name)
+		require.NotNil(t, fn.Symbol)
+		require.Equal(t, SymFunc, fn.Symbol.Kind)
+		require.Equal(t, 0, len(fn.Params))
+		require.Equal(t, 2, len(fn.Results))
+		require.Equal(t, TString, fn.Results[0].Type)
+		require.Equal(t, TInt, fn.Results[1].Type)
+
+		require.NotNil(t, fn.Body)
+		rs, ok := fn.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(rs.Values))
+
+		rv1, ok := rs.Values[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, rv1.Type)
+		require.Equal(t, "\"yes\"", rv1.Value)
+
+		rv2, ok := rs.Values[1].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rv2.To)
+		v2, ok := rv2.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, v2.Type)
+		require.Equal(t, "1", v2.Value)
+
+		fn1, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn1.Name, "f")
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		da, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da.Symbol))
+		require.Equal(t, "a", da.Symbol[0].Name)
+		require.Equal(t, TString, da.Symbol[0].Type)
+
+		require.Equal(t, "_", da.Symbol[1].Name)
+		require.NotNil(t, da.Symbol[1].Type)
+
+		require.Equal(t, 1, len(da.Right))
+		dar, ok := da.Right[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		fnx, ok := dar.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", fnx.Name)
+	})
+
+	t.Run("x17", func(t *testing.T) {
+		data := `package main
+func test1() string {
+  return "yes"
+}
+
+func test2() int {
+  return int(0)
+}
+
+func f() {
+  a,b := test1(),test2()
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		for _, d := range diagnostics {
+			fmt.Println(d.Err.Error())
+		}
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 3, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, TString, fn1.Results[0].Type)
+
+		require.NotNil(t, fn1.Body)
+		rs1, ok := fn1.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rs1.Values))
+
+		rv1, ok := rs1.Values[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, rv1.Type)
+		require.Equal(t, "\"yes\"", rv1.Value)
+
+		fn2, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", fn2.Name)
+		require.NotNil(t, fn2.Symbol)
+		require.Equal(t, SymFunc, fn2.Symbol.Kind)
+		require.Equal(t, 0, len(fn2.Params))
+		require.Equal(t, 1, len(fn2.Results))
+		require.Equal(t, TInt, fn2.Results[0].Type)
+
+		require.NotNil(t, fn2.Body)
+		rs2, ok := fn2.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rs2.Values))
+
+		ce1, ok := rs2.Values[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+		rv2, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rv2.Type)
+		require.Equal(t, "0", rv2.Value)
+
+		fn3, ok := pf.Decls[2].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn3.Name, "f")
+		require.NotNil(t, fn3.Symbol)
+		require.Equal(t, SymFunc, fn3.Symbol.Kind)
+		require.Equal(t, 0, len(fn3.Params))
+		require.Equal(t, 0, len(fn3.Results))
+
+		require.NotNil(t, fn3.Body)
+		require.Equal(t, 1, len(fn3.Body.Stmts))
+
+		da, ok := fn3.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da.Symbol))
+		require.Equal(t, "a", da.Symbol[0].Name)
+		require.Equal(t, TString, da.Symbol[0].Type)
+
+		require.Equal(t, "b", da.Symbol[1].Name)
+		require.Equal(t, TInt, da.Symbol[1].Type)
+
+		require.Equal(t, 2, len(da.Right))
+		ca1, ok := da.Right[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(ca1.Args))
+
+		callee1, ok := ca1.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", callee1.Value)
+		calleeType1, ok := ca1.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", calleeType1.Name)
+
+		ca2, ok := da.Right[1].(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(ca2.Args))
+
+		callee2, ok := ca2.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", callee2.Value)
+		calleeType2, ok := ca2.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", calleeType2.Name)
+	})
+
+	t.Run("x18", func(t *testing.T) {
+		data := `package main
+func test1() string {
+  return "yes"
+}
+
+func test2() int {
+  return int(0)
+}
+
+func f() {
+  a, b := "no",int(1)
+  a,b = test1(),test2()
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		for _, d := range diagnostics {
+			fmt.Println(d.Err.Error())
+		}
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 3, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, TString, fn1.Results[0].Type)
+
+		require.NotNil(t, fn1.Body)
+		rs1, ok := fn1.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rs1.Values))
+
+		rv1, ok := rs1.Values[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, rv1.Type)
+		require.Equal(t, "\"yes\"", rv1.Value)
+
+		fn2, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", fn2.Name)
+		require.NotNil(t, fn2.Symbol)
+		require.Equal(t, SymFunc, fn2.Symbol.Kind)
+		require.Equal(t, 0, len(fn2.Params))
+		require.Equal(t, 1, len(fn2.Results))
+		require.Equal(t, TInt, fn2.Results[0].Type)
+
+		require.NotNil(t, fn2.Body)
+		rs2, ok := fn2.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rs2.Values))
+
+		ce1, ok := rs2.Values[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+		rv2, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rv2.Type)
+		require.Equal(t, "0", rv2.Value)
+
+		fn3, ok := pf.Decls[2].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn3.Name, "f")
+		require.NotNil(t, fn3.Symbol)
+		require.Equal(t, SymFunc, fn3.Symbol.Kind)
+		require.Equal(t, 0, len(fn3.Params))
+		require.Equal(t, 0, len(fn3.Results))
+
+		require.NotNil(t, fn3.Body)
+		require.Equal(t, 2, len(fn3.Body.Stmts))
+
+		da1, ok := fn3.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da1.Symbol))
+		require.Equal(t, "a", da1.Symbol[0].Name)
+		require.Equal(t, TString, da1.Symbol[0].Type)
+
+		require.Equal(t, "b", da1.Symbol[1].Name)
+		require.Equal(t, TInt, da1.Symbol[1].Type)
+
+		require.Equal(t, 2, len(da1.Right))
+		darv1, ok := da1.Right[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, darv1.Type)
+		require.Equal(t, "\"no\"", darv1.Value)
+
+		ce2, ok := da1.Right[1].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce2.To)
+
+		darv2, ok := ce2.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, darv2.Type)
+		require.Equal(t, "1", darv2.Value)
+
+		da2, ok := fn3.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da2.Symbol))
+		require.Equal(t, "a", da2.Symbol[0].Name)
+		require.Equal(t, TString, da2.Symbol[0].Type)
+
+		require.Equal(t, "b", da2.Symbol[1].Name)
+		require.Equal(t, TInt, da2.Symbol[1].Type)
+
+		require.Equal(t, 2, len(da2.Right))
+		ca1, ok := da2.Right[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(ca1.Args))
+
+		callee1, ok := ca1.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", callee1.Value)
+		calleeType1, ok := ca1.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", calleeType1.Name)
+
+		ca2, ok := da2.Right[1].(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(ca2.Args))
+
+		callee2, ok := ca2.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", callee2.Value)
+		calleeType2, ok := ca2.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", calleeType2.Name)
+	})
+
+	t.Run("x19", func(t *testing.T) {
+		data := `package main
+func test1() string {
+  return "yes"
+}
+
+func test2() int {
+  return int(0)
+}
+
+func f() {
+  a, b := "no",int(1)
+  a,_ = test1(),test2()
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 3, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, TString, fn1.Results[0].Type)
+
+		require.NotNil(t, fn1.Body)
+		rs1, ok := fn1.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rs1.Values))
+
+		rv1, ok := rs1.Values[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, rv1.Type)
+		require.Equal(t, "\"yes\"", rv1.Value)
+
+		fn2, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", fn2.Name)
+		require.NotNil(t, fn2.Symbol)
+		require.Equal(t, SymFunc, fn2.Symbol.Kind)
+		require.Equal(t, 0, len(fn2.Params))
+		require.Equal(t, 1, len(fn2.Results))
+		require.Equal(t, TInt, fn2.Results[0].Type)
+
+		require.NotNil(t, fn2.Body)
+		rs2, ok := fn2.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rs2.Values))
+
+		ce1, ok := rs2.Values[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+		rv2, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rv2.Type)
+		require.Equal(t, "0", rv2.Value)
+
+		fn3, ok := pf.Decls[2].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn3.Name, "f")
+		require.NotNil(t, fn3.Symbol)
+		require.Equal(t, SymFunc, fn3.Symbol.Kind)
+		require.Equal(t, 0, len(fn3.Params))
+		require.Equal(t, 0, len(fn3.Results))
+
+		require.NotNil(t, fn3.Body)
+		require.Equal(t, 2, len(fn3.Body.Stmts))
+
+		da1, ok := fn3.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da1.Symbol))
+		require.Equal(t, "a", da1.Symbol[0].Name)
+		require.Equal(t, TString, da1.Symbol[0].Type)
+
+		require.Equal(t, "b", da1.Symbol[1].Name)
+		require.Equal(t, TInt, da1.Symbol[1].Type)
+
+		require.Equal(t, 2, len(da1.Right))
+		darv1, ok := da1.Right[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, darv1.Type)
+		require.Equal(t, "\"no\"", darv1.Value)
+
+		ce2, ok := da1.Right[1].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce2.To)
+
+		darv2, ok := ce2.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, darv2.Type)
+		require.Equal(t, "1", darv2.Value)
+
+		da2, ok := fn3.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 2, len(da2.Symbol))
+		require.Equal(t, "a", da2.Symbol[0].Name)
+		require.Equal(t, TString, da2.Symbol[0].Type)
+
+		require.Equal(t, "", da2.Symbol[1].Name)
+		require.Equal(t, true, da2.Symbol[1].IsBlank)
+		require.NotNil(t, da2.Symbol[1].Type)
+
+		require.Equal(t, 2, len(da2.Right))
+		ca1, ok := da2.Right[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(ca1.Args))
+
+		callee1, ok := ca1.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", callee1.Value)
+		calleeType1, ok := ca1.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test1", calleeType1.Name)
+
+		ca2, ok := da2.Right[1].(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(ca2.Args))
+
+		callee2, ok := ca2.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", callee2.Value)
+		calleeType2, ok := ca2.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test2", calleeType2.Name)
+	})
+
+	t.Run("x20", func(t *testing.T) {
+		data := `package main
+func multi(a int) int {
+  return a*2
+}
+
+func f() {
+  a := int(1)
+  a = multi(int(4))
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "multi", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 1, len(fn1.Params))
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "a", fn1.Params[0].Name)
+		require.Equal(t, TInt, fn1.Params[0].Type)
+		require.Equal(t, TInt, fn1.Results[0].Type)
+
+		require.NotNil(t, fn1.Body)
+		rs1, ok := fn1.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rs1.Values))
+
+		rv1, ok := rs1.Values[0].(*BinaryExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rv1.Type)
+		rv1i, ok := rv1.Left.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "a", rv1i.Value)
+		require.Equal(t, TInt, rv1i.Type)
+		require.Equal(t, token.Star, rv1.Operator)
+
+		fn3, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, fn3.Name, "f")
+		require.NotNil(t, fn3.Symbol)
+		require.Equal(t, SymFunc, fn3.Symbol.Kind)
+		require.Equal(t, 0, len(fn3.Params))
+		require.Equal(t, 0, len(fn3.Results))
+
+		require.NotNil(t, fn3.Body)
+		require.Equal(t, 2, len(fn3.Body.Stmts))
+
+		da1, ok := fn3.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(da1.Symbol))
+		require.Equal(t, "a", da1.Symbol[0].Name)
+		require.Equal(t, TInt, da1.Symbol[0].Type)
+
+		require.Equal(t, 1, len(da1.Right))
+		ce1, ok := da1.Right[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+
+		darv2, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, darv2.Type)
+		require.Equal(t, "1", darv2.Value)
+
+		da2, ok := fn3.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(da2.Symbol))
+		require.Equal(t, "a", da2.Symbol[0].Name)
+		require.Equal(t, TInt, da2.Symbol[0].Type)
+
+		require.Equal(t, 1, len(da2.Right))
+		ca1, ok := da2.Right[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(ca1.Args))
+
+		callee1, ok := ca1.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "multi", callee1.Value)
+		calleeType1, ok := ca1.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, "multi", calleeType1.Name)
 	})
 }

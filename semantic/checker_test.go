@@ -1,6 +1,7 @@
 package semantic
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -938,14 +939,18 @@ func y() {
 
 		check.checkSimpleAssignStmt(
 			&ast.AssignStmt{
-				Left: &ast.IntLitExpr{
-					Name: token.Token{
-						Value: "0",
+				Left: []ast.Expr{
+					&ast.IntLitExpr{
+						Name: token.Token{
+							Value: "0",
+						},
 					},
 				},
-				Right: &ast.StringLitExpr{
-					Name: token.Token{
-						Value: "test",
+				Right: []ast.Expr{
+					&ast.StringLitExpr{
+						Name: token.Token{
+							Value: "test",
+						},
 					},
 				},
 			},
@@ -7728,6 +7733,453 @@ func describe(s Shape) (b int, c int) {
 	})
 
 	t.Run("dummy_resolved_symbol", func(t *testing.T) {
-		assert.Equal(t, ResolvedSymbol{}, resolvedSymbol(nil))
+		assert.Equal(t, ResolvedSymbol{}, resolvedSymbol(nil, false))
+	})
+
+	t.Run("x32", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  _,_ := test()
+}
+`,
+			},
+			{
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+	a,_ := test()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  _,_ := test(),test()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+	a,b,c := test()
+}
+`,
+			},
+			{
+				data: `package main
+func f() {
+  a,b := int(0), int(1)
+}
+`,
+			},
+			{
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+	_,_ = test()
+}
+`,
+			},
+			{
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a := int(0)
+  a,_ = test()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  _,_ = test(),test()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a,b,c := int(0),int(1),int(2)
+  a,b,c = test()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  a,b := int(0),int(1),int(2)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test() (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a,b,c := test()
+}
+`,
+			},
+			{
+				data: `package main
+func f() {
+  a,b,c := int(0),int(1),int(2)
+  a,b = int(0), int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  const a int = int64(0)
+  b := int(1)
+  a,b = int(0), int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  a,b := int(0), 1
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  a,b := int(0), int(0)
+  a,b := int(0), int(0)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  a,b := int(0), f1()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  a,a := int(0), int(1)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test(a int) (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a := int(0)
+  a,_ = test(int(0), int(1))
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test(a int) (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a,_ := test(int(0), int(1))
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test(a int) (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a,b = test(int(0))
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test(a int) (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  const a int = int(0)
+  const b int = int(0)
+  a,b = test(int(0))
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test(a int) (int, int) {
+  return int(0), int(1)
+}
+
+func f() {
+  var a int64 = int64(0)
+  var b int = int(0)
+  a,b = test(int(0))
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test(a int) (b int, c int) {
+  return int(0), int(1)
+}
+
+func f() {
+  var a int64 = int64(0)
+  var b int = int(0)
+  a,b = test(int(0))
+}
+`,
+			},
+			{
+				data: `package main
+func test(a float64) (b float64) {
+  b = a*float64(2)
+  return
+}
+
+func f() {
+  var a float64 = float64(0)
+  a = test(float64(0))
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test(a int) (b int, c int) {
+  b = int(0)
+  c = int(1)
+  return
+}
+
+func f() (b int, c int) {
+  a := int(0)
+  b := int(0)
+  a,b = test(int(0))
+	return
+}
+`,
+			},
+			{
+				data: `package main
+func test(a int) (b int, c int) {
+  b = int(0)
+  c = int(1)
+  return
+}
+
+func f() (a int, b int) {
+  a,b = test(int(0))
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (a int, b int) {
+  a, b = int(1)
+	return
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (a int, b int) {
+  x := int(1)
+  a, b = x
+	return a, b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (a int, b int) {
+  x := int(1)
+  b = int(1)
+  a, b = x
+	return a, b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() (c int, d int) {
+  x := int(1)
+  a, b := x
+	return a, b
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) f(ok bool) (a int) {
+	a = int(1)
+	return
+}
+
+func f() (c int, d int) {
+  x := int(1)
+  a, b := x
+	return a, b
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+
+func (u User) name(a string, b int32) (string, int32 ) { return a, b }
+func (u User) test() { 
+  a, b := u.name("test", int32(10)) 
+  a, b = u.name("test", int32(10)) 
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func main() {
+  a, b := int(0), int(2), int(3) 
+}
+`,
+			},
+			{
+				data: `package main
+func f() (int, int) { return int(0), int(1) }
+func g() string     { return "a" }
+func main() {
+  a, b := f,g
+}
+`,
+			},
+			{
+				data: `package main
+func foo() (string, int) { return "yes", int(1) }
+func bar() (string, int) {
+  return foo()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(a string) (string, int) { return "yes", int(1) }
+func bar() (string, int) {
+  return foo()
+}
+`,
+			},
+			{
+				data: `package main
+func foo(a string) (string, int) { return "yes", int(1) }
+func bar() (string, int) {
+  return foo("test")
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo() (int, int) {
+  return int(1), int(2), int(3)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo() (int, int, int) {
+    return int(1), int(2)
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			_, diagnostics := check.Check(pr)
+			for _, v := range check.errors {
+				fmt.Println(v.Err.Error())
+			}
+			if tc.err {
+				assert.Greater(t, len(diagnostics), 0, i)
+			} else {
+				assert.Equal(t, 0, len(diagnostics), i)
+			}
+		}
 	})
 }

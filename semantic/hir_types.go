@@ -30,22 +30,22 @@ type Stmt interface {
 }
 
 type ResolvedSymbol struct {
-	Name string
-	Kind SymbolKind
-	Type Type
+	Name     string
+	Kind     SymbolKind
+	Type     Type
+	IsBlank  bool
+	FromFunc bool
 }
 
 type ConstDecl struct {
 	Name   string
 	Symbol ResolvedSymbol
-	Eq     token.Kind
 	Init   Expr
 }
 
 type VarDecl struct {
 	Name   string
 	Symbol ResolvedSymbol
-	Eq     token.Kind
 	Init   Expr
 }
 
@@ -128,8 +128,8 @@ type ReturnStmt struct {
 }
 
 type AssigmentStmt struct {
-	Symbol ResolvedSymbol
-	Right  Expr
+	Symbol []ResolvedSymbol
+	Right  []Expr
 }
 
 type IfStmt struct {
@@ -200,4 +200,10 @@ type CallExpr struct {
 	Callee     Expr
 	CalleeType Type
 	Args       []Expr
+	FromFunc   bool
+}
+
+type SelectorExpr struct {
+	X        Expr
+	Selector string
 }
