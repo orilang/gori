@@ -153,29 +153,65 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		return
 
 	case *semantic.AssigmentStmt:
-		var results []infos
-		for _, sr := range stmt.Right {
-			results = append(results, l.lower(sr))
+		// One RHS can be a multi-value function call.
+		if len(stmt.Right) == 1 {
+			right := l.lower(stmt.Right[0])
+
+			for k, ss := range stmt.Symbol {
+				if ss.IsBlank {
+					continue
+				}
+
+				if ss.FromFunc && ss.IsMultiValue {
+					l.instructions = append(l.instructions, &ir.Extract{
+						Result: ss.Name,
+						Value:  singleValue(right.values),
+						Index:  k,
+					})
+				} else {
+					l.instructions = append(l.instructions, &ir.Assigment{
+						Result: ss.Name,
+						Value:  singleValue(right.values),
+					})
+				}
+
+				data.values = append(data.values, ir.Value(ss.Name))
+			}
+			return
 		}
 
-		for k := range stmt.Right {
-			if len(stmt.Right) > 1 {
-				if !stmt.Symbol[k].IsBlank {
-					l.instructions = append(l.instructions, &ir.Assigment{Result: stmt.Symbol[k].Name, Value: singleValue(results[k].values)})
-					data.values = append(data.values, ir.Value(stmt.Symbol[k].Name))
-				}
-			} else {
-				for sk, ss := range stmt.Symbol {
-					if !ss.IsBlank {
-						if ss.FromFunc && ss.IsMultiValue {
-							l.instructions = append(l.instructions, &ir.Extract{Result: ss.Name, Value: singleValue(results[k].values), Index: sk})
-						} else {
-							l.instructions = append(l.instructions, &ir.Assigment{Result: ss.Name, Value: singleValue(results[k].values)})
-						}
-						data.values = append(data.values, ir.Value(ss.Name))
-					}
-				}
+		// Multiple RHS values:
+		//
+		// 1. Evaluate each RHS from left to right.
+		// 2. Snapshot each resulting value immediately.
+		// 3. Only after all RHS values are captured, modify the LHS.
+		snapshots := make([]string, len(stmt.Right))
+
+		for k, right := range stmt.Right {
+			result := l.lower(right)
+
+			t := fmt.Sprintf("t%d", l.tIndex)
+			l.tIndex++
+
+			l.instructions = append(l.instructions, &ir.Assigment{
+				Result: t,
+				Value:  singleValue(result.values),
+			})
+
+			snapshots[k] = t
+		}
+
+		for k, ss := range stmt.Symbol {
+			if ss.IsBlank {
+				continue
 			}
+
+			l.instructions = append(l.instructions, &ir.Assigment{
+				Result: ss.Name,
+				Value:  snapshots[k],
+			})
+
+			data.values = append(data.values, ir.Value(ss.Name))
 		}
 		return
 

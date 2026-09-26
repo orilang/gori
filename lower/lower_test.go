@@ -1928,12 +1928,16 @@ entry:
 
 func f()
 entry:
-    t0 = const_int 1
-    a = "no"
-    b = t0
-    t1 = call test1()
-    t2 = call test2()
-    a = t1
+    t0 = "no"
+    t1 = const_int 1
+    t2 = t1
+    a = t0
+    b = t2
+    t3 = call test1()
+    t4 = t3
+    t5 = call test2()
+    t6 = t5
+    a = t4
 
 `,
 			},
@@ -1962,9 +1966,11 @@ entry:
 func f()
 entry:
     t0 = call test1()
-    t1 = call test2()
-    a = t0
-    b = t1
+    t1 = t0
+    t2 = call test2()
+    t3 = t2
+    a = t1
+    b = t3
 
 `,
 			},
@@ -2082,9 +2088,11 @@ func f() {
 				expected: `func f()
 entry:
     t0 = const_int 0
-    t1 = const_int 1
-    a = t0
-    b = t1
+    t1 = t0
+    t2 = const_int 1
+    t3 = t2
+    a = t1
+    b = t3
 
 `,
 			},
@@ -2143,15 +2151,20 @@ func f() {
 				expected: `func f()
 entry:
     t0 = const_int 0
-    t1 = const_int 1
-    t2 = const_int 2
-    a = t0
-    b = t1
-    c = t2
-    t3 = const_int 0
-    t4 = const_int 1
-    a = t3
-    b = t4
+    t1 = t0
+    t2 = const_int 1
+    t3 = t2
+    t4 = const_int 2
+    t5 = t4
+    a = t1
+    b = t3
+    c = t5
+    t6 = const_int 0
+    t7 = t6
+    t8 = const_int 1
+    t9 = t8
+    a = t7
+    b = t9
 
 `,
 			},
@@ -2180,13 +2193,17 @@ entry:
 
 func f()
 entry:
-    t0 = const_int 1
-    a = "no"
-    b = t0
-    t1 = call test1()
-    t2 = call test2()
-    a = t1
+    t0 = "no"
+    t1 = const_int 1
+    t2 = t1
+    a = t0
     b = t2
+    t3 = call test1()
+    t4 = t3
+    t5 = call test2()
+    t6 = t5
+    a = t4
+    b = t6
 
 `,
 			},
@@ -2251,11 +2268,15 @@ func main() {
 				expected: `func main()
 entry:
     t0 = const_int 1
-    t1 = const_int 2
-    a = t0
-    b = t1
-    a = b
-    b = a
+    t1 = t0
+    t2 = const_int 2
+    t3 = t2
+    a = t1
+    b = t3
+    t4 = b
+    t5 = a
+    a = t4
+    b = t5
 
 `,
 			},
@@ -2281,9 +2302,11 @@ entry:
     t1 = call test(t0)
     a = extract t1, 0
     b = extract t1, 1
-    t2 = const_int 3
-    a = b
-    b = t2
+    t2 = b
+    t3 = const_int 3
+    t4 = t3
+    a = t2
+    b = t4
 
 `,
 			},
@@ -2334,11 +2357,44 @@ entry:
     a = extract t1, 0
     b = extract t1, 1
     t2 = call foo()
-    t3 = call bar(a)
+    t3 = t2
+    t4 = call bar(a)
+    t5 = t4
+    a = t3
+    b = t5
+    t6 = b
+    t7 = call foo1(a)
+    t8 = t7
+    a = t6
+
+`,
+			},
+			{
+				data: `package main
+func test(a int) (b int, c int) {
+  return int(0), int(1)
+}
+
+func f() {
+  a,b := test(int(0))
+  a, b = b, a
+}`,
+				expected: `func test(a:int) -> (b:int, c:int)
+entry:
+    t0 = const_int 0
+    t1 = const_int 1
+    return t0, t1
+
+func f()
+entry:
+    t0 = const_int 0
+    t1 = call test(t0)
+    a = extract t1, 0
+    b = extract t1, 1
+    t2 = b
+    t3 = a
     a = t2
     b = t3
-    t4 = call foo1(a)
-    a = b
 
 `,
 			},
