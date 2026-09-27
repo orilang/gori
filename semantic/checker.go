@@ -346,7 +346,7 @@ func (c *Checker) resolveType(t ast.Type) Type {
 
 		len, ok := c.evalArrayLen(v.Len)
 		if !ok || len < 0 {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid array length type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid array length type at %d:%d", v.Start().Line, v.End().Column)})
 			return TInvalid
 		}
 		return &ArrayType{Len: len, Elem: elem}
@@ -366,7 +366,7 @@ func (c *Checker) resolveType(t ast.Type) Type {
 		}
 
 		if !isMapKeyType(key) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map key type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map key type at %d:%d", v.KeyType.Start().Line, v.KeyType.End().Column)})
 			return TInvalid
 		}
 
@@ -414,7 +414,7 @@ func (c *Checker) evalArrayLen(expr ast.Expr) (int64, bool) {
 				return left - right, true
 			case token.Slash:
 				if right == 0 {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("division by 0 is forbidden")})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("division by 0 is forbidden  at %d:%d", t.Right.Start().Line, t.Right.End().Column)})
 					return 0, false
 				}
 				return left / right, true
@@ -485,7 +485,7 @@ func (c *Checker) resolveNamedType(t *ast.NamedType) Type {
 			sym = c.pkgScope.LookupLocal(part.Value)
 		}
 		if sym == nil || sym.Kind != SymType {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown %q type", part.Value)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown %q type at %d:%d", part.Value, part.Line, part.Column)})
 			return TInvalid
 		}
 		return sym.Type
@@ -501,7 +501,7 @@ func (c *Checker) resolveStructFields(fields []*ast.FieldDecl) []StructField {
 
 	for _, field := range fields {
 		if prev := seen[field.Name.Value]; prev != nil {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("struct field %q already declared", field.Name.Value)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("struct field %q already declared at %d:%d", field.Name.Value, field.Name.Line, field.Name.Column)})
 			continue
 		}
 
@@ -522,7 +522,7 @@ func (c *Checker) resolveInterfaceMethods(methods []ast.InterfaceMethod) []FuncM
 
 	for _, fn := range methods {
 		if prev := seen[fn.Name.Value]; prev != nil {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("method name %q already declared", fn.Name.Value)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("method name %q already declared at %d:%d", fn.Name.Value, fn.Name.Line, fn.Name.Column)})
 			continue
 		}
 
@@ -567,12 +567,12 @@ func (c *Checker) resolveMethodSignatures() {
 		recvType := c.resolveType(decl.Receiver.Type)
 		namedRcv, ok := recvType.(*NamedType)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver must be a named type got %#v", namedRcv)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver must be a named type got %#v at %d:%d", namedRcv, decl.Name.Line, decl.Name.Column)})
 			continue
 		}
 
 		if _, ok := unwrapNamed(namedRcv).(*InterfaceType); ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver cannot be an interface type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver cannot be an interface type at %d:%d", decl.Name.Line, decl.Name.Column)})
 			continue
 		}
 
@@ -604,7 +604,7 @@ func (c *Checker) resolveParams(kind string, pr []ast.Param) []Param {
 	for _, p := range pr {
 		if p.Name.Value != "" {
 			if prev := seen[p.Name.Value]; prev != nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%s name %q already declared", kind, p.Name.Value)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%s name %q already declared at %d:%d", kind, p.Name.Value, p.Name.Line, p.Name.Column)})
 				continue
 			}
 
@@ -626,7 +626,7 @@ func (c *Checker) resolveEnumVariants(variants []token.Token) []string {
 
 	for _, v := range variants {
 		if prev := seen[v.Value]; prev != nil {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variant %q already declared", v.Value)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variant %q already declared at %d:%d", v.Value, v.Line, v.Column)})
 			continue
 		}
 
@@ -674,7 +674,7 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	valueType, expr := c.checkExpr(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", stringifyType(valueType), stringifyType(targetType))})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to const of type %T at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Init.End().Line, decl.Init.End().Column)})
 		return
 	}
 	sym := c.pkgScope.Lookup(typeDeclName(decl))
@@ -719,7 +719,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		if SupportsUnaryOp(right, t.Operator.Kind) {
 			return right, &UnaryExpr{Type: right, Operator: t.Operator.Kind, Right: ex}
 		}
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid unary operatation %s with type %s", t.Operator.Value, right.String())})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid unary operatation %s with type %s at %d:%d", t.Operator.Value, right.String(), t.Operator.Line, t.Operator.Column)})
 		return TInvalid, nil
 
 	case *ast.BinaryExpr:
@@ -735,7 +735,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 				return left, &BinaryExpr{Type: left, Left: lex, Operator: t.Operator.Kind, Right: rex}
 			}
 		}
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid binary operation %q of type %s with type %s", t.Operator.Value, left.String(), right.String())})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid binary operation %q of type %s with type %s at %d:%d", t.Operator.Value, left.String(), right.String(), t.Operator.Line, t.Operator.Column)})
 		return TInvalid, nil
 
 	case *ast.CallExpr:
@@ -746,7 +746,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 			if named, isNamed := selType.(*NamedType); isNamed {
 				if method, isMethod := c.lookupMethodType(named, sel.Selector.Value); isMethod {
 					if len(t.Args) != len(method.FuncType.Params) {
-						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments for %s func params, expected %d got %d", method.Name, len(method.FuncType.Params), len(t.Args))})
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments for %s func params, expected %d got %d at %d:%d", method.Name, len(method.FuncType.Params), len(t.Args), t.Start().Line, t.End().Column)})
 						return TInvalid, nil
 					}
 					selx.X = selExpr
@@ -755,7 +755,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 					for k, v := range method.FuncType.Params {
 						x, argExpr := c.checkExpr(t.Args[k])
 						if !IsAssignableTo(v.Type, x) {
-							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", v.Type.String(), x.String())})
+							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to const of type %T at %d:%d", v.Type.String(), x.String(), t.Start().Line, t.End().Column)})
 							return TInvalid, nil
 						}
 						ce.Args = append(ce.Args, argExpr)
@@ -777,20 +777,20 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		calleeType, calleeExpr := c.checkExpr(t.Callee)
 		if named, ok := calleeType.(*NamedType); ok {
 			if len(t.Args) != 1 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", named.Name, len(t.Args))})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d at %d:%d", named.Name, len(t.Args), t.Callee.Start().Line, t.Callee.End().Column)})
 				return TInvalid, nil
 			}
 			arg, _ := c.checkExpr(t.Args[0])
 			if IsConvertibleTo(arg, named) {
 				return named, nil
 			}
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %s", arg, named.Name)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %s at %d:%d", arg, named.Name, t.Args[0].Start().Line, t.Args[0].End().Column)})
 			return TInvalid, nil
 		}
 
 		if builtin, ok := calleeType.(*BuiltinType); ok {
 			if len(t.Args) != 1 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", expr, len(t.Args))})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d at %d:%d", expr, len(t.Args), t.LParen.Line, t.RParen.Column)})
 				return TInvalid, nil
 			}
 
@@ -798,7 +798,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 			if IsConvertibleTo(arg, builtin) {
 				return calleeType, &ConversionExpr{To: calleeType, Value: ex}
 			}
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %#v", arg, builtin)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %#v at %d:%d", arg, builtin, t.Args[0].Start().Line, t.Args[0].End().Column)})
 			return TInvalid, nil
 		}
 
@@ -807,7 +807,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 			return TInvalid, nil
 		}
 		if len(t.Args) != len(fn.FuncType.Params) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments for %s func params, expected %d got %d", fn.Name, len(fn.FuncType.Params), len(t.Args))})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments for %s func params, expected %d got %d at %d:%d", fn.Name, len(fn.FuncType.Params), len(t.Args), t.LParen.Line, t.RParen.Column)})
 			return TInvalid, nil
 		}
 
@@ -815,7 +815,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		for k, v := range fn.FuncType.Params {
 			x, argExpr := c.checkExpr(t.Args[k])
 			if !IsAssignableTo(v.Type, x) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", v.Type.String(), x.String())})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to var of type %T at %d:%d", v.Type.String(), x.String(), t.Args[k].Start().Line, t.Args[k].End().Column)})
 				return TInvalid, nil
 			}
 			ce.Args = append(ce.Args, argExpr)
@@ -842,28 +842,28 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		switch decl := underlying.(type) {
 		case *SliceType:
 			if !IsIdentical(index, TInt) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %#v", index)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %#v at %d:%d", index, t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 			return decl.Elem, nil
 
 		case *ArrayType:
 			if !IsIdentical(index, TInt) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %#v", index)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %#v at %d:%d", index, t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 			return decl.Elem, nil
 
 		case *MapType:
 			if !IsIdentical(decl.Key, index) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map index expression of type %#v", index)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map index expression of type %#v at %d:%d", index, t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 			return decl.Value, nil
 
 		case *HashMapType:
 			if !IsIdentical(decl.Key, index) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid hashmap index expression of type %#v", index)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid hashmap index expression of type %#v at %d:%d", index, t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 			return decl.Value, nil
@@ -985,13 +985,13 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 	recvType := c.resolveType(fn.Receiver.Type)
 	namedRcv, ok := recvType.(*NamedType)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver must be a named type got %#v", namedRcv)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver must be a named type got %#v at %d:%d", namedRcv, fn.Receiver.LParen.Line, fn.Receiver.RParen.Column)})
 		return
 	}
 
 	method, ok := c.lookupMethodType(namedRcv, fn.Name.Value)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("method type undefined")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("method type undefined at %d:%d", fn.Name.Line, fn.Name.Column)})
 		return
 	}
 
@@ -1065,14 +1065,14 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 
 		if _, ok := stmt.(*ast.BreakStmt); ok {
 			if i != len(block.Stmts)-1 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("break must be the last statement of this block")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("break must be the last statement of this block at %d:%d", stmt.Start().Line, stmt.End().Line)})
 				return
 			}
 		}
 
 		if _, ok := stmt.(*ast.ContinueStmt); ok {
 			if i != len(block.Stmts)-1 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("continue must be the last statement of this block")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("continue must be the last statement of this block at %d:%d", stmt.Start().Line, stmt.End().Line)})
 				return
 			}
 		}
@@ -1127,7 +1127,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 			c.checkInterfaceDecl(decl)
 
 		default:
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported declaration %#v", decl)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported declaration %#v at %d:%d", decl, decl.Start().Line, decl.End().Column)})
 		}
 
 	case *ast.AssignStmt:
@@ -1168,7 +1168,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		c.checkContinueStmt(t)
 
 	default:
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %#v", stmt)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %#v at %d:%d", stmt, stmt.Start().Line, stmt.End().Column)})
 	}
 
 	st.returnFlowResult = flow
@@ -1183,7 +1183,7 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 	valueType, expr := c.checkExprInCurrentMode(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot (re)assign value of type %T to const of type %T", valueType.String(), targetType.String())})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot (re)assign value of type %T to const of type %T at %d:%d", valueType.String(), targetType.String(), decl.Start().Line, decl.End().Column)})
 		return nil
 	}
 
@@ -1208,7 +1208,7 @@ func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) Decl {
 	valueType, expr := c.checkExprInCurrentMode(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to var of type %T", valueType.String(), targetType.String())})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to var of type %T at %d:%d", valueType.String(), targetType.String(), decl.Start().Line, decl.End().Column)})
 		return nil
 	}
 
@@ -1240,7 +1240,7 @@ func (c *Checker) checkAssignableExpr(expr ast.Expr) (Type, Expr) {
 		return c.checkSelectorExpr(t), nil
 
 	default:
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %#v", expr)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %#v at %d:%d", expr, expr.Start().Line, expr.End().Column)})
 		return TInvalid, nil
 	}
 }
@@ -1269,7 +1269,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 	for index, right := range decl.Right {
 		rightType, rightExpr := c.checkExprInCurrentMode(right)
 		if IsInvalid(rightType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid", right)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid at %d:%d", right, right.Start().Line, right.End().Column)})
 			return nil, nil
 		}
 
@@ -1314,14 +1314,14 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 						}
 
 						if sym.Kind == SymConst {
-							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
+							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, left.Start().Line, left.End().Line)})
 							return nil, nil
 						}
 
 						targetType, _ := c.checkAssignableExpr(left)
 						leftc, _ := c.checkExprInCurrentMode(left)
 						if IsInvalid(leftc) {
-							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %T", targetType)})
+							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %T at %d:%d", targetType, left.Start().Line, left.End().Column)})
 							return nil, nil
 						}
 
@@ -1368,19 +1368,19 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 		} else {
 			sym = c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, decl.Left[index].Start().Line, decl.Left[index].End().Column)})
 				return nil, nil
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, decl.Left[index].Start().Line, decl.Left[index].End().Column)})
 				return nil, nil
 			}
 
 			targetType, _ := c.checkAssignableExpr(decl.Left[index])
 			left, _ := c.checkExprInCurrentMode(decl.Left[index])
 			if IsInvalid(left) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %T", targetType)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %T at %d:%d", targetType, decl.Left[index].Start().Line, decl.Left[index].End().Column)})
 				return nil, nil
 			}
 
@@ -1442,13 +1442,13 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		valueType, expr := c.checkExprInCurrentMode(right)
 		fn, fromFunc := expr.(*CallExpr)
 		if IsInvalid(valueType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid", right)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid at %d:%d", right, right.Start().Line, right.End().Column)})
 			return nil
 		}
 		stmt.Right = append(stmt.Right, expr)
 
 		if isNumericExpr(right) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use numeric only expression with define assigment declaration (:=)")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use numeric only expression with define assigment declaration (:=) at %d:%d", right.Start().Line, right.End().Column)})
 			return nil
 		}
 
@@ -1464,7 +1464,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		for index, left := range decl.Left {
 			x, ok := left.(*ast.IdentExpr)
 			if !ok {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %#v not an identifier", left)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %#v not an identifier at %d:%d", left, left.Start().Line, left.End().Column)})
 				return nil
 			}
 
@@ -1513,19 +1513,19 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		valueType, expr := c.checkExprInCurrentMode(right)
 		fn, fromFunc := expr.(*CallExpr)
 		if IsInvalid(valueType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid", right)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid at %d:%d", right, right.Start().Line, right.End().Line)})
 			return nil
 		}
 		stmt.Right = append(stmt.Right, expr)
 
 		if isNumericExpr(right) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use numeric only expression with define assigment declaration (:=)")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use numeric only expression with define assigment declaration (:=) at %d:%d", right.Start().Line, right.End().Line)})
 			return nil
 		}
 
 		x, ok := decl.Left[k].(*ast.IdentExpr)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %#v not an identifier", decl.Left[k])})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %#v not an identifier at %d:%d", decl.Left[k], decl.Left[k].Start().Line, decl.Left[k].End().Column)})
 			return nil
 		}
 
@@ -1564,12 +1564,12 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 		if c.currentFunc != nil {
 			for _, result := range c.currentFunc.Results {
 				if isBlank(result.Name) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("naked return requires named return values")})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("naked return requires named return values at %d:%d", decl.Start().Line, decl.End().Line)})
 					return flowFallsThrough, nil
 				}
 
 				if !slices.Contains(returnInputVarsInitialized, result.Name) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("returning uninitialized variable %q", result.Name)})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("returning uninitialized variable %q at %d:%d", result.Name, decl.Start().Line, decl.End().Line)})
 					return flowFallsThrough, nil
 				}
 			}
@@ -1584,7 +1584,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 			_, isCall := decl.Values[0].(*ast.CallExpr)
 			isValidCall := isFunc && isCall
 			if isValidCall && len(c.currentFunc.Results) != len(fn.FuncType.Results) || !isValidCall {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d", len(c.currentFunc.Results), len(decl.Values))})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d at %d:%d", len(c.currentFunc.Results), len(decl.Values), decl.Values[0].Start().Line, decl.Values[0].Start().Column)})
 				return flowFallsThrough, nil
 			}
 
@@ -1598,7 +1598,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 				}
 			}
 		} else {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d", len(c.currentFunc.Results), len(decl.Values))})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d at %d:%d", len(c.currentFunc.Results), len(decl.Values), decl.Values[0].Start().Line, decl.Values[0].Start().Column)})
 			return flowFallsThrough, nil
 		}
 	} else {
@@ -1617,7 +1617,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 		if x, ok := dv.(*ast.IdentExpr); ok {
 			for _, r := range c.currentFunc.Results {
 				if r.Name == x.Name.Value && !slices.Contains(returnInputVarsInitialized, x.Name.Value) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("returning uninitialized variable %q", x.Name.Value)})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("returning uninitialized variable %q at %d:%d", x.Name.Value, dv.Start().Line, dv.End().Column)})
 				}
 			}
 		}
@@ -1634,23 +1634,23 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) {
 	x, ok := decl.X.(*ast.IdentExpr)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %#v is not an identifier", decl)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %#v is not an identifier at %d:%d", decl, decl.Start().Line, decl.End().Column)})
 		return
 	}
 
 	sym := c.scope.Lookup(x.Name.Value)
 	if sym == nil {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", x.Name.Value, decl.Start().Line, decl.End().Column)})
 		return
 	}
 
 	if sym.Kind == SymConst {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("const %q cannot be modified", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("const %q cannot be modified at %d:%d", x.Name.Value, decl.Start().Line, decl.End().Column)})
 		return
 	}
 
 	if !IsNumeric(sym.Type) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %q is a non-numeric type", x.Name.Value)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %q is a non-numeric type at %d:%d", x.Name.Value, decl.Start().Line, decl.End().Column)})
 		return
 	}
 }
@@ -1752,18 +1752,18 @@ func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
 func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 	sym := c.pkgScope.Lookup(decl.TypeName.Value)
 	if sym == nil || sym.Kind != SymType {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("type %q is undefined", decl.TypeName.Value)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("type %q is undefined at %d:%d", decl.TypeName.Value, decl.Start().Line, decl.End().Column)})
 		return
 	}
 
 	implementer, ok := sym.Type.(*NamedType)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q is not a named type", decl.TypeName.Value)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q is not a named type at %d:%d", decl.TypeName.Value, decl.Start().Line, decl.End().Column)})
 		return
 	}
 
 	if _, ok := unwrapNamed(implementer).(*InterfaceType); ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q cannot implement another interface", decl.TypeName.Value)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q cannot implement another interface at %d:%d", decl.TypeName.Value, decl.Start().Line, decl.End().Column)})
 		return
 	}
 
@@ -1774,18 +1774,18 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 
 	ifaceNamed, ok := ifaceType.(*NamedType)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("implements target must be a named interface")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("implements target must be a named interface at %d:%d", decl.Interface.Start().Line, decl.Interface.End().Column)})
 		return
 	}
 
 	iface, ok := unwrapNamed(ifaceNamed).(*InterfaceType)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("type %q is not an interface", ifaceNamed.Name)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("type %q is not an interface at %d:%d", ifaceNamed.Name, decl.Interface.Start().Line, decl.Interface.End().Column)})
 		return
 	}
 
 	if !c.implementsInterface(implementer, iface) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q interface implementation is invalid", decl.TypeName.Value)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q interface implementation is invalid at %d:%d", decl.TypeName.Value, decl.Interface.Start().Line, decl.Interface.End().Column)})
 		return
 	}
 
@@ -1836,7 +1836,7 @@ func (c *Checker) lookupMethodType(named *NamedType, name string) (*FuncMethod, 
 func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	call, ok := stmt.Expr.(*ast.CallExpr)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("call expression statement must be a function call, got %#v", call)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("call expression statement must be a function call, got %#v at %d:%d", call, stmt.Start().Line, stmt.End().Column)})
 		return
 	}
 
@@ -1848,12 +1848,12 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	calleType, _ := c.checkExprInCurrentMode(call.Callee)
 	fn, ok := calleType.(*FuncMethod)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("callee type expression statement must be a function call got %#v", calleType)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("callee type expression statement must be a function call got %#v at %d:%d", calleType, stmt.Start().Line, stmt.End().Column)})
 		return
 	}
 
 	if len(fn.FuncType.Results) > 0 {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling function with returned values are forbidden without assignment, expected 0, got %d", len(fn.FuncType.Results))})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling function with returned values are forbidden without assignment, expected 0, got %d at %d:%d", len(fn.FuncType.Results), stmt.Start().Line, stmt.End().Line)})
 		return
 	}
 
@@ -1870,7 +1870,7 @@ func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
 	case *StructType:
 		tp, ok := lookupStructField(t, expr.Selector.Value)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q", expr.Selector.Value)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q at %d:%d", expr.Selector.Value, expr.Selector.Line, expr.Selector.Column)})
 			return TInvalid
 		}
 		return tp
@@ -1878,13 +1878,13 @@ func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
 	case *InterfaceType:
 		tp, ok := lookupInterfaceMethods(t, expr.Selector.Value)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown method %q", expr.Selector.Value)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown method %q at %d:%d", expr.Selector.Value, expr.Selector.Line, expr.Selector.Column)})
 			return TInvalid
 		}
 		return tp
 
 	default:
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type at %d:%d", expr.Start().Line, expr.End().Column)})
 		return TInvalid
 	}
 }
@@ -1932,7 +1932,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 
 	condType, condExpr := c.checkExprInCurrentMode(stmt.Condition)
 	if !IsBool(condType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("if condition must returned a boolean")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("if condition must returned a boolean at %d:%d", stmt.Condition.Start().Line, stmt.Condition.End().Line)})
 		st.returnFlowResult = flowFallsThrough
 		st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 		return
@@ -2072,7 +2072,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 	if stmt.Condition != nil {
 		condType, _ := c.checkExprInCurrentMode(stmt.Condition)
 		if !IsBool(condType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("for condition must return a boolean")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("for condition must return a boolean at %d:%d", stmt.Condition.Start().Line, stmt.End().Line)})
 			st.returnFlowResult = flowFallsThrough
 			st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 			return
@@ -2124,7 +2124,7 @@ func (c *Checker) checkAssigmentStmt(stmt *ast.AssignStmt, returnInputVarsInitia
 	case token.Define:
 		s = c.checkDefineAssignStmt(stmt)
 	default:
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported assigment in for statement %#v", stmt)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported assigment in for statement %#v at %d:%d", stmt, stmt.Start().Line, stmt.End().Line)})
 	}
 	return returnInputVarsInitialized, s
 }
@@ -2154,13 +2154,13 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 
 	iteratorType, _ := c.checkExprInCurrentMode(stmt.X)
 	if IsInvalid(iteratorType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range expression is invalid")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range expression is invalid at %d:%d", stmt.X.Start().Line, stmt.X.End().Line)})
 		return
 	}
 
 	rangekeyType, rangeValueType, ok := rangeVars(iteratorType)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported range var type")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported range var type at %d:%d", stmt.X.Start().Line, stmt.X.End().Column)})
 		return
 	}
 
@@ -2177,36 +2177,36 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			name := exprName(stmt.Key)
 			sym := c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Key.Start().Line, stmt.Key.End().Column)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Key.Start().Line, stmt.Key.End().Line)})
 				return
 			}
 
 			key, _ := c.checkExpr(stmt.Key)
 			if stmt.Key.Name.Value != "_" && !IsAssignableTo(rangekeyType, key) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v", rangekeyType, key)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v at %d:%d", rangekeyType, key, stmt.Key.Start().Line, stmt.Key.End().Line)})
 				return
 			}
 
 			name = exprName(stmt.Value)
 			sym = c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Value.Start().Line, stmt.Value.End().Line)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Value.Start().Line, stmt.Key.End().Line)})
 				return
 			}
 
 			value, _ := c.checkExpr(stmt.Value)
 			if stmt.Value.Name.Value != "_" && !IsAssignableTo(rangeValueType, value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range value type, expected %#v, got %#v", rangeValueType, value)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range value type, expected %#v, got %#v at %d:%d", rangeValueType, value, stmt.Value.Start().Line, stmt.Value.End().Line)})
 				return
 			}
 
@@ -2222,19 +2222,19 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			}
 		} else if stmt.Key != nil {
 			if isBlank(stmt.Key.Name.Value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d", stmt.Key.Start().Line, stmt.Key.End().Line)})
 				return
 			}
 
 			name := exprName(stmt.Key)
 			sym := c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Key.Start().Line, stmt.Key.End().Line)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Key.Start().Line, stmt.Key.End().Line)})
 				return
 			}
 
@@ -2256,7 +2256,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	case token.Define:
 		if stmt.Key != nil && stmt.Value != nil {
 			if isBlank(stmt.Key.Name.Value) && isBlank(stmt.Value.Name.Value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range key and value cannot be both blank identifiers")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range key and value cannot be both blank identifiers at %d:%d", stmt.Key.Start().Line, stmt.Value.End().Line)})
 				return
 			}
 
@@ -2277,7 +2277,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			}
 		} else if stmt.Key != nil {
 			if isBlank(stmt.Key.Name.Value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d", stmt.Key.Start().Line, stmt.Key.End().Line)})
 				return
 			}
 
@@ -2291,7 +2291,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 		}
 
 	default:
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden range token %q", stmt.Op.Value)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden range token %q at %d:%d", stmt.Op.Value, stmt.Start().Line, stmt.End().Line)})
 		return
 	}
 
@@ -2351,14 +2351,14 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 
 		if val, ok := stmt.Init.(*ast.AssignStmt); ok && val.Operator.Kind == token.Assign {
 			if len(val.Left) == 0 || len(val.Left) > 1 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expected 1 assigment got %d", len(val.Left))})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expected 1 assigment got %d at %d:%d", len(val.Left), stmt.Init.Start().Line, stmt.Init.End().Line)})
 				return
 			}
 
 			name := exprName(val.Left[0])
 			sym := c.scope.Lookup(name)
 			if sym != nil && sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden", name)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Init.Start().Line, stmt.Init.End().Line)})
 				return
 			}
 
@@ -2409,7 +2409,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		// the tag is "a" or the last z
 		tagType, tagExpr := c.checkExprInCurrentMode(stmt.Tag)
 		if IsInvalid(tagType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag expression is invalid")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag expression is invalid at %d:%d", stmt.Tag.Start().Line, stmt.Tag.End().Line)})
 			return
 		}
 
@@ -2422,13 +2422,13 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		}
 
 		if !IsComparable(tagType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag type is not comparable got %#v", tagType)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag type is not comparable got %#v at %d:%d", tagType, stmt.Tag.Start().Line, stmt.Tag.End().Line)})
 			return
 		}
 
 		sw.Tag = tagExpr
 		if len(stmt.Cases) == 0 {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch statement has 0 cases")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch statement has 0 cases at %d:%d", stmt.Start().Line, stmt.End().Line)})
 			return
 		}
 
@@ -2438,7 +2438,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				dcount++
 
 				if dcount > 1 {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple default clauses are forbidden, got %d", dcount)})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple default clauses are forbidden, got %d at %d:%d", dcount, cc.Start().Line, cc.End().Line)})
 					return
 				}
 			}
@@ -2447,7 +2447,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			for _, v := range cc.Values {
 				vType, vExpr := c.checkExprInCurrentMode(v)
 				if !IsIdentical(tagType, vType) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v", tagType, vType)})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v at %d:%d", tagType, vType, v.Start().Line, v.End().Column)})
 					return
 				}
 
@@ -2530,7 +2530,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			}
 		*/
 		if len(stmt.Cases) == 0 {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch statement has 0 cases")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch statement has 0 cases at %d:%d", stmt.Start().Line, stmt.End().Line)})
 			return
 		}
 
@@ -2539,7 +2539,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				dcount++
 
 				if dcount > 1 {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple default clauses are forbidden, got %d", dcount)})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple default clauses are forbidden, got %d at %d:%d", dcount, cc.Start().Line, cc.End().Line)})
 					return
 				}
 			}
@@ -2552,7 +2552,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 				// without any burden
 
 				if !IsBool(vType) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch case expected boolean got %#v", vType)})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("switch case expected boolean got %#v at %d:%d", vType, v.Start().Line, v.End().Column)})
 					return
 				}
 
@@ -2703,12 +2703,12 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 
 		if ft, ok := b.(*ast.FallThroughStmt); ok {
 			if i != len(body)-1 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough must be the last statement of the switch case body")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough must be the last statement of the switch case body at %d:%d", b.Start().Line, b.End().Line)})
 				return
 			}
 
 			if isLastCaseClause {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden inside last switch case")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden inside last switch case at %d:%d", b.Start().Line, b.End().Line)})
 				return
 			}
 			cStmt.switchCaseHasFallThrough = true
@@ -2728,16 +2728,16 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 }
 
 // checkFallThroughStmt produces an error when not into switch case
-func (c *Checker) checkFallThroughStmt(_ *ast.FallThroughStmt) {
+func (c *Checker) checkFallThroughStmt(stmt *ast.FallThroughStmt) {
 	if !c.inSwitchCase {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden outside of switch case")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden outside of switch case at %d:%d", stmt.Start().Line, stmt.End().Line)})
 	}
 }
 
 // checkBreakStmt produces an error when not into for loop statement
-func (c *Checker) checkBreakStmt(_ *ast.BreakStmt, returnInputVarsInitialized []string) []string {
+func (c *Checker) checkBreakStmt(stmt *ast.BreakStmt, returnInputVarsInitialized []string) []string {
 	if c.loopDepth == 0 {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("break is forbidden outside of a loop")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("break is forbidden outside of a loop at %d:%d", stmt.Start().Line, stmt.End().Line)})
 		return nil
 	}
 
@@ -2759,9 +2759,9 @@ func (c *Checker) checkBreakStmt(_ *ast.BreakStmt, returnInputVarsInitialized []
 }
 
 // checkContinueStmt produces an error when not into for loop statement
-func (c *Checker) checkContinueStmt(_ *ast.ContinueStmt) {
+func (c *Checker) checkContinueStmt(stmt *ast.ContinueStmt) {
 	if c.loopDepth == 0 {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("continue is forbidden outside of a loop")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("continue is forbidden outside of a loop at %d:%d", stmt.Start().Line, stmt.End().Line)})
 	}
 }
 
@@ -2801,41 +2801,41 @@ func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt, ret
 
 	for _, cc := range stmt.Cases {
 		if cc.Case.Kind == token.KWDefault {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("default is forbidden inside sum type switch")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("default is forbidden inside sum type switch at %d:%d", cc.Start().Line, cc.End().Line)})
 			return
 		}
 
 		if len(cc.Values) != 1 {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("sum case must have exactly one variant")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("sum case must have exactly one variant at %d:%d", cc.Start().Line, stmt.End().Line)})
 			return
 		}
 
 		call, ok := cc.Values[0].(*ast.CallExpr)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("sum case must be a variant, got %#v", call)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("sum case must be a variant, got %#v at %d:%d", call, cc.Start().Line, cc.End().Line)})
 			return
 		}
 
 		callee, ok := call.Callee.(*ast.IdentExpr)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("sum variant case must use a variant identifier, got %#v", callee)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("sum variant case must use a variant identifier, got %#v at %d:%d", callee, cc.Start().Line, cc.End().Line)})
 			return
 		}
 
 		variantName, ok := fetchSumVariant(callee.Name.Value, sm)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown variant name %q", callee.Name.Value)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown variant name %q at %d:%d", callee.Name.Value, cc.Start().Line, cc.End().Line)})
 			return
 		}
 
 		if seen[variantName.Name] {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("duplicate variant name %q", variantName.Name)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("duplicate variant name %q at %d:%d", variantName.Name, cc.Start().Line, cc.End().Line)})
 			return
 		}
 		seen[variantName.Name] = true
 
 		if len(variantName.Field) != len(call.Args) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variant arguments length invalid, expected %d got %d", len(variantName.Field), len(call.Args))})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variant arguments length invalid, expected %d got %d at %d:%d", len(variantName.Field), len(call.Args), cc.Start().Line, cc.End().Line)})
 			return
 		}
 
@@ -2844,7 +2844,7 @@ func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt, ret
 		for k, v := range call.Args {
 			ident, ok := v.(*ast.IdentExpr)
 			if !ok {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variant expected identifier got %#v", v)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variant expected identifier got %#v at %d:%d", v, v.Start().Line, v.End().Line)})
 				return
 			}
 
@@ -2854,13 +2854,13 @@ func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt, ret
 			// }
 
 			if seenBindings[ident.Name.Value] {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %q already declared", ident.Name.Value)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %q already declared at %d:%d", ident.Name.Value, v.Start().Line, v.End().Line)})
 				return
 			}
 			seenBindings[ident.Name.Value] = true
 
 			if c.scope.Lookup(ident.Name.Value) != nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %q already declared", ident.Name.Value)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %q already declared at %d:%d", ident.Name.Value, v.Start().Line, v.End().Line)})
 				return
 			}
 
@@ -2951,7 +2951,7 @@ func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol, return
 		}
 
 		if _, ok := b.(*ast.FallThroughStmt); ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden in sum switch type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden in sum switch type at %d:%d", b.Start().Line, b.End().Line)})
 			return
 		}
 
@@ -2997,29 +2997,29 @@ func (c *Checker) checkSwitchStmtEnumType(tagType Type, stmt *ast.SwitchStmt, re
 
 	for _, cc := range stmt.Cases {
 		if cc.Case.Kind == token.KWDefault {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("default is forbidden inside enum type switch")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("default is forbidden inside enum type switch at %d:%d", cc.Start().Line, cc.End().Line)})
 			return
 		}
 
 		if len(cc.Values) != 1 {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("enum case must have exactly one variant")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("enum case must have exactly one variant at %d:%d", cc.Start().Line, cc.End().Line)})
 			return
 		}
 
 		ident, ok := cc.Values[0].(*ast.IdentExpr)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("enum case must be a variant, got %#v", ident)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("enum case must be a variant, got %#v at %d:%d", ident, cc.Start().Line, cc.End().Line)})
 			return
 		}
 
 		variantName, ok := fetchEnumVariant(ident.Name.Value, en)
 		if !ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown variant name %q", ident.Name.Value)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown variant name %q at %d:%d", ident.Name.Value, cc.Start().Line, cc.End().Line)})
 			return
 		}
 
 		if seen[variantName] {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("duplicate variant name %q", variantName)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("duplicate variant name %q at %d:%d", variantName, cc.Start().Line, cc.End().Line)})
 			return
 		}
 		seen[variantName] = true
@@ -3098,7 +3098,7 @@ func (c *Checker) checkSwitchEnumBody(body []ast.Stmt, returnInputVarsInitialize
 		}
 
 		if _, ok := b.(*ast.FallThroughStmt); ok {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden in enum switch type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("fallthrough is forbidden in enum switch type at %d:%d", b.Start().Line, b.End().Line)})
 			return
 		}
 		cStmt = c.checkStmt(b, cStmt.returnedInputVarsInitialized)
@@ -3118,7 +3118,7 @@ func (c *Checker) declareComptimeDecls() {
 		case *ast.FuncDecl:
 			c.declareComptimeFuncSymbol(t)
 		default:
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime at %d:%d", decl.Start().Line, decl.End().Line)})
 		}
 	}
 }
@@ -3127,7 +3127,7 @@ func (c *Checker) declareComptimeDecls() {
 // An error is emitted if any
 func (c *Checker) declareComptimeFuncSymbol(decl *ast.FuncDecl) {
 	if decl.Receiver != nil {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("comptime methods are forbidden")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("comptime methods are forbidden at %d:%d", decl.Start().Line, decl.End().Line)})
 		return
 	}
 
@@ -3160,13 +3160,13 @@ func (c *Checker) checkComptimeValues() {
 func (c *Checker) checkComptimeConstDecl(decl *ast.ConstDecl) {
 	targetType := c.resolveType(decl.Type)
 	if !c.isValidComptimeType(targetType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", decl.Type.Start().Line, decl.Type.End().Line)})
 		return
 	}
 
 	valueType := c.checkComptimeExpr(decl.Init)
 	if !IsAssignableTo(targetType, valueType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to const of type %T", valueType.String(), targetType.String())})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to const of type %T at %d:%d", valueType.String(), targetType.String(), decl.Init.Start().Line, decl.Init.End().Line)})
 		return
 	}
 
@@ -3224,7 +3224,7 @@ func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 		left := c.checkComptimeExpr(t.Left)
 		right := c.checkComptimeExpr(t.Right)
 		if IsInvalid(left) || IsInvalid(right) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime binary expression")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime binary expression at %d:%d", t.Start().Line, t.End().Line)})
 			return TInvalid
 		}
 		ce, _ := c.checkExpr(expr)
@@ -3241,24 +3241,24 @@ func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 			sym = c.pkgScope.Lookup(t.Name.Value)
 		}
 		if sym == nil || sym.Type == nil {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime symbol")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime symbol at %d:%d", t.Start().Line, t.End().Line)})
 			return TInvalid
 		}
 
 		// this must stay as is. vars are only allowed in functions
 		if sym.Kind == SymVar && !c.inComptimeFunc {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variables are forbidden with comptime outside of function")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variables are forbidden with comptime outside of function at %d:%d", t.Start().Line, t.End().Line)})
 			return TInvalid
 		}
 
 		return sym.Type
 
 	case *ast.IndexExpr, *ast.SliceExpr, *ast.SliceLitExpr:
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden comptime expression")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden comptime expression at %d:%d", t.Start().Line, t.End().Line)})
 		return TInvalid
 
 	default:
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported comptime expression")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported comptime expression at %d:%d", t.Start().Line, t.End().Line)})
 		return TInvalid
 	}
 }
@@ -3279,57 +3279,57 @@ func (c *Checker) checkComptimeCallExpr(expr *ast.CallExpr) Type {
 
 		arg := c.checkComptimeExpr(expr.Args[0])
 		if IsInvalid(arg) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", expr.Args[0].Start().Line, expr.Args[0].End().Line)})
 			return TInvalid
 		}
 
 		if IsConvertibleTo(arg, named) {
 			return named
 		}
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %s", arg, named.Name)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %s at %d:%d", arg, named.Name, expr.Callee.Start().Line, expr.Callee.End().Line)})
 		return TInvalid
 	}
 
 	if builtin, ok := calleeType.(*BuiltinType); ok {
 		if len(expr.Args) != 1 {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d", expr, len(expr.Args))})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d at %d:%d", expr, len(expr.Args), expr.Callee.Start().Line, expr.Callee.End().Line)})
 			return TInvalid
 		}
 
 		arg := c.checkComptimeExpr(expr.Args[0])
 		if IsInvalid(arg) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", expr.Args[0].Start().Line, expr.Args[0].End().Line)})
 			return TInvalid
 		}
 
 		if IsConvertibleTo(arg, builtin) {
 			return calleeType
 		}
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %#v", arg, builtin)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %#v at %d:%d", arg, builtin, expr.Args[0].Start().Line, expr.Args[0].End().Line)})
 		return TInvalid
 	}
 
 	if fn, ok := calleeType.(*FuncMethod); ok {
 		sym := c.pkgScope.Lookup(fn.Name)
 		if sym == nil || sym.Kind != SymFunc || !sym.IsComptime {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime function")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime function at %d:%d", expr.Callee.Start().Line, expr.Callee.End().Line)})
 			return TInvalid
 		}
 
 		if len(expr.Args) != len(fn.FuncType.Params) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime func length argument, expected %d got %d", len(expr.Args), len(fn.FuncType.Params))})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime func length argument, expected %d got %d at %d:%d", len(expr.Args), len(fn.FuncType.Params), expr.LParen.Line, expr.RParen.Line)})
 			return TInvalid
 		}
 
 		for i, p := range fn.FuncType.Params {
 			argType := c.checkComptimeExpr(expr.Args[i])
 			if !c.isValidComptimeType(p.Type) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", expr.Args[i].Start().Line, expr.Args[i].End().Line)})
 				return TInvalid
 			}
 
 			if !IsAssignableTo(p.Type, argType) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", expr.Args[i].Start().Line, expr.Args[i].End().Line)})
 				return TInvalid
 			}
 		}
@@ -3341,7 +3341,7 @@ func (c *Checker) checkComptimeCallExpr(expr *ast.CallExpr) Type {
 
 		for _, p := range fn.FuncType.Results {
 			if !c.isValidComptimeType(p.Type) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", expr.Start().Line, expr.End().Line)})
 				return TInvalid
 			}
 		}
@@ -3349,7 +3349,7 @@ func (c *Checker) checkComptimeCallExpr(expr *ast.CallExpr) Type {
 		return fn.FuncType.Results[0].Type
 	}
 
-	c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime expression")})
+	c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime expression at %d:%d", expr.Start().Line, expr.End().Line)})
 	return TInvalid
 }
 
@@ -3362,38 +3362,37 @@ func (c *Checker) checkComptimeFuncDecl(decl *ast.FuncDecl) {
 
 	sym := c.pkgScope.Lookup(decl.Name.Value)
 	if sym == nil || sym.Type == nil {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime func")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime func at %d:%d", decl.Start().Line, decl.End().Line)})
 		return
 	}
 
 	if sym.Kind != SymFunc || !sym.IsComptime {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime declaration")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime declaration at %d:%d", decl.Start().Line, decl.End().Line)})
 		return
 	}
 
 	fn, ok := sym.Type.(*FuncMethod)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime symbol")})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime symbol at %d:%d", decl.Start().Line, decl.End().Line)})
 		return
 	}
 
 	for _, p := range fn.FuncType.Params {
 		if !c.isValidComptimeType(p.Type) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", decl.Start().Line, decl.End().Line)})
 			return
 		}
 	}
 
 	if len(fn.FuncType.Results) != 1 {
 		c.errors = append(c.errors, Diagnostic{
-			Err: fmt.Errorf("comptime func %q must return exactly one value", decl.Name.Value),
-		})
+			Err: fmt.Errorf("comptime func %q must return exactly one value at %d:%d", decl.Name.Value, decl.Start().Line, decl.End().Line)})
 		return
 	}
 
 	for _, p := range fn.FuncType.Results {
 		if !c.isValidComptimeType(p.Type) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", decl.Start().Line, decl.End().Line)})
 			return
 		}
 	}
@@ -3411,7 +3410,7 @@ func (c *Checker) checkExprInCurrentMode(expr ast.Expr) (Type, Expr) {
 	if c.inComptimeFunc {
 		t := c.checkComptimeExpr(expr)
 		if !c.isValidComptimeType(t) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type")})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime type at %d:%d", expr.Start().Line, expr.End().Line)})
 			return TInvalid, nil
 		}
 		return t, nil
