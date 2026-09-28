@@ -1081,7 +1081,7 @@ type test interface {
 	foo() string
 }
 func f(u test) {
-	u.foo()
+	x := u.foo()
 }
 `,
 			},
@@ -3856,6 +3856,7 @@ func (u User) test() string { return u.name("a") }
 `,
 			},
 			{
+				err: true,
 				data: `package main
 type User struct {
 	name string
@@ -3872,12 +3873,27 @@ func f(u User) string {
 			},
 			{
 				data: `package main
+type User struct {
+	name string
+}
+
+func (u User) fname() string {
+	return "method"
+}
+
+func f(u User) string {
+	return u.fname()
+}
+`,
+			},
+			{
+				data: `package main
 type User struct {}
 
 func (u User) name() string { return "x" }
 
 func f(u User) {
-	u.name()
+	x := u.name()
 }
 `,
 			},
@@ -3888,7 +3904,7 @@ type User struct {}
 func (u User) name() int { return int(0) }
 
 func f(u User) {
-	u.name()
+	x := u.name()
 }
 `,
 			},
@@ -3900,7 +3916,7 @@ type UserID int
 func (u User) name() UserID { return UserID(0) }
 
 func f(u User) {
-	u.name()
+	x := u.name()
 }
 `,
 			},
@@ -8176,6 +8192,84 @@ func foo() (int, int) {
 				data: `package main
 func foo() (int, int, int) {
     return int(1), int(2)
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			_, diagnostics := check.Check(pr)
+			for _, v := range check.errors {
+				fmt.Println(v.Err.Error())
+			}
+			if tc.err {
+				assert.Greater(t, len(diagnostics), 0, i)
+			} else {
+				assert.Equal(t, 0, len(diagnostics), i)
+			}
+		}
+	})
+
+	t.Run("x33", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) name(a string, b int32) (string, int32 ) { return a, b }
+func (u User) test() {
+  u.name("test", int32(10))
+}
+	`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) name(a string, b int32) (string, int32 ) { return a, b }
+func (u User) test() {
+  a,b := u.name("test", int32(10))
+}
+	`,
+			},
+			{
+				err: true,
+				data: `package main
+type test interface {
+	foo() string
+}
+func f(u test) {
+	u.foo()
+}
+`,
+			},
+			{
+				data: `package main
+type test interface {
+	foo() string
+}
+func f(u test) {
+	a := u.foo()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type test interface {
+	foo
+}
+func f(u test) {
+	x := u.foo()
 }
 `,
 			},
