@@ -230,6 +230,16 @@ func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("method %q already declared at %d:%d", fm.Name, receiver.Decl.Start().Line, receiver.Decl.End().Line)})
 		return
 	}
+
+	underlying := unwrapNamed(receiver)
+	if st, ok := underlying.(*StructType); ok {
+		for _, f := range st.Fields {
+			if f.Name == fm.Name {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("naming collision between method %q and struct field %s is forbidden at %d:%d", fm.Name, f.Name, receiver.Decl.Start().Line, receiver.Decl.End().Line)})
+				return
+			}
+		}
+	}
 	rcv[fm.Name] = fm
 }
 
