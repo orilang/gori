@@ -999,12 +999,13 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 	c.scope = NewScope(c.pkgScope)
 	c.useScope = true
 
-	if !c.declareNoShadow(c.scope, &Symbol{
+	symr := &Symbol{
 		Name: fn.Receiver.Name.Value,
 		Kind: SymVar,
 		Type: recvType,
-	}, "receiver",
-	) {
+	}
+
+	if !c.declareNoShadow(c.scope, symr, "receiver") {
 		return
 	}
 
@@ -1033,6 +1034,25 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("missing return statement")})
 		return
 	}
+
+	rcv := &Receiver{
+		Name:   fn.Receiver.Name.Value,
+		Symbol: resolvedSymbol(symr, true, len(method.FuncType.Results) > 1),
+		Type:   recvType,
+	}
+
+	fd := &FuncDecl{
+		Name:     fn.Name.Value,
+		Symbol:   resolvedSymbol(c.pkgScope.Lookup(fn.Name.Value), true, len(method.FuncType.Results) > 1),
+		Receiver: rcv,
+		Params:   method.FuncType.Params,
+		Results:  method.FuncType.Results,
+	}
+
+	if blockStmt.blockStmt != nil {
+		fd.Body = &BlockStmt{blockStmt.blockStmt}
+	}
+	c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, fd)
 }
 
 // checkBlockStmt loops over block statements to check/declare them
