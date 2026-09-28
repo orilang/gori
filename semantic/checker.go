@@ -227,10 +227,9 @@ func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod) {
 	}
 
 	if _, exists := rcv[fm.Name]; exists {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("method %q already declared", fm.Name)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("method %q already declared at %d:%d", fm.Name, receiver.Decl.Start().Line, receiver.Decl.End().Line)})
 		return
 	}
-
 	rcv[fm.Name] = fm
 }
 
@@ -1860,8 +1859,14 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 		return
 	}
 
-	if _, ok := call.Callee.(*ast.SelectorExpr); ok {
-		_, _ = c.checkExprInCurrentMode(stmt.Expr)
+	if sel, ok := call.Callee.(*ast.SelectorExpr); ok {
+		ex := c.checkSelectorExpr(sel)
+		if method, isMethod := ex.(*FuncMethod); isMethod {
+			if len(method.FuncType.Results) > 0 {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling method with non empty returned values is forbidden without assignment, expected 0, got %d at %d:%d", len(method.FuncType.Results), stmt.Start().Line, stmt.End().Line)})
+				return
+			}
+		}
 		return
 	}
 
@@ -1873,7 +1878,7 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	}
 
 	if len(fn.FuncType.Results) > 0 {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling function with returned values are forbidden without assignment, expected 0, got %d at %d:%d", len(fn.FuncType.Results), stmt.Start().Line, stmt.End().Line)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling function with non empty returned values is forbidden without assignment, expected 0, got %d at %d:%d", len(fn.FuncType.Results), stmt.Start().Line, stmt.End().Line)})
 		return
 	}
 
@@ -1883,7 +1888,12 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 // checkSelectorExpr validates selector expression and return its type.
 // An error is emitted if any
 func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
-	baseType, _ := c.checkExpr(expr.X)
+	baseType, _ := c.checkExprInCurrentMode(expr.X)
+	if IsInvalid(baseType) {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type at %d:%d", expr.Start().Line, expr.End().Column)})
+		return TInvalid
+	}
+
 	underlying := unwrapNamed(baseType)
 
 	switch t := underlying.(type) {
