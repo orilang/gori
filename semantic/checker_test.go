@@ -2860,7 +2860,7 @@ func f() int8 {
 			{
 				data: `package main
 func w() int {
-  return 5
+  return int(5)
 }
 func b() {}
 func c() {}
@@ -2878,7 +2878,7 @@ func x(a int) {
 				err: true,
 				data: `package main
 func w() int {
-  return 5
+  return int(5)
 }
 func b() {}
 func c() {}
@@ -2909,7 +2909,7 @@ func x(a int) int {
 				err: true,
 				data: `package main
 func w() int {
-  return 5
+  return int(5)
 }
 func x(a int) int {
   switch z:=w();z {
@@ -2925,7 +2925,7 @@ func x(a int) int {
 				err: true,
 				data: `package main
 func w() int {
-  return 5
+  return int(5)
 }
 func x(a string) int {
   switch z:=w();z {
@@ -2941,7 +2941,7 @@ func x(a string) int {
 				err: true,
 				data: `package main
 func w() int {
-  return 5
+  return int(5)
 }
 func x(z map[string]string) int {
   switch z {
@@ -2955,7 +2955,7 @@ func x(z map[string]string) int {
 				err: true,
 				data: `package main
 func w() int {
-  return 5
+  return int(5)
 }
 func b() {}
 func c() {}
@@ -8270,6 +8270,124 @@ type test interface {
 }
 func f(u test) {
 	x := u.foo()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Reader interface {
+  read() string
+}
+
+func f(r Reader) {
+  fn := r.read
+  x := fn()
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {}
+func (u User) save() {}
+func f(u User) {
+  u.save()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) save(a int) {}
+func f(u User) {
+  u.save()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+func (u User) save() {}
+func f(u User) {
+  fn := u.save
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Writer interface {
+  write(v string)
+}
+
+func f(w Writer) {
+  w.write(int(123))
+}
+`,
+			},
+			{
+				data: `package main
+type ID int
+func (id ID) reset() {}
+func f(id ID) {
+  id.reset()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type ID int
+func (id ID) reset() int { return int(10_000)}
+func f(id ID) {
+  id.reset()
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func w() (int, float) {
+  return int(5), float(5)
+}
+func b() {}
+func c() {}
+func x(a int) {
+  switch z:=w();z {
+    case a:
+      b()
+    case 2:
+      c()
+  }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User int
+func (u User) foo() {}
+func test(u User) {
+  f := (u.foo)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func test(x int) {
+  int64(x)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type UserID int
+func f(x int) {
+    UserID(x)
 }
 `,
 			},
