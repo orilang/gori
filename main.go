@@ -26,6 +26,10 @@ func main() {
 		},
 	}
 
+	// remove date/timespamp from log output
+	// https://stackoverflow.com/questions/48629988/remove-timestamp-prefix-from-go-logger
+	log.SetFlags(0)
+
 	if err := cmd.Run(context.Background(), os.Args); err != nil {
 		log.Fatal(err.Error())
 		return
