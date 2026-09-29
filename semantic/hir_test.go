@@ -1351,7 +1351,6 @@ func f() {
 		require.Equal(t, "1", darv2.Value)
 
 		da2, ok := fn3.Body.Stmts[1].(*AssigmentStmt)
-		fmt.Printf("DA2 %#v\n", da2)
 		require.Equal(t, true, ok)
 		require.Equal(t, 2, len(da2.Symbol))
 		require.Equal(t, "a", da2.Symbol[0].Name)

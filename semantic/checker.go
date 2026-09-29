@@ -724,7 +724,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		return sym.Type, &IdentExpr{Type: sym.Type, Symbol: resolvedSymbol(sym, false, false), Value: t.Name.Value}
 
 	case *ast.UnaryExpr:
-		right, ex := c.checkExpr(t.Right)
+		right, ex := c.checkExprInCurrentMode(t.Right)
 		if SupportsUnaryOp(right, t.Operator.Kind) {
 			return right, &UnaryExpr{Type: right, Operator: t.Operator.Kind, Right: ex}
 		}
@@ -732,8 +732,8 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		return TInvalid, nil
 
 	case *ast.BinaryExpr:
-		left, lex := c.checkExpr(t.Left)
-		right, rex := c.checkExpr(t.Right)
+		left, lex := c.checkExprInCurrentMode(t.Left)
+		right, rex := c.checkExprInCurrentMode(t.Right)
 
 		if IsIdentical(left, right) && SupportsBinaryOp(left, t.Operator.Kind) {
 			switch t.Operator.Kind {
@@ -751,7 +751,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		var ce CallExpr
 		if sel, ok := t.Callee.(*ast.SelectorExpr); ok {
 			var selx SelectorExpr
-			selType, selExpr := c.checkExpr(sel.X)
+			selType, selExpr := c.checkExprInCurrentMode(sel.X)
 			if named, isNamed := selType.(*NamedType); isNamed {
 				if method, isMethod := c.lookupMethodType(named, sel.Selector.Value); isMethod {
 					if len(t.Args) != len(method.FuncType.Params) {
@@ -762,7 +762,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 					selx.Selector = sel.Selector.Value
 					ce.FromFunc = isMethod
 					for k, v := range method.FuncType.Params {
-						x, argExpr := c.checkExpr(t.Args[k])
+						x, argExpr := c.checkExprInCurrentMode(t.Args[k])
 						if !IsAssignableTo(v.Type, x) {
 							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to const of type %T at %d:%d", v.Type.String(), x.String(), t.Start().Line, t.End().Column)})
 							return TInvalid, nil
@@ -789,9 +789,9 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d at %d:%d", named.Name, len(t.Args), t.Callee.Start().Line, t.Callee.End().Column)})
 				return TInvalid, nil
 			}
-			arg, _ := c.checkExpr(t.Args[0])
+			arg, _ := c.checkExprInCurrentMode(t.Args[0])
 			if IsConvertibleTo(arg, named) {
-				return named, nil
+				return named, calleeExpr
 			}
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot convert %#v to %s at %d:%d", arg, named.Name, t.Args[0].Start().Line, t.Args[0].End().Column)})
 			return TInvalid, nil
@@ -803,7 +803,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 				return TInvalid, nil
 			}
 
-			arg, ex := c.checkExpr(t.Args[0])
+			arg, ex := c.checkExprInCurrentMode(t.Args[0])
 			if IsConvertibleTo(arg, builtin) {
 				return calleeType, &ConversionExpr{To: calleeType, Value: ex}
 			}
@@ -822,7 +822,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 
 		ce.FromFunc = ok
 		for k, v := range fn.FuncType.Params {
-			x, argExpr := c.checkExpr(t.Args[k])
+			x, argExpr := c.checkExprInCurrentMode(t.Args[k])
 			if !IsAssignableTo(v.Type, x) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to var of type %T at %d:%d", v.Type.String(), x.String(), t.Args[k].Start().Line, t.Args[k].End().Column)})
 				return TInvalid, nil
@@ -841,12 +841,12 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		return fn.FuncType.Results[0].Type, &ce
 
 	case *ast.ParenExpr:
-		return c.checkExpr(t.Inner)
+		return c.checkExprInCurrentMode(t.Inner)
 
 	case *ast.IndexExpr:
-		baseType, _ := c.checkExpr(t.X)
+		baseType, _ := c.checkExprInCurrentMode(t.X)
 		underlying := unwrapNamed(baseType)
-		index, _ := c.checkExpr(t.Index)
+		index, _ := c.checkExprInCurrentMode(t.Index)
 
 		switch decl := underlying.(type) {
 		case *SliceType:
@@ -1861,6 +1861,7 @@ func (c *Checker) lookupMethodType(named *NamedType, name string) (*FuncMethod, 
 }
 
 // checkExprStmt validates expression statement.
+// It must only validate function/method calls NOT conversion expression like int(x).
 // An error is emitted if any
 func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 	call, ok := stmt.Expr.(*ast.CallExpr)
@@ -1869,30 +1870,27 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 		return
 	}
 
-	if sel, ok := call.Callee.(*ast.SelectorExpr); ok {
-		ex := c.checkSelectorExpr(sel)
-		if method, isMethod := ex.(*FuncMethod); isMethod {
-			if len(method.FuncType.Results) > 0 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling method with non empty returned values is forbidden without assignment, expected 0, got %d at %d:%d", len(method.FuncType.Results), stmt.Start().Line, stmt.End().Line)})
-				return
-			}
+	cType, expr := c.checkExprInCurrentMode(stmt.Expr)
+	if IsInvalid(cType) {
+		return
+	}
+
+	if _, ok := cType.(*NamedType); ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("named type without assignment is forbidden at %d:%d", stmt.Start().Line, stmt.End().Line)})
+		return
+	}
+
+	if ce, ok := expr.(*CallExpr); ok {
+		if fm, ok := ce.CalleeType.(*FuncMethod); ok && len(fm.FuncType.Results) > 0 {
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling function or method with non empty returned values without assignment is forbidden, expected 0, got %d at %d:%d", len(fm.FuncType.Results), stmt.Start().Line, stmt.End().Line)})
+			return
 		}
-		return
 	}
 
-	calleType, _ := c.checkExprInCurrentMode(call.Callee)
-	fn, ok := calleType.(*FuncMethod)
-	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("callee type expression statement must be a function call got %#v at %d:%d", calleType, stmt.Start().Line, stmt.End().Column)})
+	if _, ok := expr.(*ConversionExpr); ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("conversion expression without assignment is forbidden at %d:%d", stmt.Start().Line, stmt.End().Line)})
 		return
 	}
-
-	if len(fn.FuncType.Results) > 0 {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling function with non empty returned values is forbidden without assignment, expected 0, got %d at %d:%d", len(fn.FuncType.Results), stmt.Start().Line, stmt.End().Line)})
-		return
-	}
-
-	_, _ = c.checkExprInCurrentMode(stmt.Expr)
 }
 
 // checkSelectorExpr validates selector expression and return its type.
@@ -1905,26 +1903,31 @@ func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
 	}
 
 	underlying := unwrapNamed(baseType)
-
 	switch t := underlying.(type) {
 	case *StructType:
-		tp, ok := lookupStructField(t, expr.Selector.Value)
+		if named, ok := baseType.(*NamedType); ok {
+			if method, isMethod := c.lookupMethodType(named, expr.Selector.Value); isMethod {
+				return method
+			}
+		}
+
+		typ, ok := lookupStructField(t, expr.Selector.Value)
 		if !ok {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q at %d:%d", expr.Selector.Value, expr.Selector.Line, expr.Selector.Column)})
 			return TInvalid
 		}
-		return tp
+		return typ
 
 	case *InterfaceType:
-		tp, ok := lookupInterfaceMethods(t, expr.Selector.Value)
+		typ, ok := lookupInterfaceMethods(t, expr.Selector.Value)
 		if !ok {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown method %q at %d:%d", expr.Selector.Value, expr.Selector.Line, expr.Selector.Column)})
 			return TInvalid
 		}
-		return tp
+		return typ
 
 	default:
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type at %d:%d", expr.Start().Line, expr.End().Column)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type %#v at %d:%d", t, expr.Start().Line, expr.End().Column)})
 		return TInvalid
 	}
 }
@@ -2390,11 +2393,6 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		cStmt := c.checkStmt(stmt.Init, returnInputVarsInitialized)
 
 		if val, ok := stmt.Init.(*ast.AssignStmt); ok && val.Operator.Kind == token.Assign {
-			if len(val.Left) == 0 || len(val.Left) > 1 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expected 1 assigment got %d at %d:%d", len(val.Left), stmt.Init.Start().Line, stmt.Init.End().Line)})
-				return
-			}
-
 			name := exprName(val.Left[0])
 			sym := c.scope.Lookup(name)
 			if sym != nil && sym.Kind == SymConst {
@@ -3457,15 +3455,30 @@ func (c *Checker) checkExprInCurrentMode(expr ast.Expr) (Type, Expr) {
 	}
 
 	cType, cExpr := c.checkExpr(expr)
+	fm, isMethod := cType.(*FuncMethod)
+
+	if _, ok := expr.(*ast.SelectorExpr); ok && isMethod {
+		// bound method is forbidden for now and will be a subject for another time.
+		/*
+			type Reader interface {
+			    read() string
+			}
+			func f(r Reader) {
+			    fn := r.read
+			}
+		*/
+		// it's forbidden for now because it's an assigment
+		// instead of a call expression like fn := r.read().
+		// The same principal for struct and interface.
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("bound method values is forbidden at %d:%d", expr.Start().Line, expr.End().Line)})
+		return TInvalid, nil
+	}
+
 	// required for multiple returned values
-	if fn, fok := cType.(*FuncMethod); fok {
-		if len(fn.FuncType.Results) > 1 {
-			if _, ok := expr.(*ast.CallExpr); ok {
-				for _, r := range fn.FuncType.Results {
-					if c.checkTypeInCurrentMode(r.Type) == TInvalid {
-						return TInvalid, nil
-					}
-				}
+	if _, ok := expr.(*ast.CallExpr); ok && isMethod && len(fm.FuncType.Results) > 1 {
+		for _, r := range fm.FuncType.Results {
+			if c.checkTypeInCurrentMode(r.Type) == TInvalid {
+				return TInvalid, nil
 			}
 		}
 	}
