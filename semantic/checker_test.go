@@ -8511,6 +8511,15 @@ func bar() {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+func bar() {
+  var a map[float64]string = make(map[float64]string)
+  a[float64(1.0)] = "b"
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
@@ -8523,7 +8532,6 @@ func bar() {
 
 			_, diagnostics := check.Check(pr)
 			if tc.err {
-				fmt.Println(tc.data)
 				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
 				assert.Equal(t, 0, len(diagnostics), i)

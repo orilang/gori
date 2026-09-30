@@ -375,7 +375,7 @@ func (c *Checker) resolveType(t ast.Type) Type {
 		}
 
 		if !isMapKeyType(key) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map key type %#v at %d:%d", key, v.KeyType.Start().Line, v.KeyType.End().Column)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map key type %s at %d:%d", stringifyType(key), v.KeyType.Start().Line, v.KeyType.End().Column)})
 			return TInvalid
 		}
 
@@ -902,7 +902,9 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 
 // isMapKeyType validates provided type as key type
 func isMapKeyType(t Type) bool {
-	if IsNumeric(t) || IsBool(t) || IsString(t) {
+	// floats are strictly forbidden as map keys because of precision issues
+	// and other behaviours defined by IEEE-754 with floating points
+	if IsInteger(t) || IsBool(t) || IsString(t) {
 		return true
 	}
 	return false
