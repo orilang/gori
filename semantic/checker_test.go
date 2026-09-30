@@ -8520,6 +8520,20 @@ func bar() {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+const xx hashmap[string]string = make(hashmap[string]string)
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func bar() {
+  const x hashmap[string]string = make(hashmap[string]string)
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
