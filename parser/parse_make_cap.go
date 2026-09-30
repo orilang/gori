@@ -44,11 +44,6 @@ func (p *Parser) parseMakeExpr() *ast.MakeExpr {
 
 		if p.kind() != token.RParen {
 			k := p.parseExpr(LOWEST)
-			if k.Start().Kind != token.IntLit {
-				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected intLit, got %v %q", k.Start().Line, k.Start().Column, k.Start().Kind, k.Start().Value))
-				p.consumeTo(token.RParen)
-				return x
-			}
 			x.Args = append(x.Args, k)
 		}
 
