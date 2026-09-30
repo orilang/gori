@@ -1173,7 +1173,7 @@ func f(m map[string]string) map[string]string {
 type UsersByID map[int]string
 
 func f(m UsersByID) string {
-	return m[1]
+	return m[int(1)]
 }
 `,
 			},
@@ -8406,6 +8406,124 @@ func f(x int) {
 				fmt.Println(v.Err.Error())
 			}
 			if tc.err {
+				assert.Greater(t, len(diagnostics), 0, i)
+			} else {
+				assert.Equal(t, 0, len(diagnostics), i)
+			}
+		}
+	})
+
+	t.Run("x34", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func foo(m map[string]string) (a int, b map[string]string) {
+  return "yes",m
+}
+
+func bar() {
+  var x map[string]string = make(map[string]string)
+  a, b := foo(x)
+}
+`,
+			},
+			{
+				data: `package main
+func foo(m map[string]string) (a string, b map[string]string) {
+  return "yes",m
+}
+
+func bar() {
+  var x map[string]string = make(map[string]string)
+  a, b := foo(x)
+  b["a"] = "b"
+}
+`,
+			},
+			{
+				data: `package main
+func foo(m map[string]string) (a string, b map[string]string) {
+	return "yes",m
+}
+
+func bar() {
+  var x map[string]string = make(map[string]string, uint(10))
+  a, b := foo(x)
+  b["a"] = "b"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(m map[string]string) (a string, b map[string]string) {
+  return "yes",m
+}
+
+func bar() {
+  var x map[string]string = make(map[string]string, uint(10))
+  a, b := foo(x)
+  b[uint(1)] = "b"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(m map[string]string) (a string, b map[string]string) {
+  return "yes",m
+}
+
+func bar() {
+  var x map[string]string = make(map[string]string, "test")
+  a, b := foo(x)
+  b["a"] = "b"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(m hashmap[string]string) (a int, b hashmap[string]string) {
+  return "yes",m
+}
+
+func bar() {
+  var x hashmap[string]string = make(hashmap[string]string)
+  a, b := foo(x)
+}
+`,
+			},
+			{
+				data: `package main
+func foo(m hashmap[string]string) (a string, b hashmap[string]string) {
+  return "yes",m
+}
+
+func bar() {
+  var x hashmap[string]string = make(hashmap[string]string)
+  a, b := foo(x)
+  b["a"] = "b"
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			_, diagnostics := check.Check(pr)
+			if tc.err {
+				fmt.Println(tc.data)
 				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
 				assert.Equal(t, 0, len(diagnostics), i)

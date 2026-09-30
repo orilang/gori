@@ -375,7 +375,7 @@ func (c *Checker) resolveType(t ast.Type) Type {
 		}
 
 		if !isMapKeyType(key) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map key type at %d:%d", v.KeyType.Start().Line, v.KeyType.End().Column)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map key type %#v at %d:%d", key, v.KeyType.Start().Line, v.KeyType.End().Column)})
 			return TInvalid
 		}
 
@@ -683,7 +683,7 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	valueType, expr := c.checkExpr(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to const of type %T at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Init.End().Line, decl.Init.End().Column)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to const of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Init.End().Line, decl.Init.End().Column)})
 		return
 	}
 	sym := c.pkgScope.Lookup(typeDeclName(decl))
@@ -824,7 +824,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		for k, v := range fn.FuncType.Params {
 			x, argExpr := c.checkExprInCurrentMode(t.Args[k])
 			if !IsAssignableTo(v.Type, x) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to var of type %T at %d:%d", v.Type.String(), x.String(), t.Args[k].Start().Line, t.Args[k].End().Column)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to var of type %s at %d:%d", stringifyType(v.Type), stringifyType(x), t.Args[k].Start().Line, t.Args[k].End().Column)})
 				return TInvalid, nil
 			}
 			ce.Args = append(ce.Args, argExpr)
@@ -865,14 +865,14 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 
 		case *MapType:
 			if !IsIdentical(decl.Key, index) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map index expression of type %#v at %d:%d", index, t.Index.Start().Line, t.Index.End().Column)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map index expression of type %s at %d:%d", stringifyType(index), t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 			return decl.Value, nil
 
 		case *HashMapType:
 			if !IsIdentical(decl.Key, index) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid hashmap index expression of type %#v at %d:%d", index, t.Index.Start().Line, t.Index.End().Column)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid hashmap index expression of type %s at %d:%d", stringifyType(index), t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 			return decl.Value, nil
@@ -883,6 +883,17 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 
 	case *ast.SelectorExpr:
 		return c.checkSelectorExpr(t), nil
+
+	case *ast.MakeExpr:
+		typ := c.resolveType(t.Type)
+		if len(t.Args) == 1 {
+			capacity, _ := c.checkExprInCurrentMode(t.Args[0])
+			if !IsIdentical(TUInt, capacity) {
+				return TInvalid, nil
+			}
+		}
+
+		return typ, nil
 
 	default:
 		return TInvalid, nil
@@ -1237,7 +1248,7 @@ func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) Decl {
 	valueType, expr := c.checkExprInCurrentMode(decl.Init)
 
 	if !IsAssignableTo(targetType, valueType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to var of type %T at %d:%d", valueType.String(), targetType.String(), decl.Start().Line, decl.End().Column)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to var of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Start().Line, decl.End().Column)})
 		return nil
 	}
 
@@ -1298,7 +1309,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 	for index, right := range decl.Right {
 		rightType, rightExpr := c.checkExprInCurrentMode(right)
 		if IsInvalid(rightType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid at %d:%d", right, right.Start().Line, right.End().Column)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d", stringifyType(rightType), right.Start().Line, right.End().Column)})
 			return nil, nil
 		}
 
@@ -1471,7 +1482,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		valueType, expr := c.checkExprInCurrentMode(right)
 		fn, fromFunc := expr.(*CallExpr)
 		if IsInvalid(valueType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid at %d:%d", right, right.Start().Line, right.End().Column)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d", stringifyType(valueType), right.Start().Line, right.End().Column)})
 			return nil
 		}
 		stmt.Right = append(stmt.Right, expr)
@@ -1542,7 +1553,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		valueType, expr := c.checkExprInCurrentMode(right)
 		fn, fromFunc := expr.(*CallExpr)
 		if IsInvalid(valueType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %#v is invalid at %d:%d", right, right.Start().Line, right.End().Line)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d", stringifyType(valueType), right.Start().Line, right.End().Line)})
 			return nil
 		}
 		stmt.Right = append(stmt.Right, expr)
@@ -1621,7 +1632,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 				for k, v := range fn.FuncType.Results {
 					vType := c.checkTypeInCurrentMode(v.Type)
 					if !IsIdentical(c.currentFunc.Results[k].Type, vType) {
-						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %T as %T in return statement", vType, c.currentFunc.Results[k].Type)})
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %q as %q in return statement", stringifyType(vType), stringifyType(c.currentFunc.Results[k].Type))})
 						return flowFallsThrough, nil
 					}
 				}
@@ -1635,7 +1646,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 		for k, v := range decl.Values {
 			vType, _ := c.checkExprInCurrentMode(v)
 			if !IsIdentical(c.currentFunc.Results[k].Type, vType) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %T as %T in return statement", vType, c.currentFunc.Results[k].Type)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %q as %q in return statement", stringifyType(vType), stringifyType(c.currentFunc.Results[k].Type))})
 				return flowFallsThrough, nil
 			}
 		}
