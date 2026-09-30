@@ -165,6 +165,97 @@ func main(){
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("map_x3", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+    
+const x map[string]string = make(map[string]string) // comment
+func main() {
+  var y hashmap[string]string = make(hashmap[string]string)
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  ConstDecl
+   Const: "const" @3:1 (kind=23)
+   Name: "x" @3:7 (kind=3)
+   Type
+    MapType:
+     Map: "map" @3:9 (kind=79)
+     LBracket: "[" @3:12 (kind=43)
+     KeyType:
+      NamedType
+       Ident: "string" @3:13 (kind=24)
+     RBracket: "]" @3:19 (kind=44)
+     ValueType:
+      NamedType
+       Ident: "string" @3:20 (kind=24)
+   Eq: "=" @3:27 (kind=49)
+   Init
+    MakeExpr:
+     Make: "make" @3:29 (kind=3)
+     LParen: "(" @3:33 (kind=39)
+     MapType:
+      Map: "map" @3:34 (kind=79)
+      LBracket: "[" @3:37 (kind=43)
+      KeyType:
+       NamedType
+        Ident: "string" @3:38 (kind=24)
+      RBracket: "]" @3:44 (kind=44)
+      ValueType:
+       NamedType
+        Ident: "string" @3:45 (kind=24)
+     RParen: ")" @3:51 (kind=40)
+  FuncDecl
+   Function: "func" @4:1 (kind=10)
+   Name: "main" @4:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @4:13 (kind=41)
+     Stmts
+      VarDecl
+       Var: "var" @5:3 (kind=11)
+       Name: "y" @5:7 (kind=3)
+       Type
+        MapType:
+         Hashmap: "hashmap" @5:9 (kind=80)
+         LBracket: "[" @5:16 (kind=43)
+         KeyType:
+          NamedType
+           Ident: "string" @5:17 (kind=24)
+         RBracket: "]" @5:23 (kind=44)
+         ValueType:
+          NamedType
+           Ident: "string" @5:24 (kind=24)
+       Eq: "=" @5:31 (kind=49)
+       Init
+        MakeExpr:
+         Make: "make" @5:33 (kind=3)
+         LParen: "(" @5:37 (kind=39)
+         MapType:
+          Hashmap: "hashmap" @5:38 (kind=80)
+          LBracket: "[" @5:45 (kind=43)
+          KeyType:
+           NamedType
+            Ident: "string" @5:46 (kind=24)
+          RBracket: "]" @5:52 (kind=44)
+          ValueType:
+           NamedType
+            Ident: "string" @5:53 (kind=24)
+         RParen: ")" @5:59 (kind=40)
+     RBrace: "}" @6:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("slice_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)

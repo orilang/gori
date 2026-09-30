@@ -20,6 +20,8 @@ func (p *Parser) parseConstDecl() ast.Decl {
 	eq := p.expect(token.Assign, "expected '=")
 	var init ast.Expr
 	switch p.peek().Value {
+	case "make":
+		init = p.parseMakeExpr()
 	case "[":
 		init = p.parseSliceElements()
 	default:
