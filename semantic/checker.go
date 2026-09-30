@@ -679,6 +679,11 @@ func (c *Checker) checkTopLevelValues(file *ast.File) {
 // checkConstDecl validates constant targetType and valueType.
 // An error is emitted if any
 func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
+	if _, ok := decl.Init.(*ast.MakeExpr); ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("make expression is forbidden as assignement to const at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
+		return
+	}
+
 	targetType := c.resolveType(decl.Type)
 	valueType, expr := c.checkExpr(decl.Init)
 
@@ -1221,6 +1226,11 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 // checkScopeConstDecl validates constant targetType and valueType.
 // An error is emitted if any
 func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
+	if _, ok := decl.Init.(*ast.MakeExpr); ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("make expression is forbidden as assignement to const at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
+		return nil
+	}
+
 	targetType := c.checkTypeInCurrentMode(c.resolveType(decl.Type))
 	valueType, expr := c.checkExprInCurrentMode(decl.Init)
 
