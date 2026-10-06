@@ -289,6 +289,7 @@ var makeTypes = map[Kind]bool{
 	LBracket:  true,
 	KWMap:     true,
 	KWHashMap: true,
+	Ident:     true,
 }
 
 var definedTypes = map[Kind]bool{

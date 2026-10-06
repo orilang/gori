@@ -356,4 +356,19 @@ func main() {
 		assert.NotNil(pr)
 		assert.Greater(len(parser.Errors), 0)
 	})
+
+	t.Run("bad_x4", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func main() {
+  var x int = make(10, 10)
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
 }
