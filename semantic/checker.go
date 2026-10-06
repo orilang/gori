@@ -681,7 +681,7 @@ func (c *Checker) checkTopLevelValues(file *ast.File) {
 // An error is emitted if any
 func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	if _, ok := decl.Init.(*ast.MakeExpr); ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("make expression is forbidden as assignement to const at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("make expression is forbidden as assignment to const at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
 		return
 	}
 
@@ -692,6 +692,16 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to const of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Init.End().Line, decl.Init.End().Column)})
 		return
 	}
+
+	// We currently forbid map assigment because it's a mutable object.
+	// To do that we need to clone this object which is not supported
+	_, isMap := targetType.(*MapType)
+	_, isHashMap := targetType.(*HashMapType)
+	if isMap || isHashMap {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigning map/hashmap to const is forbidden at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
+		return
+	}
+
 	sym := c.pkgScope.Lookup(typeDeclName(decl))
 	sym.Type = targetType
 	sym.Decl = decl
@@ -1233,7 +1243,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 // An error is emitted if any
 func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 	if _, ok := decl.Init.(*ast.MakeExpr); ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("make expression is forbidden as assignement to const at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("make expression is forbidden as assignment to const at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
 		return nil
 	}
 
@@ -1242,6 +1252,15 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot (re)assign value of type %s to const of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Start().Line, decl.End().Column)})
+		return nil
+	}
+
+	// We currently forbid map assigment because it's a mutable object.
+	// To do that we need to clone this object which is not supported
+	_, isMap := targetType.(*MapType)
+	_, isHashMap := targetType.(*HashMapType)
+	if isMap || isHashMap {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigning map/hashmap to const is forbidden at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
 		return nil
 	}
 

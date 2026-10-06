@@ -8650,6 +8650,25 @@ func f(m map[string]string) (int, bool) {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) {
+  const x map[string]string = m
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+const x map[string]string = f()
+
+func f() map[string]string {
+  var m map[string]string = make(map[string]string)
+  return m
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
