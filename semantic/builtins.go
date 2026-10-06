@@ -84,6 +84,11 @@ func (t *HashMapType) String() string {
 	return "hashmap[" + t.Key.String() + "]" + t.Value.String()
 }
 
+func (t *MultiValueType) typeNode() {}
+func (t *MultiValueType) String() string {
+	return "multiValueType"
+}
+
 func (t *StructType) typeNode() {}
 func (t *StructType) String() string {
 	return "struct"

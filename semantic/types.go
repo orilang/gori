@@ -58,6 +58,10 @@ type HashMapType struct {
 	Value Type
 }
 
+type MultiValueType struct {
+	Values []Type
+}
+
 type StructField struct {
 	Name string
 	Type Type

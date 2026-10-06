@@ -18,6 +18,7 @@ type Symbol struct {
 	Name       string
 	Kind       SymbolKind
 	Type       Type
+	originType Type
 	Decl       ast.Decl
 	IsComptime bool
 }

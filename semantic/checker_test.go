@@ -977,8 +977,8 @@ func y() {
 		check.checkAssignableExpr(&ast.IndexExpr{
 			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
 			Index: &ast.BadExpr{},
-		})
-		check.checkAssignableExpr(&ast.BadExpr{})
+		}, false)
+		check.checkAssignableExpr(&ast.BadExpr{}, false)
 
 		check.typeDecls = append(check.typeDecls, &ast.StructDecl{})
 		check.createTypeObjects()
@@ -1149,7 +1149,11 @@ func x(s [5]string) string {
 			{
 				data: `package main
 func f(m map[string]string) string {
-	return m["x"]
+	x, ok := m["x"]
+	if ok {
+	  return x
+	}
+	return ""
 }
 `,
 			},
@@ -1173,7 +1177,8 @@ func f(m map[string]string) map[string]string {
 type UsersByID map[int]string
 
 func f(m UsersByID) string {
-	return m[int(1)]
+  x, ok := m[int(1)]
+  return x
 }
 `,
 			},
@@ -8531,6 +8536,117 @@ const xx hashmap[string]string = make(hashmap[string]string)
 				data: `package main
 func bar() {
   const x hashmap[string]string = make(hashmap[string]string)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  var x map[string]string = make(map[string]string)
+  x["a"] = "b"
+  const y map[string]string = x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type UsersByID map[int]string
+
+func f(m UsersByID) string {
+  return m[int(1)]
+}
+`,
+			},
+			{
+				data: `package main
+type UsersByID map[int]string
+
+func f(m UsersByID) (string,bool) {
+  return m[int(1)]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type UserID int
+
+func f() {
+    var m map[UserID]string = make(map[UserID]string, uint(10))
+    var id UserID = UserID(1)
+    m[id] = "yes"
+    x := m[id]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+
+func f() {
+    var m map[string]string = make(map[string]string, uint(10))
+    m["id"] = "yes"
+    x := m["id"]
+    var y string = m["id"]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+
+func f() {
+    var m map[string]string = make(map[string]string, uint(10))
+    m["id"] = "yes"
+    x, ok := m["id"]
+    var y string = m["id"]
+}
+`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) string {
+  x, ok := "", false
+  x, ok = m["x"]
+  if ok {
+    return x
+  }
+  return ""
+}
+`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) string {
+  x, ok := "", false
+  x, _ = m["x"]
+  return ""
+}
+`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) string {
+  x, ok := "", false
+  _, ok = m["x"]
+  return ""
+}
+`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) (string, bool) {
+  return m["x"]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) (int, bool) {
+  return m["x"]
 }
 `,
 			},
