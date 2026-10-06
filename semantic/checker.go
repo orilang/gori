@@ -1437,7 +1437,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 			}
 
 			if len(decl.Left) == len(multiValue.Values) && len(decl.Left) == len(decl.Right) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment mix with multiple return values plus single one is forbidden at %d:%d", right.Start().Line, right.Start().Column)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigning multiple return values plus single one is forbidden at %d:%d", right.Start().Line, right.Start().Column)})
 				return nil, nil
 			}
 
@@ -1679,7 +1679,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		multiValue, isMultiValueType := valueType.(*MultiValueType)
 		if isMultiValueType {
 			if len(decl.Left) == len(multiValue.Values) && len(decl.Left) == len(decl.Right) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment mix with multiple return values plus single one is forbidden at %d:%d", right.Start().Line, right.Start().Column)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigning multiple return values plus single one is forbidden at %d:%d", right.Start().Line, right.Start().Column)})
 				return nil
 			}
 		}
@@ -1775,12 +1775,10 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 					return flowFallsThrough, nil
 				}
 
-				// for k, v := range c.currentFunc.Results {
-				// 	if !IsIdentical(v.Type, mv.Values[k]) {
-				// 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %q as %q in return statement", stringifyType(mv.Values[k]), stringifyType(v.Type))})
-				// 		return flowFallsThrough, nil
-				// 	}
-				// }
+				if len(decl.Values) == len(mv.Values) && len(decl.Values) == len(c.currentFunc.Results) {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("returning multiple return values plus single one is forbidden at %d:%d", decl.Values[k].Start().Line, decl.Values[k].Start().Column)})
+					return flowFallsThrough, nil
+				}
 			} else {
 				x = valueType
 				if !IsIdentical(c.currentFunc.Results[k].Type, x) {

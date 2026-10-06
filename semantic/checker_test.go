@@ -8795,6 +8795,15 @@ func f() {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+func f() (string, bool) {
+  var m map[string]string = make(map[string]string)
+  return m["a"], true
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
