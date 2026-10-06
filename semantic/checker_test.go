@@ -8775,6 +8775,26 @@ func f(m map[string]string) (x string, ok bool) {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  var x string = ""
+  var ok bool = false
+  var m map[string]string = make(map[string]string)
+  x, ok = m["a"], true
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  var m map[string]string = make(map[string]string)
+  x, ok := m["a"], true
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {

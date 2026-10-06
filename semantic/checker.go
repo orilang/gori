@@ -1436,6 +1436,11 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 				return nil, nil
 			}
 
+			if len(decl.Left) == len(multiValue.Values) && len(decl.Left) == len(decl.Right) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment mix with multiple return values plus single one is forbidden at %d:%d", right.Start().Line, right.Start().Column)})
+				return nil, nil
+			}
+
 			for k, left := range decl.Left {
 				name := exprName(left)
 				valueType := multiValue.Values[k]
@@ -1669,6 +1674,14 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		if isMultiValueCall {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("multiple assignments with multiple funcs return values are forbidden, expected 1 value type, got %d at %d:%d", fn.ReturnedValueCount, decl.Start().Line, decl.End().Line)})
 			return nil
+		}
+
+		multiValue, isMultiValueType := valueType.(*MultiValueType)
+		if isMultiValueType {
+			if len(decl.Left) == len(multiValue.Values) && len(decl.Left) == len(decl.Right) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment mix with multiple return values plus single one is forbidden at %d:%d", right.Start().Line, right.Start().Column)})
+				return nil
+			}
 		}
 
 		sym := &Symbol{
