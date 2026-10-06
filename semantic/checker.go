@@ -694,8 +694,8 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 
 	// We currently forbid map assigment because it's a mutable object.
 	// To do that we need to clone this object which is not supported
-	_, isMap := targetType.(*MapType)
-	_, isHashMap := targetType.(*HashMapType)
+	_, isMap := unwrapNamed(targetType).(*MapType)
+	_, isHashMap := unwrapNamed(targetType).(*HashMapType)
 	if isMap || isHashMap {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigning map/hashmap to const is forbidden at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
 		return
@@ -1261,8 +1261,8 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 
 	// We currently forbid map assigment because it's a mutable object.
 	// To do that we need to clone this object which is not supported
-	_, isMap := targetType.(*MapType)
-	_, isHashMap := targetType.(*HashMapType)
+	_, isMap := unwrapNamed(targetType).(*MapType)
+	_, isHashMap := unwrapNamed(targetType).(*HashMapType)
 	if isMap || isHashMap {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigning map/hashmap to const is forbidden at %d:%d", decl.Init.Start().Line, decl.Init.Start().Column)})
 		return nil

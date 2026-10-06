@@ -8693,6 +8693,18 @@ func f(m map[string]string) {
 			{
 				err: true,
 				data: `package main
+type Users map[string]string
+const x Users = f()
+
+func f() Users {
+  var m Users = make(Users)
+  return m
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
 const x map[string]string = f()
 
 func f() map[string]string {
