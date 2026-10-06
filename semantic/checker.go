@@ -29,7 +29,6 @@ func (s *Scope) Declare(sym *Symbol) bool {
 	if _, exists := s.Symbols[sym.Name]; exists {
 		return false
 	}
-	sym.originType = sym.Type
 	s.Symbols[sym.Name] = sym
 	return true
 }
@@ -686,7 +685,7 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	}
 
 	targetType := c.resolveType(decl.Type)
-	valueType, expr := c.checkExpr(decl.Init)
+	valueType, expr := c.checkExprInCurrentMode(decl.Init, false)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to const of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Init.End().Line, decl.Init.End().Column)})
@@ -709,8 +708,10 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 	c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, &ConstDecl{Name: sym.Name, Symbol: resolvedSymbol(sym, false, false), Init: expr})
 }
 
-// checkExpr returns the type of the expression
-func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
+// checkExpr returns the type of the expression.
+// isWriteIndexingAssigment parameter must be only set to true for statements map/hashmaps like m["a"]="b".
+// Therefore, isWriteIndexingAssigment is only for index expression.
+func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type, Expr) {
 	switch t := expr.(type) {
 	case *ast.IntLitExpr:
 		return TInt, &IntLitExpr{Type: TInt, Value: t.Name.Value}
@@ -740,7 +741,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		return sym.Type, &IdentExpr{Type: sym.Type, Symbol: resolvedSymbol(sym, false, false), Value: t.Name.Value}
 
 	case *ast.UnaryExpr:
-		right, ex := c.checkExprInCurrentMode(t.Right)
+		right, ex := c.checkExprInCurrentMode(t.Right, false)
 		if SupportsUnaryOp(right, t.Operator.Kind) {
 			return right, &UnaryExpr{Type: right, Operator: t.Operator.Kind, Right: ex}
 		}
@@ -748,8 +749,8 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		return TInvalid, nil
 
 	case *ast.BinaryExpr:
-		left, lex := c.checkExprInCurrentMode(t.Left)
-		right, rex := c.checkExprInCurrentMode(t.Right)
+		left, lex := c.checkExprInCurrentMode(t.Left, false)
+		right, rex := c.checkExprInCurrentMode(t.Right, false)
 
 		if IsIdentical(left, right) && SupportsBinaryOp(left, t.Operator.Kind) {
 			switch t.Operator.Kind {
@@ -767,7 +768,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		var ce CallExpr
 		if sel, ok := t.Callee.(*ast.SelectorExpr); ok {
 			var selx SelectorExpr
-			selType, selExpr := c.checkExprInCurrentMode(sel.X)
+			selType, selExpr := c.checkExprInCurrentMode(sel.X, false)
 			if named, isNamed := selType.(*NamedType); isNamed {
 				if method, isMethod := c.lookupMethodType(named, sel.Selector.Value); isMethod {
 					if len(t.Args) != len(method.FuncType.Params) {
@@ -778,7 +779,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 					selx.Selector = sel.Selector.Value
 					ce.FromFunc = isMethod
 					for k, v := range method.FuncType.Params {
-						x, argExpr := c.checkExprInCurrentMode(t.Args[k])
+						x, argExpr := c.checkExprInCurrentMode(t.Args[k], false)
 						if !IsAssignableTo(v.Type, x) {
 							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to const of type %s at %d:%d", stringifyType(v.Type), stringifyType(x), t.Start().Line, t.End().Column)})
 							return TInvalid, nil
@@ -799,13 +800,13 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 			}
 		}
 
-		calleeType, calleeExpr := c.checkExpr(t.Callee)
+		calleeType, calleeExpr := c.checkExpr(t.Callee, false)
 		if named, ok := calleeType.(*NamedType); ok {
 			if len(t.Args) != 1 {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments in %#v, expected 1 got %d at %d:%d", named.Name, len(t.Args), t.Callee.Start().Line, t.Callee.End().Column)})
 				return TInvalid, nil
 			}
-			arg, _ := c.checkExprInCurrentMode(t.Args[0])
+			arg, _ := c.checkExprInCurrentMode(t.Args[0], false)
 			if IsConvertibleTo(arg, named) {
 				return named, calleeExpr
 			}
@@ -819,7 +820,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 				return TInvalid, nil
 			}
 
-			arg, ex := c.checkExprInCurrentMode(t.Args[0])
+			arg, ex := c.checkExprInCurrentMode(t.Args[0], false)
 			if IsConvertibleTo(arg, builtin) {
 				return calleeType, &ConversionExpr{To: calleeType, Value: ex}
 			}
@@ -838,7 +839,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 
 		ce.FromFunc = ok
 		for k, v := range fn.FuncType.Params {
-			x, argExpr := c.checkExprInCurrentMode(t.Args[k])
+			x, argExpr := c.checkExprInCurrentMode(t.Args[k], false)
 			if !IsAssignableTo(v.Type, x) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to var of type %s at %d:%d", stringifyType(v.Type), stringifyType(x), t.Args[k].Start().Line, t.Args[k].End().Column)})
 				return TInvalid, nil
@@ -857,12 +858,12 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 		return fn.FuncType.Results[0].Type, &ce
 
 	case *ast.ParenExpr:
-		return c.checkExprInCurrentMode(t.Inner)
+		return c.checkExprInCurrentMode(t.Inner, false)
 
 	case *ast.IndexExpr:
-		baseType, _ := c.checkExprInCurrentMode(t.X)
+		baseType, _ := c.checkExprInCurrentMode(t.X, false)
 		underlying := unwrapNamed(baseType)
-		index, _ := c.checkExprInCurrentMode(t.Index)
+		index, _ := c.checkExprInCurrentMode(t.Index, false)
 
 		switch decl := underlying.(type) {
 		case *SliceType:
@@ -884,17 +885,20 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map index expression of type %s at %d:%d", stringifyType(index), t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
-			return decl.Value, nil
+			if isWriteIndexingAssigment {
+				return decl.Value, nil
+			}
+			return &MultiValueType{Values: []Type{decl.Value, TBool}}, nil
 
 		case *HashMapType:
 			if !IsIdentical(decl.Key, index) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid hashmap index expression of type %s at %d:%d", stringifyType(index), t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
-			return decl.Value, nil
-
-		case *BuiltinType:
-			return c.checkTypeInCurrentMode(decl), nil
+			if isWriteIndexingAssigment {
+				return decl.Value, nil
+			}
+			return &MultiValueType{Values: []Type{decl.Value, TBool}}, nil
 
 		default:
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %#v at %d:%d", t.X, t.X.Start().Line, t.X.End().Column)})
@@ -907,7 +911,7 @@ func (c *Checker) checkExpr(expr ast.Expr) (Type, Expr) {
 	case *ast.MakeExpr:
 		typ := c.resolveType(t.Type)
 		if len(t.Args) == 1 {
-			capacity, _ := c.checkExprInCurrentMode(t.Args[0])
+			capacity, _ := c.checkExprInCurrentMode(t.Args[0], false)
 			if !IsIdentical(TUInt, capacity) {
 				return TInvalid, nil
 			}
@@ -1248,7 +1252,7 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 	}
 
 	targetType := c.checkTypeInCurrentMode(c.resolveType(decl.Type))
-	valueType, expr := c.checkExprInCurrentMode(decl.Init)
+	valueType, expr := c.checkExprInCurrentMode(decl.Init, false)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot (re)assign value of type %s to const of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Start().Line, decl.End().Column)})
@@ -1282,7 +1286,7 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 // An error is emitted if any
 func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) Decl {
 	targetType := c.checkTypeInCurrentMode(c.resolveType(decl.Type))
-	valueType, expr := c.checkExprInCurrentMode(decl.Init)
+	valueType, expr := c.checkExprInCurrentMode(decl.Init, false)
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to var of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), decl.Start().Line, decl.End().Column)})
@@ -1304,18 +1308,16 @@ func (c *Checker) checkScopeVarDecl(decl *ast.VarDecl) Decl {
 }
 
 // checkAssignableExpr returns valid assignable expression.
-// An error is emitted if any
-func (c *Checker) checkAssignableExpr(expr ast.Expr, isTargetTypeAssignable bool) (Type, Expr) {
+// isWriteIndexingAssigment parameter must be only set to true for statements map/hashmaps like m["a"]="b".
+// Therefore, isWriteIndexingAssigment is only for index expression.
+// An error is emitted if any.
+func (c *Checker) checkAssignableExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type, Expr) {
 	switch t := expr.(type) {
 	case *ast.IdentExpr:
-		return c.checkExprInCurrentMode(t)
+		return c.checkExprInCurrentMode(t, false)
 
 	case *ast.IndexExpr:
-		cType, cExpr := c.checkExprInCurrentMode(t)
-		if isTargetTypeAssignable {
-			return cType, cExpr
-		}
-		return &MultiValueType{Values: []Type{cType, TBool}}, cExpr
+		return c.checkExprInCurrentMode(t, isWriteIndexingAssigment)
 
 	case *ast.SelectorExpr:
 		return c.checkSelectorExpr(t), nil
@@ -1348,15 +1350,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 
 	stmt := &AssigmentStmt{}
 	for index, right := range decl.Right {
-		var (
-			valueType Type
-			valueExpr Expr
-		)
-		if _, ok := c.checkIndexExprType(right); ok {
-			valueType, valueExpr = c.checkAssignableExpr(right, false)
-		} else {
-			valueType, valueExpr = c.checkExprInCurrentMode(right)
-		}
+		valueType, valueExpr := c.checkExprInCurrentMode(right, false)
 		if IsInvalid(valueType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d", stringifyType(valueType), right.Start().Line, right.End().Column)})
 			return nil, nil
@@ -1408,18 +1402,16 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 						}
 
 						targetType, _ := c.checkAssignableExpr(left, true)
-						leftc, _ := c.checkExprInCurrentMode(left)
-						if IsInvalid(leftc) {
-							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %T at %d:%d", targetType, left.Start().Line, left.End().Column)})
+						if IsInvalid(targetType) {
+							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %s at %d:%d", stringifyType(targetType), left.Start().Line, left.End().Column)})
 							return nil, nil
 						}
 
 						if !IsAssignableTo(targetType, valueType) {
-							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %T to variable of type %T", valueType.String(), targetType.String())})
+							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("CCC cannot assign value of type %s to variable of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.End().Column)})
 							return nil, nil
 						}
 
-						sym.Type = targetType
 						if c.currentFunc != nil && decl.Operator.Kind == token.Assign {
 							for _, v := range c.currentFunc.Results {
 								if v.Name != "" && v.Name == name {
@@ -1437,7 +1429,6 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 		}
 
 		var sym *Symbol
-		name := exprName(decl.Left[index])
 		multiValue, isMultiValueType := valueType.(*MultiValueType)
 		if isMultiValueType {
 			if len(decl.Left) != len(multiValue.Values) {
@@ -1445,19 +1436,47 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 				return nil, nil
 			}
 
-			if isBlank(name) {
-				sym = &Symbol{
-					Kind:       SymVar,
-					Type:       multiValue.Values[index],
-					IsComptime: c.inComptimeFunc,
+			for k, left := range decl.Left {
+				name := exprName(left)
+				valueType := multiValue.Values[k]
+				if isBlank(name) {
+					sym = &Symbol{
+						Kind:       SymVar,
+						Type:       valueType,
+						IsComptime: c.inComptimeFunc,
+					}
+				} else {
+					sym = c.scope.Lookup(name)
+					if sym == nil {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, left.Start().Line, left.End().Line)})
+						return nil, nil
+					}
+
+					if sym.Kind == SymConst {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, left.Start().Line, left.End().Line)})
+						return nil, nil
+					}
+
+					targetType, _ := c.checkAssignableExpr(left, true)
+					if IsInvalid(targetType) {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %s at %d:%d", stringifyType(targetType), left.Start().Line, left.End().Column)})
+						return nil, nil
+					}
+
+					if !IsAssignableTo(targetType, valueType) {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("DDD cannot assign value of type %s to variable of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.End().Column)})
+						return nil, nil
+					}
+
+					if c.currentFunc != nil && decl.Operator.Kind == token.Assign {
+						for _, v := range c.currentFunc.Results {
+							if v.Name != "" && v.Name == name {
+								returnInputVarsInitialized = c.checkReturnVarsInitialized(returnInputVarsInitialized, name)
+							}
+						}
+					}
 				}
-			} else {
-				sym = &Symbol{
-					Name:       name,
-					Kind:       SymVar,
-					Type:       multiValue.Values[index],
-					IsComptime: c.inComptimeFunc,
-				}
+				stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, false, false))
 			}
 		} else {
 			if len(decl.Left) != len(decl.Right) {
@@ -1465,6 +1484,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 				return nil, nil
 			}
 
+			name := exprName(decl.Left[index])
 			if isBlank(name) {
 				sym = &Symbol{
 					Kind:       SymVar,
@@ -1484,18 +1504,16 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 				}
 
 				targetType, _ := c.checkAssignableExpr(decl.Left[index], true)
-				left, _ := c.checkExprInCurrentMode(decl.Left[index])
-				if IsInvalid(left) {
+				if IsInvalid(targetType) {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %s at %d:%d", stringifyType(targetType), decl.Left[index].Start().Line, decl.Left[index].End().Column)})
 					return nil, nil
 				}
 
 				if !IsAssignableTo(targetType, valueType) {
-					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to variable of type %s", stringifyType(valueType), stringifyType(targetType))})
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to variable of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.End().Column)})
 					return nil, nil
 				}
 
-				sym.Type = targetType
 				if c.currentFunc != nil && decl.Operator.Kind == token.Assign {
 					for _, v := range c.currentFunc.Results {
 						if v.Name != "" && v.Name == name {
@@ -1504,9 +1522,9 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 					}
 				}
 			}
+			stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, false, false))
 		}
 
-		stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, false, false))
 		stmt.Right = append(stmt.Right, valueExpr)
 	}
 
@@ -1541,15 +1559,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		stmt := &AssigmentStmt{}
 		right := decl.Right[0]
 
-		var (
-			valueType Type
-			valueExpr Expr
-		)
-		if _, ok := c.checkIndexExprType(right); ok {
-			valueType, valueExpr = c.checkAssignableExpr(right, false)
-		} else {
-			valueType, valueExpr = c.checkExprInCurrentMode(right)
-		}
+		valueType, valueExpr := c.checkExprInCurrentMode(right, false)
 		fn, fromFunc := valueExpr.(*CallExpr)
 		if IsInvalid(valueType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d", stringifyType(valueType), right.Start().Line, right.End().Column)})
@@ -1635,7 +1645,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 
 	stmt := &AssigmentStmt{}
 	for k, right := range decl.Right {
-		valueType, expr := c.checkExprInCurrentMode(right)
+		valueType, expr := c.checkExprInCurrentMode(right, false)
 		fn, fromFunc := expr.(*CallExpr)
 		if IsInvalid(valueType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d", stringifyType(valueType), right.Start().Line, right.End().Line)})
@@ -1705,24 +1715,21 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 	if len(c.currentFunc.Results) != len(decl.Values) {
 		if len(decl.Values) == 1 {
 			right := decl.Values[0]
-			valueType, _ := c.checkExprInCurrentMode(right)
+			valueType, _ := c.checkExprInCurrentMode(right, false)
 			fn, isFunc := valueType.(*FuncMethod)
 			_, isCall := right.(*ast.CallExpr)
 			isValidCall := isFunc && isCall
 			if isValidCall && len(c.currentFunc.Results) != len(fn.FuncType.Results) || !isValidCall {
-				if _, ok := c.checkIndexExprType(right); ok {
-					cType, _ := c.checkAssignableExpr(right, false)
-					if mv, ok := cType.(*MultiValueType); ok {
-						if len(mv.Values) != len(c.currentFunc.Results) {
-							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d at %d:%d", len(mv.Values), len(c.currentFunc.Results), right.Start().Line, right.Start().Column)})
-							return flowFallsThrough, nil
-						}
+				if mv, ok := valueType.(*MultiValueType); ok {
+					if len(mv.Values) != len(c.currentFunc.Results) {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d at %d:%d", len(mv.Values), len(c.currentFunc.Results), right.Start().Line, right.Start().Column)})
+						return flowFallsThrough, nil
+					}
 
-						for k, v := range c.currentFunc.Results {
-							if !IsIdentical(v.Type, mv.Values[k]) {
-								c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %q as %q in return statement", stringifyType(mv.Values[k]), stringifyType(v.Type))})
-								return flowFallsThrough, nil
-							}
+					for k, v := range c.currentFunc.Results {
+						if !IsIdentical(v.Type, mv.Values[k]) {
+							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %q as %q in return statement", stringifyType(mv.Values[k]), stringifyType(v.Type))})
+							return flowFallsThrough, nil
 						}
 					}
 				} else {
@@ -1746,24 +1753,27 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 		}
 	} else {
 		// TODO: a small refactor will be needed later with this and var expr []Expr
-		for k, v := range decl.Values {
+		for k, right := range decl.Values {
+			valueType, _ := c.checkExprInCurrentMode(right, false)
 			var x Type
-			if _, ok := c.checkIndexExprType(v); ok {
-				cType, _ := c.checkAssignableExpr(v, false)
-				if mv, ok := cType.(*MultiValueType); ok {
-					if len(mv.Values) != len(decl.Values) {
-						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("YYY number of returned values is invalid, expected %d got %d at %d:%d", len(mv.Values), len(c.currentFunc.Results), decl.Values[k].Start().Line, decl.Values[k].Start().Column)})
-						return flowFallsThrough, nil
-					}
+			if mv, ok := valueType.(*MultiValueType); ok {
+				if len(mv.Values) != len(decl.Values) {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("number of returned values is invalid, expected %d got %d at %d:%d", len(mv.Values), len(c.currentFunc.Results), decl.Values[k].Start().Line, decl.Values[k].Start().Column)})
+					return flowFallsThrough, nil
 				}
-			} else {
-				vType, _ := c.checkExprInCurrentMode(v)
-				x = vType
-			}
 
-			if !IsIdentical(c.currentFunc.Results[k].Type, x) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %q as %q in return statement", stringifyType(x), stringifyType(c.currentFunc.Results[k].Type))})
-				return flowFallsThrough, nil
+				// for k, v := range c.currentFunc.Results {
+				// 	if !IsIdentical(v.Type, mv.Values[k]) {
+				// 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %q as %q in return statement", stringifyType(mv.Values[k]), stringifyType(v.Type))})
+				// 		return flowFallsThrough, nil
+				// 	}
+				// }
+			} else {
+				x = valueType
+				if !IsIdentical(c.currentFunc.Results[k].Type, x) {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use a value of type %q as %q in return statement", stringifyType(x), stringifyType(c.currentFunc.Results[k].Type))})
+					return flowFallsThrough, nil
+				}
 			}
 		}
 	}
@@ -1778,7 +1788,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 			}
 		}
 
-		_, e := c.checkExpr(dv)
+		_, e := c.checkExpr(dv, false)
 		expr = append(expr, e)
 	}
 
@@ -1997,7 +2007,7 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 		return
 	}
 
-	cType, expr := c.checkExprInCurrentMode(stmt.Expr)
+	cType, expr := c.checkExprInCurrentMode(stmt.Expr, false)
 	if IsInvalid(cType) {
 		return
 	}
@@ -2023,7 +2033,7 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 // checkSelectorExpr validates selector expression and return its type.
 // An error is emitted if any
 func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
-	baseType, _ := c.checkExprInCurrentMode(expr.X)
+	baseType, _ := c.checkExprInCurrentMode(expr.X, false)
 	if IsInvalid(baseType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type at %d:%d", expr.Start().Line, expr.End().Column)})
 		return TInvalid
@@ -2100,7 +2110,7 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 		return
 	}
 
-	condType, condExpr := c.checkExprInCurrentMode(stmt.Condition)
+	condType, condExpr := c.checkExprInCurrentMode(stmt.Condition, false)
 	if !IsBool(condType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("if condition must returned a boolean at %d:%d", stmt.Condition.Start().Line, stmt.Condition.End().Line)})
 		st.returnFlowResult = flowFallsThrough
@@ -2240,7 +2250,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 	}
 
 	if stmt.Condition != nil {
-		condType, _ := c.checkExprInCurrentMode(stmt.Condition)
+		condType, _ := c.checkExprInCurrentMode(stmt.Condition, false)
 		if !IsBool(condType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("for condition must return a boolean at %d:%d", stmt.Condition.Start().Line, stmt.End().Line)})
 			st.returnFlowResult = flowFallsThrough
@@ -2322,7 +2332,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	c.scope = NewScope(c.scope)
 	c.breakFound = false
 
-	iteratorType, _ := c.checkExprInCurrentMode(stmt.X)
+	iteratorType, _ := c.checkExprInCurrentMode(stmt.X, false)
 	if IsInvalid(iteratorType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range expression is invalid at %d:%d", stmt.X.Start().Line, stmt.X.End().Line)})
 		return
@@ -2356,7 +2366,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			key, _ := c.checkExpr(stmt.Key)
+			key, _ := c.checkExpr(stmt.Key, false)
 			if stmt.Key.Name.Value != "_" && !IsAssignableTo(rangekeyType, key) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v at %d:%d", rangekeyType, key, stmt.Key.Start().Line, stmt.Key.End().Line)})
 				return
@@ -2374,7 +2384,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			value, _ := c.checkExpr(stmt.Value)
+			value, _ := c.checkExpr(stmt.Value, false)
 			if stmt.Value.Name.Value != "_" && !IsAssignableTo(rangeValueType, value) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range value type, expected %#v, got %#v at %d:%d", rangeValueType, value, stmt.Value.Start().Line, stmt.Value.End().Line)})
 				return
@@ -2408,7 +2418,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			key, _ := c.checkExpr(stmt.Key)
+			key, _ := c.checkExpr(stmt.Key, false)
 			if !IsAssignableTo(rangekeyType, key) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v", rangekeyType, key)})
 				return
@@ -2572,7 +2582,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		// switch z:=w();z {
 		// switch z=w();z {
 		// the tag is "a" or the last z
-		tagType, tagExpr := c.checkExprInCurrentMode(stmt.Tag)
+		tagType, tagExpr := c.checkExprInCurrentMode(stmt.Tag, false)
 		if IsInvalid(tagType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag expression is invalid at %d:%d", stmt.Tag.Start().Line, stmt.Tag.End().Line)})
 			return
@@ -2610,7 +2620,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 
 			swc := CaseClauseStmt{Case: cc.Case.Kind}
 			for _, v := range cc.Values {
-				vType, vExpr := c.checkExprInCurrentMode(v)
+				vType, vExpr := c.checkExprInCurrentMode(v, false)
 				if !IsIdentical(tagType, vType) {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("tag and case are not identical expected %#v got %#v at %d:%d", tagType, vType, v.Start().Line, v.End().Column)})
 					return
@@ -2711,7 +2721,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 
 			swc := CaseClauseStmt{Case: cc.Case.Kind}
 			for _, v := range cc.Values {
-				vType, vExpr := c.checkExprInCurrentMode(v)
+				vType, vExpr := c.checkExprInCurrentMode(v, false)
 				// TODO: Tagless switch duplicates is a job for the linter
 				// as it's difficult for the checker to properly handle every cases
 				// without any burden
@@ -3372,7 +3382,7 @@ func (c *Checker) isValidComptimeType(t Type) bool {
 func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 	switch t := expr.(type) {
 	case *ast.IntLitExpr, *ast.FloatLitExpr, *ast.BoolLitExpr, *ast.StringLitExpr:
-		ce, _ := c.checkExpr(t)
+		ce, _ := c.checkExpr(t, false)
 		return ce
 
 	case *ast.ParenExpr:
@@ -3382,7 +3392,7 @@ func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 		if IsInvalid(c.checkComptimeExpr(t.Right)) {
 			return TInvalid
 		}
-		ce, _ := c.checkExpr(expr)
+		ce, _ := c.checkExpr(expr, false)
 		return ce
 
 	case *ast.BinaryExpr:
@@ -3392,7 +3402,7 @@ func (c *Checker) checkComptimeExpr(expr ast.Expr) Type {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid comptime binary expression at %d:%d", t.Start().Line, t.End().Line)})
 			return TInvalid
 		}
-		ce, _ := c.checkExpr(expr)
+		ce, _ := c.checkExpr(expr, false)
 		return ce
 
 	case *ast.CallExpr:
@@ -3570,8 +3580,10 @@ func (c *Checker) checkComptimeFuncDecl(decl *ast.FuncDecl) {
 }
 
 // checkExprInCurrentMode checks if we are in comptime func or not and returns expression Type.
-// When in comptime func we validate authorized expressions
-func (c *Checker) checkExprInCurrentMode(expr ast.Expr) (Type, Expr) {
+// When in comptime func we validate authorized expressions.
+// isWriteIndexingAssigment parameter must be only set to true for statements map/hashmaps like m["a"]="b".
+// Therefore, isWriteIndexingAssigment is only for index expression.
+func (c *Checker) checkExprInCurrentMode(expr ast.Expr, isWriteIndexingAssigment bool) (Type, Expr) {
 	if c.inComptimeFunc {
 		t := c.checkComptimeExpr(expr)
 		if !c.isValidComptimeType(t) {
@@ -3581,7 +3593,7 @@ func (c *Checker) checkExprInCurrentMode(expr ast.Expr) (Type, Expr) {
 		return t, nil
 	}
 
-	cType, cExpr := c.checkExpr(expr)
+	cType, cExpr := c.checkExpr(expr, isWriteIndexingAssigment)
 	fm, isMethod := cType.(*FuncMethod)
 
 	if _, ok := expr.(*ast.SelectorExpr); ok && isMethod {
@@ -3620,26 +3632,6 @@ func (c *Checker) checkTypeInCurrentMode(t Type) Type {
 		return TInvalid
 	}
 	return t
-}
-
-// checkIndexExprType checks if expression is an index one.
-// It returns true when found and it's type
-func (c *Checker) checkIndexExprType(expr ast.Expr) (Type, bool) {
-	if indexExpr, isIndexExpr := expr.(*ast.IndexExpr); isIndexExpr {
-		if ident, isIdent := indexExpr.X.(*ast.IdentExpr); isIdent {
-			sym := c.scope.Lookup(ident.Name.Value)
-			if sym != nil {
-				typ := unwrapNamed(sym.originType)
-				if typ, isMapType := typ.(*MapType); isMapType {
-					return typ, true
-				}
-				if typ, isMapType := typ.(*HashMapType); isMapType {
-					return typ, true
-				}
-			}
-		}
-	}
-	return nil, false
 }
 
 // checkReturnVarsInitialized verifies if new vars are already present in current list of vars.

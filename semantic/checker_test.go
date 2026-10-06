@@ -556,7 +556,7 @@ type User struct {
 
 	t.Run("check_expr", func(t *testing.T) {
 		check := NewChecker()
-		check.checkExpr(nil)
+		check.checkExpr(nil, false)
 	})
 
 	t.Run("x7", func(t *testing.T) {
@@ -973,11 +973,11 @@ func y() {
 		check.checkExpr(&ast.IndexExpr{
 			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
 			Index: &ast.BadExpr{},
-		})
+		}, false)
 		check.checkAssignableExpr(&ast.IndexExpr{
 			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
 			Index: &ast.BadExpr{},
-		}, false)
+		}, true)
 		check.checkAssignableExpr(&ast.BadExpr{}, false)
 
 		check.typeDecls = append(check.typeDecls, &ast.StructDecl{})
@@ -8637,6 +8637,38 @@ func f(m map[string]string) string {
 			},
 			{
 				data: `package main
+func f(m map[string]string) string {
+  const x string = "test"
+  var ok bool = false
+  _, ok = m["x"]
+  return ""
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) string {
+  var x string = "test"
+  const ok string = "test"
+  _, ok = m["x"]
+  return ""
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) string {
+  var x string = "test"
+  var ok string = "test"
+  _, ok = m["x"]
+  return ""
+}
+`,
+			},
+			{
+				data: `package main
 func f(m map[string]string) (string, bool) {
   return m["x"]
 }
@@ -8666,6 +8698,80 @@ const x map[string]string = f()
 func f() map[string]string {
   var m map[string]string = make(map[string]string)
   return m
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+
+func foo(a string) {}
+func bar() {
+  var m hashmap[string]string=make(hashmap[string]string)
+  m["a"]="b"
+  foo(m["a"])
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+
+func f() {
+    var m hashmap[string]string = make(hashmap[string]string, uint(10))
+    m["id"] = "yes"
+    x := m["id"]
+    var y string = m["id"]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+
+func f() {
+    var m hashmap[string]string = make(hashmap[string]string, uint(10))
+    m["id"] = "yes"
+    x, ok, z := m["id"], "z"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+
+func f() (string, bool, string) {
+    var m hashmap[string]string = make(hashmap[string]string, uint(10))
+    m["id"] = "yes"
+    return m["id"], "z"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+
+func f() (string, bool, string) {
+    var m hashmap[string]string = make(hashmap[string]string, uint(10))
+    m["id"] = "yes"
+    return m["id"], "z"
+}
+`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) (string, bool) {
+  x, ok := "", false
+  x, ok = m["x"]
+  return x, ok
+}
+`,
+			},
+			{
+				data: `package main
+func f(m map[string]string) (x string, ok bool) {
+  x, ok = m["x"]
+  return
 }
 `,
 			},
