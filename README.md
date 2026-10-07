@@ -1,3 +1,7 @@
 # gori
 
-Gori is `Ori` lexer and parser.
+Gori is `Ori`:
+- lexer
+- parser
+- type checker
+- lower-level intermediate representation (LIR)
