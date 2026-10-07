@@ -888,7 +888,7 @@ func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type,
 			if isWriteIndexingAssigment {
 				return decl.Value, nil
 			}
-			return &MultiValueType{Values: []Type{decl.Value, TBool}}, nil
+			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, nil
 
 		case *HashMapType:
 			if !IsIdentical(decl.Key, index) {
@@ -898,7 +898,7 @@ func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type,
 			if isWriteIndexingAssigment {
 				return decl.Value, nil
 			}
-			return &MultiValueType{Values: []Type{decl.Value, TBool}}, nil
+			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, nil
 
 		default:
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %#v at %d:%d", t.X, t.X.Start().Line, t.X.End().Column)})
@@ -1443,6 +1443,23 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 
 			for k, left := range decl.Left {
 				name := exprName(left)
+
+				// TODO: we currenly forbid x,_ := m["id"] and _,_ := m["id"] on purpose
+				// BUT we still need to figure out how to enforce the value of x
+				// depending on the value of the boolean and how to enforce the boolean check
+				isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && k == 0 && isBlank(exprName(decl.Left[0]))
+				isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && isBlank(exprName(decl.Left[len(multiValue.Values)-1]))
+
+				if isBlankValueAssigmentMap && isBlankBoolAssigmentMap {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("both blank identifiers assignment is forbidden for map/hashmap read index at %d:%d", decl.Left[0].Start().Line, decl.Left[0].Start().Column)})
+					return nil, nil
+				}
+
+				if isBlankBoolAssigmentMap {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier assignment on boolean is forbidden for map/hashmap read index at %d:%d", left.Start().Line, left.Start().Column)})
+					return nil, nil
+				}
+
 				valueType := multiValue.Values[k]
 				if isBlank(name) {
 					sym = &Symbol{
@@ -1611,6 +1628,22 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 				if isMultiValueType {
 					if len(decl.Left) != len(multiValue.Values) {
 						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assignment mismatch, expected %d variables, got %d at %d:%d", len(multiValue.Values), len(decl.Left), decl.Start().Line, decl.End().Line)})
+						return nil
+					}
+
+					// TODO: we currenly forbid x,_ := m["id"] and _,_ := m["id"] on purpose
+					// BUT we still need to figure out how to enforce the value of x
+					// depending on the value of the boolean and how to enforce the boolean check
+					isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && index == 0 && isBlank(x.Name.Value)
+					isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && isBlank(exprName(decl.Left[len(multiValue.Values)-1]))
+
+					if isBlankValueAssigmentMap && isBlankBoolAssigmentMap {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("both blank identifiers assignment is forbidden for map/hashmap read index at %d:%d", decl.Left[0].Start().Line, decl.Left[0].Start().Column)})
+						return nil
+					}
+
+					if isBlankBoolAssigmentMap {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier assignment on boolean is forbidden for map/hashmap read index at %d:%d", left.Start().Line, left.Start().Column)})
 						return nil
 					}
 

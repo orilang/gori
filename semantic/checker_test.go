@@ -8618,10 +8618,39 @@ func f(m map[string]string) string {
 `,
 			},
 			{
+				err: true,
 				data: `package main
 func f(m map[string]string) string {
   x, ok := "", false
   x, _ = m["x"]
+  return ""
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) string {
+  x, ok := "", false
+  _, _ = m["x"]
+  return ""
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) string {
+  x, _ := m["x"]
+  return ""
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(m map[string]string) string {
+  _, _ := m["x"]
   return ""
 }
 `,

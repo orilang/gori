@@ -58,8 +58,16 @@ type HashMapType struct {
 	Value Type
 }
 
+type multiValueTypeKind int
+
+const (
+	multiValueCommon multiValueTypeKind = iota
+	multiValueMapX
+)
+
 type MultiValueType struct {
 	Values []Type
+	kind   multiValueTypeKind
 }
 
 type StructField struct {
