@@ -650,7 +650,11 @@ func (p *Parser) parseStmtExpr(left ast.Expr) *ast.AssignStmt {
 	op := p.next()
 	x := &ast.AssignStmt{Operator: op}
 	x.Left = append(x.Left, left)
-	x.Right = append(x.Right, p.parseExpr(LOWEST))
+	if p.peek().Value == "make" {
+		x.Right = append(x.Right, p.parseMakeExpr())
+	} else {
+		x.Right = append(x.Right, p.parseExpr(LOWEST))
+	}
 	return x
 }
 
