@@ -256,6 +256,56 @@ func main() {
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("map_x4", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func main() {
+   x := make(hashmap[string]string)
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "main" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:13 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "x" @4:4 (kind=3)
+       Operator: ":=" @4:6 (kind=50)
+       Right
+        MakeExpr:
+         Make: "make" @4:9 (kind=3)
+         LParen: "(" @4:13 (kind=39)
+         MapType:
+          Hashmap: "hashmap" @4:14 (kind=80)
+          LBracket: "[" @4:21 (kind=43)
+          KeyType:
+           NamedType
+            Ident: "string" @4:22 (kind=24)
+          RBracket: "]" @4:28 (kind=44)
+          ValueType:
+           NamedType
+            Ident: "string" @4:29 (kind=24)
+         RParen: ")" @4:35 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("slice_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
