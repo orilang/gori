@@ -8845,6 +8845,14 @@ func f() (string, bool) {
 }
 `,
 			},
+			{
+				data: `package main
+func f() map[string]string {
+  m := make(map[string]string)
+  return m
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
