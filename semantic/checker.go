@@ -900,7 +900,7 @@ func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type,
 					return TInvalid, nil
 				}
 
-				if indeX > decl.Len {
+				if indeX >= decl.Len {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unbound index expression, %d > %d at %d:%d", indeX, decl.Len, t.Index.Start().Line, t.Index.End().Column)})
 					return TInvalid, nil
 				}
