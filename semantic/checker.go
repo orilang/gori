@@ -1060,7 +1060,27 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 	recvType := c.resolveType(fn.Receiver.Type)
 	namedRcv, ok := recvType.(*NamedType)
 	if !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver must be a named type got %#v at %d:%d", namedRcv, fn.Receiver.LParen.Line, fn.Receiver.RParen.Column)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver must be a named type got %#v at %d:%d", namedRcv, fn.Receiver.LParen.Line, fn.Receiver.LParen.Column)})
+		return
+	}
+
+	if _, ok := unwrapNamed(namedRcv).(*SliceType); ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("slice type receiver is forbidden at %d:%d", fn.Receiver.LParen.Line, fn.Receiver.LParen.Column)})
+		return
+	}
+
+	if _, ok := unwrapNamed(namedRcv).(*ArrayType); ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("array type receiver is forbidden at %d:%d", fn.Receiver.LParen.Line, fn.Receiver.LParen.Column)})
+		return
+	}
+
+	if _, ok := unwrapNamed(namedRcv).(*MapType); ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("map type receiver is forbidden at %d:%d", fn.Receiver.LParen.Line, fn.Receiver.LParen.Column)})
+		return
+	}
+
+	if _, ok := unwrapNamed(namedRcv).(*HashMapType); ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("hashmap type receiver is forbidden at %d:%d", fn.Receiver.LParen.Line, fn.Receiver.LParen.Column)})
 		return
 	}
 

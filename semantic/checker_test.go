@@ -8990,6 +8990,75 @@ func foo() int {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+type UserID []string
+func (x UserID) f() UserID {
+  return x
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			_, diagnostics := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(diagnostics), 0, i)
+			} else {
+				assert.Equal(t, 0, len(diagnostics), i)
+			}
+		}
+	})
+
+	t.Run("x36", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+type UserID []string
+func (x UserID) f() UserID {
+  return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type UserID [5]string{1,2,3}
+func (x UserID) f() UserID {
+  return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type UserID map[string]string
+func (x UserID) f() UserID {
+  return x
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type UserID hashmap[string]string
+func (x UserID) f() UserID {
+  return x
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
