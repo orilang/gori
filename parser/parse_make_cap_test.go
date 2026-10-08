@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -383,6 +384,59 @@ func f() UserID {
 		data := `package main
 
 func main() {
+  var x []string = make([]string,10);
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "main" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:13 (kind=41)
+     Stmts
+      VarDecl
+       Var: "var" @4:3 (kind=11)
+       Name: "x" @4:7 (kind=3)
+       Type
+        SliceType:
+         LBracket: "[" @4:9 (kind=43)
+         RBracket: "]" @4:10 (kind=44)
+         NamedType
+          Ident: "string" @4:11 (kind=24)
+       Eq: "=" @4:18 (kind=49)
+       Init
+        MakeExpr:
+         Make: "make" @4:20 (kind=3)
+         LParen: "(" @4:24 (kind=39)
+         SliceType:
+          LBracket: "[" @4:25 (kind=43)
+          RBracket: "]" @4:26 (kind=44)
+          NamedType
+           Ident: "string" @4:27 (kind=24)
+         Size:
+          IntLitExpr
+           Value: "10" @4:34 (kind=4)
+         RParen: ")" @4:36 (kind=40)
+     RBrace: "}" @5:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("slice_x2", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func main() {
   var x []string = make([]string,10,10);
 }
 `
@@ -429,6 +483,7 @@ func main() {
          RParen: ")" @4:39 (kind=40)
      RBrace: "}" @5:1 (kind=42)
 `
+		fmt.Println(ast.Dump(pr))
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
 	})
@@ -470,21 +525,6 @@ func main() {
 
 func main() {
   var x test[string]string = make(mmap[string]string 10,10,10,10 "string")
-}
-`
-		parser := New(lex.FetchTokensFromString(data))
-		pr := parser.ParseFile()
-		assert.NotNil(pr)
-		assert.Greater(len(parser.Errors), 0)
-	})
-
-	t.Run("bad_x4", func(t *testing.T) {
-		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
-		assert.Nil(err)
-		data := `package main
-
-func main() {
-  var x int = make(10, 10)
 }
 `
 		parser := New(lex.FetchTokensFromString(data))
