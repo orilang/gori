@@ -871,6 +871,13 @@ func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type,
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %#v at %d:%d", index, t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
+
+			if un, ok := t.Index.(*ast.UnaryExpr); ok {
+				if un.Operator.Kind == token.Minus {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("negative index expression is forbidden at %d:%d", t.Index.Start().Line, t.Index.End().Column)})
+					return TInvalid, nil
+				}
+			}
 			return decl.Elem, nil
 
 		case *ArrayType:
@@ -878,6 +885,14 @@ func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type,
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %#v at %d:%d", index, t.Index.Start().Line, t.Index.End().Column)})
 				return TInvalid, nil
 			}
+
+			if un, ok := t.Index.(*ast.UnaryExpr); ok {
+				if un.Operator.Kind == token.Minus {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("negative index expression is forbidden at %d:%d", t.Index.Start().Line, t.Index.End().Column)})
+					return TInvalid, nil
+				}
+			}
+
 			return decl.Elem, nil
 
 		case *MapType:

@@ -8886,6 +8886,52 @@ func f() UserID {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+func foo(s []int, i int) int {
+    return s[-1]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(s []int, i int) int {
+    return s[-int(1)]
+}
+`,
+			},
+			{
+				data: `package main
+func foo(s []int, i int) int {
+    return s[1]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(s [3]int, i int) int {
+    return s[-1]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(s [3]int, i int) int {
+    return s[-int(1)]
+}
+`,
+			},
+			{
+				data: `package main
+func foo(s [3]int, i int) int {
+    return s[1]
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
