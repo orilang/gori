@@ -8898,14 +8898,22 @@ func foo(s []int, i int) int {
 				err: true,
 				data: `package main
 func foo(s []int, i int) int {
-    return s[-int(1)]
+  return s[-int(1)]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(s []int, i int) int {
+  return s[-float(1)]
 }
 `,
 			},
 			{
 				data: `package main
 func foo(s []int, i int) int {
-    return s[1]
+  return s[1]
 }
 `,
 			},
@@ -8913,7 +8921,7 @@ func foo(s []int, i int) int {
 				err: true,
 				data: `package main
 func foo(s [3]int, i int) int {
-    return s[-1]
+  return s[-1]
 }
 `,
 			},
@@ -8921,14 +8929,29 @@ func foo(s [3]int, i int) int {
 				err: true,
 				data: `package main
 func foo(s [3]int, i int) int {
-    return s[-int(1)]
+  return s[-int(1)]
 }
 `,
 			},
 			{
 				data: `package main
 func foo(s [3]int, i int) int {
-    return s[1]
+  return s[1]
+}
+`,
+			},
+			{
+				data: `package main
+func foo(s [3]int, i int) int {
+  return s[int(1)]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo(s [3]int, i int) int {
+  return s[int(1,2)]
 }
 `,
 			},
@@ -8936,7 +8959,7 @@ func foo(s [3]int, i int) int {
 				err: true,
 				data: `package main
 func foo(s [-3]int, i int) int {
-    return s[1]
+  return s[1]
 }
 `,
 			},
@@ -8946,6 +8969,15 @@ func foo(s [-3]int, i int) int {
 func foo() int {
   s := [-3]int{1,2,3}
   return s[1]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo() int {
+  s := [3]int{1,2,3}
+  return s[5]
 }
 `,
 			},
