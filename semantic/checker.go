@@ -1408,7 +1408,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 						}
 
 						if !IsAssignableTo(targetType, valueType) {
-							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("CCC cannot assign value of type %s to variable of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.End().Column)})
+							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to variable of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.End().Column)})
 							return nil, nil
 						}
 
@@ -1486,7 +1486,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 					}
 
 					if !IsAssignableTo(targetType, valueType) {
-						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("DDD cannot assign value of type %s to variable of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.End().Column)})
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to variable of type %s at %d:%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.End().Column)})
 						return nil, nil
 					}
 
