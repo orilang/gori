@@ -29,6 +29,10 @@ func (p *Parser) parseMakeExpr() *ast.MakeExpr {
 			x.Type = p.parseMapsHashMapsDecl()
 		} else if p.lookForInSliceHeader(token.LBracket) {
 			x.Type = p.parseSliceOrArrayType()
+		} else {
+			var nt ast.NamedType
+			nt.Parts = append(nt.Parts, p.next())
+			x.Type = &nt
 		}
 
 		if p.kind() == token.Comma {

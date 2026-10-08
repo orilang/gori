@@ -306,6 +306,77 @@ func main() {
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("map_x5", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+type UserID []string
+func f() UserID {
+  m := make(UserID, int(5))
+  return m
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  DefinedTypeDecl:
+   TypeDecl: "type" @2:1 (kind=26)
+    Name: "UserID" @2:6 (kind=3)
+    Type
+     SliceType:
+      LBracket: "[" @2:13 (kind=43)
+      RBracket: "]" @2:14 (kind=44)
+      NamedType
+       Ident: "string" @2:15 (kind=24)
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "f" @3:6 (kind=3)
+   Params
+    (none)
+   Results
+     Param
+      Type
+       NamedType
+        Ident: "UserID" @3:10 (kind=3)
+   Body
+    BlockStmt
+     LBrace: "{" @3:17 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "m" @4:3 (kind=3)
+       Operator: ":=" @4:5 (kind=50)
+       Right
+        MakeExpr:
+         Make: "make" @4:8 (kind=3)
+         LParen: "(" @4:12 (kind=39)
+         NamedType
+          Ident: "UserID" @4:13 (kind=3)
+         Size:
+          CallExpr
+           Callee
+            IdentExpr
+             Name: "int" @4:21 (kind=3)
+           LParen: "(" @4:24 (kind=39)
+           Args:
+            IntLitExpr
+             Value: "5" @4:25 (kind=4)
+           RParen: ")" @4:26 (kind=40)
+         RParen: ")" @4:27 (kind=40)
+      ReturnStmt
+       Values
+        IdentExpr
+         Name: "m" @5:10 (kind=3)
+     RBrace: "}" @6:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("slice_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
