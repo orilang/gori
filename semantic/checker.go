@@ -446,6 +446,14 @@ func (c *Checker) evalArrayLen(expr ast.Expr) (int64, bool) {
 		case token.Minus:
 			return -v, true
 		}
+
+	case *ast.CallExpr:
+		typ, _ := c.checkExpr(t.Callee, false)
+		if !IsInteger(typ) {
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("callee must be an integer, got %q forbidden at %d:%d", stringifyType(typ), t.Callee.Start().Line, t.Callee.Start().Column)})
+			return 0, false
+		}
+		return c.evalArrayLen(t.Args[0])
 	}
 
 	return 0, false
@@ -872,8 +880,8 @@ func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type,
 				return TInvalid, nil
 			}
 
-			if un, ok := t.Index.(*ast.UnaryExpr); ok {
-				if un.Operator.Kind == token.Minus {
+			if indeX, ok := c.evalArrayLen(t.Index); ok {
+				if indeX < 0 {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("negative index expression is forbidden at %d:%d", t.Index.Start().Line, t.Index.End().Column)})
 					return TInvalid, nil
 				}
@@ -886,16 +894,16 @@ func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type,
 				return TInvalid, nil
 			}
 
-			if un, ok := t.Index.(*ast.UnaryExpr); ok {
-				if un.Operator.Kind == token.Minus {
+			if indeX, ok := c.evalArrayLen(t.Index); ok {
+				if indeX < 0 {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("negative index expression is forbidden at %d:%d", t.Index.Start().Line, t.Index.End().Column)})
 					return TInvalid, nil
 				}
-			}
 
-			if decl.Len < 0 {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("array type length cannot be negative at %d:%d", t.Start().Line, t.End().Line)})
-				return TInvalid, nil
+				if indeX > decl.Len {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unbound index expression, %d > %d at %d:%d", indeX, decl.Len, t.Index.Start().Line, t.Index.End().Column)})
+					return TInvalid, nil
+				}
 			}
 
 			return decl.Elem, nil
