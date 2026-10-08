@@ -8932,6 +8932,23 @@ func foo(s [3]int, i int) int {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+func foo(s [-3]int, i int) int {
+    return s[1]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func foo() int {
+  s := [-3]int{1,2,3}
+  return s[1]
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {

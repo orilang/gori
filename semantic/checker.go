@@ -893,6 +893,11 @@ func (c *Checker) checkExpr(expr ast.Expr, isWriteIndexingAssigment bool) (Type,
 				}
 			}
 
+			if decl.Len < 0 {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("array type length cannot be negative at %d:%d", t.Start().Line, t.End().Line)})
+				return TInvalid, nil
+			}
+
 			return decl.Elem, nil
 
 		case *MapType:
