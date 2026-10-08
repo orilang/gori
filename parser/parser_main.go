@@ -652,6 +652,8 @@ func (p *Parser) parseStmtExpr(left ast.Expr) *ast.AssignStmt {
 	x.Left = append(x.Left, left)
 	if p.peek().Value == "make" {
 		x.Right = append(x.Right, p.parseMakeExpr())
+	} else if p.peek().Kind == token.LBracket {
+		x.Right = append(x.Right, p.parseSliceElements())
 	} else {
 		x.Right = append(x.Right, p.parseExpr(LOWEST))
 	}

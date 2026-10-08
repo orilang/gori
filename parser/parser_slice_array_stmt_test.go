@@ -1079,6 +1079,108 @@ func main(){
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("assigment_array_x1", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func main(){
+	s := []int{1,2,3}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "main" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:12 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "s" @4:2 (kind=3)
+       Operator: ":=" @4:4 (kind=50)
+       Right
+        SliceType:
+         LBracket: "[" @4:7 (kind=43)
+         RBracket: "]" @4:8 (kind=44)
+         NamedType
+          Ident: "int" @4:9 (kind=12)
+         LBrace: "{" @4:12 (kind=41)
+          Elements
+           IntLitExpr
+            Value: "1" @4:13 (kind=4)
+           IntLitExpr
+            Value: "2" @4:15 (kind=4)
+           IntLitExpr
+            Value: "3" @4:17 (kind=4)
+          RBrace: "}" @4:18 (kind=42)
+     RBrace: "}" @5:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("assigment_array_x2", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+func main(){
+	s := [5]int{1,2,3}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  FuncDecl
+   Function: "func" @3:1 (kind=10)
+   Name: "main" @3:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @3:12 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "s" @4:2 (kind=3)
+       Operator: ":=" @4:4 (kind=50)
+       Right
+        ArrayType:
+         LBracket: "[" @4:7 (kind=43)
+         IntLitExpr
+          Value: "5" @4:8 (kind=4)
+         RBracket: "]" @4:9 (kind=44)
+         NamedType
+          Ident: "int" @4:10 (kind=12)
+         LBrace: "{" @4:13 (kind=41)
+          Elements
+           IntLitExpr
+            Value: "1" @4:14 (kind=4)
+           IntLitExpr
+            Value: "2" @4:16 (kind=4)
+           IntLitExpr
+            Value: "3" @4:18 (kind=4)
+          RBrace: "}" @4:19 (kind=42)
+     RBrace: "}" @5:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("bad_slice_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
