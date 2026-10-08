@@ -400,7 +400,7 @@ type MakeExpr struct {
 	MakeKW token.Token
 	LParen token.Token
 	Type   Type
-	Args   []Expr // optional
+	Args   []Expr
 	RParen token.Token
 }
 
