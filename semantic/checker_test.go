@@ -9035,7 +9035,7 @@ func (x UserID) f() UserID {
 			{
 				err: true,
 				data: `package main
-type UserID [5]string{1,2,3}
+type UserID [5]string
 func (x UserID) f() UserID {
   return x
 }
