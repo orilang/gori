@@ -1,0 +1,7 @@
+package main
+
+const a string = "contant1"
+
+func main() {
+  const b string = "contant2"
+}
