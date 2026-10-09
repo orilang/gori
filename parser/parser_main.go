@@ -289,7 +289,7 @@ func (p *Parser) ParseFile() *ast.File {
 				}
 			} else {
 				tok := p.peek()
-				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+				p.Errors = append(p.Errors, fmt.Errorf("unsupported file statement %d %q at %d:%d", tok.Kind, tok.Value, tok.Line, tok.Column))
 				p.consumeTo(token.RBrace)
 			}
 
@@ -301,7 +301,7 @@ func (p *Parser) ParseFile() *ast.File {
 				f.Decls = append(f.Decls, p.parseImplementsDecl())
 			} else {
 				tok := p.peek()
-				p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported file statement starting with %d %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+				p.Errors = append(p.Errors, fmt.Errorf("unsupported file statement %d %q at %d:%d", tok.Kind, tok.Value, tok.Line, tok.Column))
 				_ = p.next()
 			}
 		}

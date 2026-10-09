@@ -179,4 +179,47 @@ type ID []string
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
 	})
+
+	t.Run("x6", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+type User struct {
+  name string
+  age  int
+}
+
+type Person User
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  StructDecl:
+   Type: "type" @2:1 (kind=26)
+   Name: "User" @2:6 (kind=3)
+   Struct: "struct" @2:11 (kind=27)
+   Public: true
+   LBrace: "{" @2:18 (kind=41)
+    Name: "name" @3:3 (kind=3)
+    Type:
+     NamedType
+      Ident: "string" @3:8 (kind=24)
+    Name: "age" @4:3 (kind=3)
+    Type:
+     NamedType
+      Ident: "int" @4:8 (kind=12)
+   RBrace: "}" @5:1 (kind=42)
+  DefinedTypeDecl:
+   TypeDecl: "type" @7:1 (kind=26)
+    Name: "Person" @7:6 (kind=3)
+    Type
+     NamedType
+      Ident: "User" @7:13 (kind=3)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
 }
