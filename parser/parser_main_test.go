@@ -988,4 +988,16 @@ func TestParser_main_expr(t *testing.T) {
 		assert.NotNil(pr)
 		assert.Greater(len(parser.Errors), 0)
 	})
+
+	t.Run("type_bad_x1", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+type test +++
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		assert.NotNil(pr)
+		assert.Greater(len(parser.Errors), 0)
+	})
 }
