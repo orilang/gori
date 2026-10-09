@@ -9077,4 +9077,41 @@ func (x UserID) f() UserID {
 			}
 		}
 	})
+
+	t.Run("x37", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+type Person User
+func f(p Person) string {
+  return p.name
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			_, diagnostics := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(diagnostics), 0, i)
+			} else {
+				assert.Equal(t, 0, len(diagnostics), i)
+			}
+		}
+	})
 }
