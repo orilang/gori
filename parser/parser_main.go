@@ -34,9 +34,14 @@ func (f *Files) StartParsing() error {
 		l := lexer.New(data)
 		l.Tokenize()
 		p := New(l.Tokens)
+		pr := p.ParseFile()
+
+		if len(p.Errors) > 0 {
+			return p.Errors[0]
+		}
 
 		if f.output {
-			fmt.Printf("%s\n", ast.Dump(p.ParseFile()))
+			fmt.Printf("%s\n", ast.Dump(pr))
 		}
 	}
 	return nil
@@ -289,7 +294,7 @@ func (p *Parser) ParseFile() *ast.File {
 				}
 			} else {
 				tok := p.peek()
-				p.Errors = append(p.Errors, fmt.Errorf("unsupported file statement %d %q at %d:%d", tok.Kind, tok.Value, tok.Line, tok.Column))
+				p.Errors = append(p.Errors, fmt.Errorf("unsupported file statement %q at %d:%d", tok.Value, tok.Line, tok.Column))
 				p.consumeTo(token.RBrace)
 			}
 
@@ -301,7 +306,7 @@ func (p *Parser) ParseFile() *ast.File {
 				f.Decls = append(f.Decls, p.parseImplementsDecl())
 			} else {
 				tok := p.peek()
-				p.Errors = append(p.Errors, fmt.Errorf("unsupported file statement %d %q at %d:%d", tok.Kind, tok.Value, tok.Line, tok.Column))
+				p.Errors = append(p.Errors, fmt.Errorf("unsupported file statement %q at %d:%d", tok.Value, tok.Line, tok.Column))
 				_ = p.next()
 			}
 		}

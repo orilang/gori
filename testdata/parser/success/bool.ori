@@ -1,0 +1,13 @@
+package main
+
+func main() {
+  var i bool = false
+  // new test
+  var j bool = true // test
+  var a bool = 1 > 1
+  var b bool = 1 >= 1
+  var c bool = 1 < 1
+  var d bool = 1 <= 1
+  var e bool = 1 == 1
+  var f bool = 1 != 1
+}

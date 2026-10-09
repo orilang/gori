@@ -32,7 +32,7 @@ func Parse() *cli.Command {
 				Aliases:     []string{"o"},
 				Usage:       "print the AST",
 				Destination: &app.Output,
-				Value:       true,
+				Value:       false,
 			},
 		},
 		Action: func(ctx context.Context, _ *cli.Command) error {

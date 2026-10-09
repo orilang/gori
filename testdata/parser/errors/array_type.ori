@@ -1,0 +1,5 @@
+package main
+type UserID [5]string{1,2,3}
+func (x UserID) f() UserID {
+  return x
+}
