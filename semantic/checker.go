@@ -41,7 +41,7 @@ func (c *Checker) declareNoShadow(scope *Scope, sym *Symbol, kind string) bool {
 		return false
 	}
 
-	if isBlank(sym.Name) {
+	if isBlankOrEmpty(sym.Name) {
 		return true
 	}
 
@@ -200,16 +200,16 @@ func typeDeclName(decl ast.Decl) string {
 }
 
 // exprName returns the name of the expression declaration
-func exprName(decl ast.Expr) string {
+func exprName(decl ast.Expr) (string, bool) {
 	switch d := decl.(type) {
 	case *ast.IdentExpr:
-		return d.Name.Value
+		return d.Name.Value, true
 	case *ast.IndexExpr:
 		return exprName(d.X)
 	case *ast.SelectorExpr:
 		return exprName(d.X)
 	default:
-		return ""
+		return "", false
 	}
 }
 
@@ -1431,7 +1431,12 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 					var sym *Symbol
 					valueType := c.checkTypeInCurrentMode(fnv.Type)
 					left := decl.Left[k]
-					name := exprName(left)
+					name, found := exprName(left)
+					if !found {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d", name, left.Start().Line, left.End().Line)})
+						return nil, nil
+					}
+
 					if isBlank(name) {
 						sym = &Symbol{
 							Kind: SymVar,
@@ -1490,13 +1495,19 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 			}
 
 			for k, left := range decl.Left {
-				name := exprName(left)
+				name, found := exprName(left)
+				if !found {
+					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d", name, left.Start().Line, left.End().Line)})
+					return nil, nil
+				}
 
 				// TODO: we currenly forbid x,_ := m["id"] and _,_ := m["id"] on purpose
 				// BUT we still need to figure out how to enforce the value of x
 				// depending on the value of the boolean and how to enforce the boolean check
-				isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && k == 0 && isBlank(exprName(decl.Left[0]))
-				isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && isBlank(exprName(decl.Left[len(multiValue.Values)-1]))
+				nameFirst, foundFirst := exprName(decl.Left[0])
+				nameLast, foundLast := exprName(decl.Left[len(multiValue.Values)-1])
+				isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && k == 0 && foundFirst && isBlank(nameFirst)
+				isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && foundLast && isBlank(nameLast)
 
 				if isBlankValueAssigmentMap && isBlankBoolAssigmentMap {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("both blank identifiers assignment is forbidden for map/hashmap read index at %d:%d", decl.Left[0].Start().Line, decl.Left[0].Start().Column)})
@@ -1554,7 +1565,12 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 				return nil, nil
 			}
 
-			name := exprName(decl.Left[index])
+			name, found := exprName(decl.Left[index])
+			if !found {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d", name, decl.Left[index].Start().Line, decl.Left[index].End().Line)})
+				return nil, nil
+			}
+
 			if isBlank(name) {
 				sym = &Symbol{
 					Kind:       SymVar,
@@ -1682,8 +1698,9 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 					// TODO: we currenly forbid x,_ := m["id"] and _,_ := m["id"] on purpose
 					// BUT we still need to figure out how to enforce the value of x
 					// depending on the value of the boolean and how to enforce the boolean check
+					nameLast, foundLast := exprName(decl.Left[len(multiValue.Values)-1])
 					isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && index == 0 && isBlank(x.Name.Value)
-					isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && isBlank(exprName(decl.Left[len(multiValue.Values)-1]))
+					isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && foundLast && isBlank(nameLast)
 
 					if isBlankValueAssigmentMap && isBlankBoolAssigmentMap {
 						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("both blank identifiers assignment is forbidden for map/hashmap read index at %d:%d", decl.Left[0].Start().Line, decl.Left[0].Start().Column)})
@@ -1792,7 +1809,7 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 	if len(decl.Values) == 0 {
 		if c.currentFunc != nil {
 			for _, result := range c.currentFunc.Results {
-				if isBlank(result.Name) {
+				if isBlankOrEmpty(result.Name) {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("naked return requires named return values at %d:%d", decl.Start().Line, decl.End().Line)})
 					return flowFallsThrough, nil
 				}
@@ -2446,39 +2463,48 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	switch stmt.Op.Kind {
 	case token.Assign:
 		if stmt.Key != nil && stmt.Value != nil {
-			name := exprName(stmt.Key)
+			name, found := exprName(stmt.Key)
+			if !found {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d", name, stmt.Key.Start().Line, stmt.Key.Start().Column)})
+				return
+			}
 			sym := c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Key.Start().Line, stmt.Key.End().Column)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Key.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Key.Start().Line, stmt.Key.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Key.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
 
 			key, _ := c.checkExpr(stmt.Key, false)
 			if stmt.Key.Name.Value != "_" && !IsAssignableTo(rangekeyType, key) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v at %d:%d", rangekeyType, key, stmt.Key.Start().Line, stmt.Key.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %#v, got %#v at %d:%d", rangekeyType, key, stmt.Key.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
 
-			name = exprName(stmt.Value)
+			name, found = exprName(stmt.Value)
+			if !found {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d", name, stmt.Value.Start().Line, stmt.Value.Start().Column)})
+				return
+			}
+
 			sym = c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Value.Start().Line, stmt.Value.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Value.Start().Line, stmt.Value.Start().Column)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Value.Start().Line, stmt.Key.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Value.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
 
 			value, _ := c.checkExpr(stmt.Value, false)
 			if stmt.Value.Name.Value != "_" && !IsAssignableTo(rangeValueType, value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range value type, expected %#v, got %#v at %d:%d", rangeValueType, value, stmt.Value.Start().Line, stmt.Value.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range value type, expected %#v, got %#v at %d:%d", rangeValueType, value, stmt.Value.Start().Line, stmt.Value.Start().Column)})
 				return
 			}
 
@@ -2494,19 +2520,24 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			}
 		} else if stmt.Key != nil {
 			if isBlank(stmt.Key.Name.Value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d", stmt.Key.Start().Line, stmt.Key.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d", stmt.Key.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
 
-			name := exprName(stmt.Key)
+			name, found := exprName(stmt.Key)
+			if !found {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d", name, stmt.Key.Start().Line, stmt.Key.Start().Column)})
+				return
+			}
+
 			sym := c.scope.Lookup(name)
 			if sym == nil {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Key.Start().Line, stmt.Key.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d", name, stmt.Key.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
 
 			if sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Key.Start().Line, stmt.Key.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Key.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
 
@@ -2528,7 +2559,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	case token.Define:
 		if stmt.Key != nil && stmt.Value != nil {
 			if isBlank(stmt.Key.Name.Value) && isBlank(stmt.Value.Name.Value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range key and value cannot be both blank identifiers at %d:%d", stmt.Key.Start().Line, stmt.Value.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range key and value cannot be both blank identifiers at %d:%d", stmt.Key.Start().Line, stmt.Value.Start().Column)})
 				return
 			}
 
@@ -2549,7 +2580,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			}
 		} else if stmt.Key != nil {
 			if isBlank(stmt.Key.Name.Value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d", stmt.Key.Start().Line, stmt.Key.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d", stmt.Key.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
 
@@ -2622,10 +2653,16 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		cStmt := c.checkStmt(stmt.Init, returnInputVarsInitialized)
 
 		if val, ok := stmt.Init.(*ast.AssignStmt); ok && val.Operator.Kind == token.Assign {
-			name := exprName(val.Left[0])
+			left := val.Left[0]
+			name, found := exprName(left)
+			if !found {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d", name, left.Start().Line, left.Start().Column)})
+				return
+			}
+
 			sym := c.scope.Lookup(name)
 			if sym != nil && sym.Kind == SymConst {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Init.Start().Line, stmt.Init.End().Line)})
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("reassign const %q value is forbidden at %d:%d", name, stmt.Init.Start().Line, stmt.Init.Start().Column)})
 				return
 			}
 
@@ -3746,15 +3783,23 @@ func resolvedSymbol(s *Symbol, fromFunc bool, isMultiValue bool) ResolvedSymbol 
 		Name:         s.Name,
 		Kind:         s.Kind,
 		Type:         s.Type,
-		IsBlank:      isBlank(s.Name),
+		IsBlank:      isBlankOrEmpty(s.Name),
 		FromFunc:     fromFunc,
 		IsMultiValue: isMultiValue,
 	}
 }
 
-// isBlank return true when provided parameter is "" or "_"
-func isBlank(s string) bool {
+// isBlankOrEmpty return true when provided parameter is "" or "_"
+func isBlankOrEmpty(s string) bool {
 	if s == "" || s == "_" {
+		return true
+	}
+	return false
+}
+
+// isBlank return true when provided parameter is "_"
+func isBlank(s string) bool {
+	if s == "_" {
 		return true
 	}
 	return false
