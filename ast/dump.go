@@ -548,6 +548,26 @@ func (d *dumper) node(indent int, n any) {
 	case *DeclStmt:
 		d.node(indent, v.Decl)
 
+	case *StructFieldExpr:
+		// fmt.Printf("CCCC %#v\n", v)
+		d.line(indent, "Field:")
+		d.kv(indent+1, "Name", v.Key)
+		d.line(indent+1, "Value:")
+		d.node(indent+2, v.Value)
+
+	case *StructExpr:
+		d.kv(indent+1, "Name", v.Name)
+		d.kv(indent+2, "LBrace", v.LBrace)
+		if len(v.Fields) > 0 && v.Fields[0] != nil {
+			d.line(indent+3, "Fields:")
+			for _, x := range v.Fields {
+				if x != nil {
+					d.node(indent+4, x)
+				}
+			}
+		}
+		d.kv(indent+2, "RBrace", v.RBrace)
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil)")
@@ -667,7 +687,7 @@ func (d *dumper) expr(indent int, n Expr) {
 	case *BadExpr, *BinaryExpr, *ParenExpr, *UnaryExpr, *SelectorExpr:
 		d.node(indent, v)
 
-	case *IndexExpr, *CallExpr, *SliceExpr, *MakeExpr, *SliceLitExpr:
+	case *IndexExpr, *CallExpr, *SliceExpr, *MakeExpr, *SliceLitExpr, *StructExpr:
 		d.node(indent, v)
 
 	default:

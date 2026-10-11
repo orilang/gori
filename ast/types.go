@@ -383,6 +383,18 @@ type SliceExpr struct {
 	RBracket token.Token
 }
 
+type StructFieldExpr struct {
+	Key   token.Token
+	Value Expr
+}
+
+type StructExpr struct {
+	Name   token.Token
+	LBrace token.Token
+	Fields []*StructFieldExpr
+	RBrace token.Token
+}
+
 type ComptimeBlockDecl struct {
 	ComptimeKW token.Token
 	Decl       Decl

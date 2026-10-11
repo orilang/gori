@@ -227,7 +227,7 @@ func (p *Parser) lookForInSliceHeader(k token.Kind) bool {
 }
 
 // lookupMultipleAssigments loops against for statements to find
-// provided token Kind and returns true when found
+// multiple assigments and returns true when found
 func (p *Parser) lookupMultipleAssigments() (token.Kind, bool) {
 	origin, pos := p.position, p.position
 	if pos >= len(p.Tokens) {
@@ -260,6 +260,34 @@ func (p *Parser) lookupMultipleAssigments() (token.Kind, bool) {
 	}
 
 	return token.Illegal, false
+}
+
+// lookupStructExpr loops against for statements to find
+// struct expression and returns true when found
+func (p *Parser) lookupStructExpr() bool {
+	pos := p.position
+	if pos >= len(p.Tokens) {
+		return false
+	}
+
+	if p.Tokens[pos].Kind == token.Ident {
+		if p.Tokens[pos+1].Kind == token.LBrace {
+			pos := pos + 2
+
+			if p.Tokens[pos].Kind == token.RBrace {
+				return true
+			}
+
+			for p.Tokens[pos].Kind != token.EOF && p.Tokens[pos].Kind != token.RBrace {
+				if p.Tokens[pos].Kind == token.Colon {
+					return true
+				}
+				pos++
+			}
+		}
+	}
+
+	return false
 }
 
 // ParseFile returns the content of the file being parsed
@@ -659,6 +687,8 @@ func (p *Parser) parseStmtExpr(left ast.Expr) *ast.AssignStmt {
 		x.Right = append(x.Right, p.parseMakeExpr())
 	} else if p.peek().Kind == token.LBracket {
 		x.Right = append(x.Right, p.parseSliceElements())
+	} else if p.lookupStructExpr() {
+		x.Right = append(x.Right, p.parseStructExpr())
 	} else {
 		x.Right = append(x.Right, p.parseExpr(LOWEST))
 	}

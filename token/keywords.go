@@ -216,6 +216,18 @@ var structTypes = map[Kind]bool{
 	LBracket:    true,
 }
 
+var structExprFieldTypes = map[Kind]bool{
+	Ident:     true,
+	IntLit:    true,
+	FloatLit:  true,
+	StringLit: true,
+	BoolLit:   true,
+	KWFunc:    true,
+	KWMap:     true,
+	KWHashMap: true,
+	LBracket:  true,
+}
+
 var validTypeDecl = map[Kind]bool{
 	KWInterface: true,
 	KWStruct:    true,

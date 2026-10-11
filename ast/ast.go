@@ -31,22 +31,24 @@ func (*SliceType) typeNode() {}
 func (*ArrayType) typeNode() {}
 func (*MapType) typeNode()   {}
 
-func (*dumpType) exprNode()      {}
-func (*IdentExpr) exprNode()     {}
-func (*IntLitExpr) exprNode()    {}
-func (*FloatLitExpr) exprNode()  {}
-func (*BoolLitExpr) exprNode()   {}
-func (*StringLitExpr) exprNode() {}
-func (*ParenExpr) exprNode()     {}
-func (*BadExpr) exprNode()       {}
-func (*BinaryExpr) exprNode()    {}
-func (*UnaryExpr) exprNode()     {}
-func (*SelectorExpr) exprNode()  {}
-func (*IndexExpr) exprNode()     {}
-func (*CallExpr) exprNode()      {}
-func (*SliceExpr) exprNode()     {}
-func (*MakeExpr) exprNode()      {}
-func (*SliceLitExpr) exprNode()  {}
+func (*dumpType) exprNode()        {}
+func (*IdentExpr) exprNode()       {}
+func (*IntLitExpr) exprNode()      {}
+func (*FloatLitExpr) exprNode()    {}
+func (*BoolLitExpr) exprNode()     {}
+func (*StringLitExpr) exprNode()   {}
+func (*ParenExpr) exprNode()       {}
+func (*BadExpr) exprNode()         {}
+func (*BinaryExpr) exprNode()      {}
+func (*UnaryExpr) exprNode()       {}
+func (*SelectorExpr) exprNode()    {}
+func (*IndexExpr) exprNode()       {}
+func (*CallExpr) exprNode()        {}
+func (*SliceExpr) exprNode()       {}
+func (*MakeExpr) exprNode()        {}
+func (*SliceLitExpr) exprNode()    {}
+func (*StructExpr) exprNode()      {}
+func (*StructFieldExpr) exprNode() {}
 
 func (*dumpType) stmtNode()        {}
 func (*BlockStmt) stmtNode()       {}
@@ -241,6 +243,14 @@ func (x *SliceLitExpr) Start() token.Token {
 	return token.Token{}
 }
 func (x *SliceLitExpr) End() token.Token { return x.RBrace }
+
+func (x *StructExpr) Start() token.Token {
+	if len(x.Fields) > 0 {
+		return x.Fields[0].Key
+	}
+	return token.Token{}
+}
+func (x *StructExpr) End() token.Token { return x.RBrace }
 
 func (x *NamedType) Start() token.Token {
 	if len(x.Parts) > 0 {

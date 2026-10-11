@@ -243,4 +243,28 @@ type test struct{
 		_, ok := parser.lookupMultipleAssigments()
 		assert.Equal(false, ok)
 	})
+
+	t.Run("lookup_struct_expr_true_x1", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `test{x: true}`
+		parser := New(lex.FetchTokensFromString(data))
+		assert.Equal(true, parser.lookupStructExpr())
+	})
+
+	t.Run("lookup_struct_expr_true_x2", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `test{}`
+		parser := New(lex.FetchTokensFromString(data))
+		assert.Equal(true, parser.lookupStructExpr())
+	})
+
+	t.Run("lookup_struct_expr_false", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `test`
+		parser := New(lex.FetchTokensFromString(data))
+		assert.Equal(false, parser.lookupStructExpr())
+	})
 }

@@ -89,3 +89,53 @@ func (p *Parser) parseStructTypeField() *ast.FieldDecl {
 	}
 	return fd
 }
+
+// parseStructExpr returns parsed struct expression
+func (p *Parser) parseStructExpr() ast.Expr {
+	name := p.expectValidIdent(token.Ident, true, "expected 'ident'")
+	lbrace := p.expect(token.LBrace, "expected '{'")
+
+	st := &ast.StructExpr{
+		Name:   name,
+		LBrace: lbrace,
+	}
+
+	for p.kind() != token.RBrace && p.kind() != token.EOF {
+		st.Fields = append(st.Fields, p.parseStructFieldExpr())
+
+		if p.kind() == token.Comment || p.kind() == token.Comma {
+			_ = p.next()
+		}
+	}
+
+	rbrace := p.expect(token.RBrace, "expected '}'")
+	st.RBrace = rbrace
+
+	return st
+}
+
+// parseStructFieldExpr is in charge of parsing struct field
+func (p *Parser) parseStructFieldExpr() *ast.StructFieldExpr {
+	name := p.expectValidIdent(token.Ident, true, "expected 'ident'")
+	sf := &ast.StructFieldExpr{
+		Key: name,
+	}
+	_ = p.expect(token.Colon, "expected ':'")
+	tok := p.peek()
+
+	if !token.IsStructExprFieldTypes(tok.Kind) {
+		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported type with %#v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
+		p.consumeTo(token.EOF)
+		return nil
+	}
+
+	switch tok.Value {
+	case "[":
+		sf.Value = p.parseSliceElements()
+
+	default:
+		sf.Value = p.parseExpr(LOWEST)
+	}
+
+	return sf
+}
