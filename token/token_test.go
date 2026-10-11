@@ -289,6 +289,30 @@ func TestToken(t *testing.T) {
 		}
 	})
 
+	t.Run("is_struct_expr_types", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected bool
+		}{
+			{
+				input:    KWFunc,
+				expected: true,
+			},
+			{
+				input:    StringLit,
+				expected: true,
+			},
+			{
+				input:    KWReturn,
+				expected: false,
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, IsStructExprFieldTypes(tc.input))
+		}
+	})
+
 	t.Run("is_valid_type_decl", func(t *testing.T) {
 		tests := []struct {
 			input    Kind

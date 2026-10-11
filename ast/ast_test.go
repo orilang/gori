@@ -396,7 +396,7 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(token.Token{}, x.End())
 	})
 
-	t.Run("for_range_stmt_from_to", func(t *testing.T) {
+	t.Run("for_range_stmt_from_to_x1", func(t *testing.T) {
 		z := token.Token{
 			Kind:   token.KWFor,
 			Value:  "for",
@@ -420,7 +420,7 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(r, x.End())
 	})
 
-	t.Run("for_range_stmt_from_to", func(t *testing.T) {
+	t.Run("for_range_stmt_from_to_x2", func(t *testing.T) {
 		z := token.Token{
 			Kind:   token.Ident,
 			Value:  "i",
@@ -872,7 +872,7 @@ func TestAst_position(t *testing.T) {
 		assert.Equal(x, st.End())
 	})
 
-	t.Run("named_type_x1", func(t *testing.T) {
+	t.Run("named_type_x3", func(t *testing.T) {
 		x := &NamedType{
 			Parts: []token.Token{
 				{
@@ -1042,6 +1042,38 @@ func TestAst_position(t *testing.T) {
 		}
 
 		assert.Equal(typ, x.Start())
+		assert.Equal(token.Token{}, x.End())
+	})
+
+	t.Run("struct_expr_x1", func(t *testing.T) {
+		sn := token.Token{
+			Kind:  token.Ident,
+			Value: "test",
+		}
+
+		key := token.Token{
+			Kind:  token.Ident,
+			Value: "x",
+		}
+
+		xt := token.Token{
+			Kind:  token.IntLit,
+			Value: "1",
+		}
+		intl := &IntLitExpr{
+			Name: xt,
+		}
+		sf := &StructFieldExpr{
+			Key:   key,
+			Value: intl,
+		}
+
+		x := &StructExpr{
+			Name:   sn,
+			Fields: []*StructFieldExpr{sf},
+		}
+
+		assert.Equal(sf, x.Start())
 		assert.Equal(token.Token{}, x.End())
 	})
 }

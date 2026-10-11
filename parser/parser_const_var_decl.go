@@ -25,7 +25,11 @@ func (p *Parser) parseConstDecl() ast.Decl {
 	case "[":
 		init = p.parseSliceElements()
 	default:
-		init = p.parseExpr(LOWEST)
+		if p.lookupStructExpr() {
+			init = p.parseStructExpr()
+		} else {
+			init = p.parseExpr(LOWEST)
+		}
 	}
 
 	return &ast.ConstDecl{
@@ -62,6 +66,8 @@ func (p *Parser) parseVarDecl() ast.Decl {
 		// x[1:]
 		if p.kind() == token.Ident && p.peekNext(p.position+1).Kind == token.LBracket {
 			init = p.parseSliceExpr(p.parsePrefix())
+		} else if p.lookupStructExpr() {
+			init = p.parseStructExpr()
 		} else {
 			init = p.parseExpr(LOWEST)
 		}
