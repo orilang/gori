@@ -558,12 +558,10 @@ func (d *dumper) node(indent int, n any) {
 	case *StructExpr:
 		d.kv(indent+1, "Name", v.Name)
 		d.kv(indent+2, "LBrace", v.LBrace)
-		if len(v.Fields) > 0 && v.Fields[0] != nil {
+		if len(v.Fields) > 0 {
 			d.line(indent+3, "Fields:")
 			for _, x := range v.Fields {
-				if x != nil {
-					d.node(indent+4, x)
-				}
+				d.node(indent+4, x)
 			}
 		}
 		d.kv(indent+2, "RBrace", v.RBrace)

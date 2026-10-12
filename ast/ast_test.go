@@ -1063,14 +1063,14 @@ func TestAst_position(t *testing.T) {
 		intl := &IntLitExpr{
 			Name: xt,
 		}
-		sf := &StructFieldExpr{
+		sf := StructFieldExpr{
 			Key:   key,
 			Value: intl,
 		}
 
 		x := &StructExpr{
 			Name:   sn,
-			Fields: []*StructFieldExpr{sf},
+			Fields: []StructFieldExpr{sf},
 		}
 
 		assert.Equal(sf, x.Start())
