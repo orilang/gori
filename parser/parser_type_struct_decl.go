@@ -115,9 +115,9 @@ func (p *Parser) parseStructExpr() ast.Expr {
 }
 
 // parseStructFieldExpr is in charge of parsing struct field
-func (p *Parser) parseStructFieldExpr() *ast.StructFieldExpr {
+func (p *Parser) parseStructFieldExpr() ast.StructFieldExpr {
 	name := p.expectValidIdent(token.Ident, true, "expected 'ident'")
-	sf := &ast.StructFieldExpr{
+	sf := ast.StructFieldExpr{
 		Key: name,
 	}
 	_ = p.expect(token.Colon, "expected ':'")
@@ -126,7 +126,7 @@ func (p *Parser) parseStructFieldExpr() *ast.StructFieldExpr {
 	if !token.IsStructExprFieldTypes(tok.Kind) {
 		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unsupported type with %#v %q", tok.Line, tok.Column, tok.Kind, tok.Value))
 		p.consumeTo(token.EOF)
-		return nil
+		return sf
 	}
 
 	switch tok.Value {

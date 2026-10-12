@@ -391,7 +391,7 @@ type StructFieldExpr struct {
 type StructExpr struct {
 	Name   token.Token
 	LBrace token.Token
-	Fields []*StructFieldExpr
+	Fields []StructFieldExpr
 	RBrace token.Token
 }
 
