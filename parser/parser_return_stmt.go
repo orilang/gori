@@ -30,7 +30,11 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 			return &ast.BadStmt{From: rn, To: tok, Reason: "expected expression not ','"}
 		}
 
-		args = append(args, p.parseExpr(LOWEST))
+		if p.lookupStructExpr() {
+			args = append(args, p.parseStructExpr())
+		} else {
+			args = append(args, p.parseExpr(LOWEST))
+		}
 		if p.kind() == token.KWCase || p.kind() == token.KWDefault {
 			break
 		}
