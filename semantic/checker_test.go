@@ -556,7 +556,7 @@ type User struct {
 
 	t.Run("check_expr", func(t *testing.T) {
 		check := NewChecker()
-		check.checkExpr(nil, false)
+		check.checkExpr(nil, exprConfig{})
 	})
 
 	t.Run("x7", func(t *testing.T) {
@@ -973,12 +973,12 @@ func y() {
 		check.checkExpr(&ast.IndexExpr{
 			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
 			Index: &ast.BadExpr{},
-		}, false)
+		}, exprConfig{})
 		check.checkAssignableExpr(&ast.IndexExpr{
 			X:     &ast.IdentExpr{Name: token.Token{Value: "a"}},
 			Index: &ast.BadExpr{},
-		}, true)
-		check.checkAssignableExpr(&ast.BadExpr{}, false)
+		}, exprConfig{isWriteIndexingAssigment: true})
+		check.checkAssignableExpr(&ast.BadExpr{}, exprConfig{})
 
 		check.typeDecls = append(check.typeDecls, &ast.StructDecl{})
 		check.createTypeObjects()
@@ -4638,7 +4638,7 @@ comptime func id(b Bad) int {
 		}
 
 		check := NewChecker()
-		assert.Equal(t, TInvalid, check.checkComptimeExpr(&ast.BadExpr{}))
+		assert.Equal(t, TInvalid, check.checkComptimeExpr(&ast.BadExpr{}, exprConfig{}))
 		check.pkgScope.Declare(&Symbol{
 			Name: "a",
 			Kind: SymVar,
@@ -4646,7 +4646,7 @@ comptime func id(b Bad) int {
 		})
 		assert.Equal(t, TInvalid, check.checkComptimeExpr(&ast.IdentExpr{
 			Name: token.Token{Kind: token.KWString, Value: "a"},
-		}))
+		}, exprConfig{}))
 
 		check.checkComptimeFuncDecl(&ast.FuncDecl{Name: token.Token{Value: "plop"}})
 		check.pkgScope.Declare(&Symbol{
@@ -9106,6 +9106,322 @@ type Person User
 func f(p Person) string {
   (p).name = "x"
   return p.name
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {
+  name string
+}
+
+func f() string {
+  type Person User
+  p := Person{name: "zzz"}
+  (p).name = "x"
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f() User {
+  u := User{}
+  return u
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+func f() User {
+  u := User{}
+  return u
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+func f() User {
+  u := User{name: "test",name: "test", age: int(0)}
+  return u
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  height int
+}
+
+func f() User {
+  u := User{name: "test", age: int(0)}
+  return u
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+func f() User {
+  u := User{name: "test",name: "test"}
+  return u
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+func f() User {
+  u := User{name: "test",x: "test", age: int(0)}
+  return u
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+func f() User {
+  u := User{name: "test", age: int(0)}
+  return u
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+func f() User {
+  u := User{name: "test", age: int64(0)}
+  return u
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  u := User{name: "test", age: int64(0)}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f() User {
+  return User{}
+}
+func g() string {
+  f().name = "test"
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+func f() User {
+  const u User = User{name: "test", age: int(0)}
+  u.name = "x"
+  return u
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  age  int
+}
+
+func f() User {
+  u := User{name: "test"}
+  return u
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type ID int
+
+func f() ID {
+  return ID{}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f() User {
+  return User
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f(u User) {}
+
+func g() {
+  f(User)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f() {
+ var x User = User
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f() {
+ const x User = User
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f() {
+ x := User
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f() {
+ var x User = User{}
+ x = User
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {}
+
+func f() User {
+  return (User)
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type Person struct {
+    name string
+}
+
+func f() {
+  var User Person = Person{name: "A"}
+  x := User{name: "B"}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+
+type User struct {}
+func (u User) save() {}
+func replacement() {}
+func f(u User) {
+  u.save = replacement
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {
+  name string
+}
+
+func f(u User) {
+  x := User(u)
 }
 `,
 			},

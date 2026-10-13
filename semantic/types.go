@@ -230,3 +230,13 @@ type Check struct {
 	Tokens []token.Token
 	Errors []error
 }
+
+// exprConfig holds config that will be used by expressions
+type exprConfig struct {
+	// isWriteIndexingAssigment parameter must be only set to true for statements map/hashmaps like m["a"]="b".
+	// Therefore, isWriteIndexingAssigment is only for index expression.
+	isWriteIndexingAssigment bool
+
+	// allowTypeIdentifier must be set to true if we want type used as value.
+	allowTypeIdentifier bool
+}
