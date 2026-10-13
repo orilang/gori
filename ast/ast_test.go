@@ -1073,7 +1073,7 @@ func TestAst_position(t *testing.T) {
 			Fields: []StructFieldExpr{sf},
 		}
 
-		assert.Equal(sf, x.Start())
+		assert.Equal(sn, x.Start())
 		assert.Equal(token.Token{}, x.End())
 	})
 }
