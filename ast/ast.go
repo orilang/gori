@@ -245,10 +245,7 @@ func (x *SliceLitExpr) Start() token.Token {
 func (x *SliceLitExpr) End() token.Token { return x.RBrace }
 
 func (x *StructExpr) Start() token.Token {
-	if len(x.Fields) > 0 {
-		return x.Fields[0].Key
-	}
-	return token.Token{}
+	return x.Name
 }
 func (x *StructExpr) End() token.Token { return x.RBrace }
 
