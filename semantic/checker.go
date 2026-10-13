@@ -208,6 +208,8 @@ func exprName(decl ast.Expr) (string, bool) {
 		return exprName(d.X)
 	case *ast.SelectorExpr:
 		return exprName(d.X)
+	case *ast.ParenExpr:
+		return exprName(d.Inner)
 	default:
 		return "", false
 	}

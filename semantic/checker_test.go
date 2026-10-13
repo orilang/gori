@@ -9096,6 +9096,19 @@ func f(p Person) string {
 }
 `,
 			},
+			{
+				data: `package main
+type User struct {
+  name string
+}
+
+type Person User
+func f(p Person) string {
+  (p).name = "x"
+  return p.name
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
