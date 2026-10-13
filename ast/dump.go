@@ -548,8 +548,7 @@ func (d *dumper) node(indent int, n any) {
 	case *DeclStmt:
 		d.node(indent, v.Decl)
 
-	case *StructFieldExpr:
-		// fmt.Printf("CCCC %#v\n", v)
+	case StructFieldExpr:
 		d.line(indent, "Field:")
 		d.kv(indent+1, "Name", v.Key)
 		d.line(indent+1, "Value:")
