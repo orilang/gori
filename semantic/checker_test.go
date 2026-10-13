@@ -8993,6 +8993,15 @@ func foo() int {
 			{
 				err: true,
 				data: `package main
+func foo() int {
+  s := [float(3)]int{1,2,3}
+  return s[1]
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
 type UserID []string
 func (x UserID) f() UserID {
   return x
