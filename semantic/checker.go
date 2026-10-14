@@ -3867,10 +3867,7 @@ func isBlankOrEmpty(s string) bool {
 
 // isBlank return true when provided parameter is "_"
 func isBlank(s string) bool {
-	if s == "_" {
-		return true
-	}
-	return false
+	return s == "_"
 }
 
 // stringifyType makes sure we return a valid string
