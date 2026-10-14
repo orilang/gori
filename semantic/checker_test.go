@@ -9434,6 +9434,18 @@ func f(u User) {
 }
 `,
 			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+}
+
+func f() {
+  User{name: "a"}.name = "b"
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
