@@ -533,7 +533,12 @@ func (p *Parser) parsePrefix() ast.Expr {
 		expr = &ast.StringLitExpr{Name: p.next()}
 
 	case token.Ident:
-		expr = &ast.IdentExpr{Name: p.expectValidIdent(p.kind(), false, "expected valid ident")}
+		switch {
+		case p.lookupStructExpr():
+			expr = p.parseStructExpr()
+		default:
+			expr = &ast.IdentExpr{Name: p.expectValidIdent(p.kind(), false, "expected valid ident")}
+		}
 
 	case token.LParen:
 		expr = p.parseGroupExpr()

@@ -629,6 +629,70 @@ func main(){
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("x13", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+
+type User struct {
+  name string
+}
+
+func f() {
+  User{name: "a"}.name = "b"
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  StructDecl:
+   Type: "type" @3:1 (kind=26)
+   Name: "User" @3:6 (kind=3)
+   Struct: "struct" @3:11 (kind=27)
+   Public: true
+   LBrace: "{" @3:18 (kind=41)
+    Name: "name" @4:3 (kind=3)
+    Type:
+     NamedType
+      Ident: "string" @4:8 (kind=24)
+   RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "f" @7:6 (kind=3)
+   Params
+    (none)
+   Body
+    BlockStmt
+     LBrace: "{" @7:10 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        SelectorExpr
+         X:
+           Name: "User" @8:3 (kind=3)
+            LBrace: "{" @8:7 (kind=41)
+             Fields:
+              Field:
+               Name: "name" @8:8 (kind=3)
+               Value:
+                StringLitExpr
+                 Value: "a" @8:14 (kind=6)
+            RBrace: "}" @8:17 (kind=42)
+         Dot: "." @8:18 (kind=48)
+         Selector: "name" @8:19 (kind=3)
+       Operator: "=" @8:24 (kind=49)
+       Right
+        StringLitExpr
+         Value: "b" @8:26 (kind=6)
+     RBrace: "}" @9:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("bad_type", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
