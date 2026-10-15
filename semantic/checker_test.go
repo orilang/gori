@@ -9464,4 +9464,117 @@ func f() {
 			}
 		}
 	})
+
+	t.Run("x38", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int = int(0)
+}
+
+type Person User
+func f(p Person) string {
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string = int(0)
+  age  int
+}
+
+type Person User
+func f(p Person) string {
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string = g()
+  age  int
+}
+
+func g() string {
+  return "test"
+}
+
+func f(p User) string {
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string
+  m map[string]string = make(map[string]string, uint(10))
+}
+
+
+func f(p User) string {
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string = o.h()
+}
+
+type Owner struct {
+  name string
+}
+
+func (o Owner) h() string {
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  type User struct {
+    name string
+    m map[string]string = make(map[string]string, uint(10))
+  }
+}
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			_, diagnostics := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(diagnostics), 0, i)
+			} else {
+				assert.Equal(t, 0, len(diagnostics), i)
+			}
+		}
+	})
+
+	t.Run("dummy_isValid_struct_default_type", func(t *testing.T) {
+		assert.Equal(t, false, isValidStructDefaultType(nil))
+	})
 }

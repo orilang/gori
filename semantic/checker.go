@@ -115,6 +115,7 @@ func (c *Checker) Check(file *ast.File) (Program, Diagnostics) {
 	c.checkImplementsDecls()
 	c.checkComptimeValues()
 	c.checkTopLevelValues(file)
+	c.resolveStructTypeDefaultValues()
 	c.checkFuncBodies()
 
 	if len(c.errors) == 0 {
@@ -322,7 +323,7 @@ func (c *Checker) resolveTypeDecls() {
 		case *ast.StructDecl:
 			t := sym.Type.(*NamedType)
 			st := t.UnderlyingType.(*StructType)
-			st.Fields = c.resolveStructFields(d.Fields)
+			st.Fields = c.resolveStructFields(d.Fields, false)
 
 		case *ast.InterfaceDecl:
 			t := sym.Type.(*NamedType)
@@ -514,8 +515,9 @@ func (c *Checker) resolveNamedType(t *ast.NamedType) Type {
 }
 
 // resolveStructFields resolves the ast struct field declaration to return
-// the semantic view of the field list. A diagnostic is emitted when duplicates found
-func (c *Checker) resolveStructFields(fields []*ast.FieldDecl) []StructField {
+// the semantic view of the field list. A diagnostic is emitted when duplicates found.
+// checkFieldsDefaults must set to true only for struct within funcs/methods
+func (c *Checker) resolveStructFields(fields []*ast.FieldDecl, checkFieldsDefaults bool) []StructField {
 	var out []StructField
 	seen := make(map[string]*ast.FieldDecl)
 
@@ -525,13 +527,60 @@ func (c *Checker) resolveStructFields(fields []*ast.FieldDecl) []StructField {
 			continue
 		}
 
+		targetType := c.resolveType(field.Type)
+		if checkFieldsDefaults {
+			if field.Eq != nil && field.Default != nil {
+				c.resolveStructTypeDefaultValue(targetType, field)
+			}
+		}
+
 		seen[field.Name.Value] = field
 		out = append(out, StructField{
 			Name: field.Name.Value,
-			Type: c.resolveType(field.Type),
+			Type: targetType,
 		})
 	}
 	return out
+}
+
+// resolveStructTypeDefaultValues resolves struct fields with default values
+func (c *Checker) resolveStructTypeDefaultValues() {
+	for _, decl := range c.typeDecls {
+		if ds, ok := decl.(*ast.StructDecl); ok {
+			name := typeDeclName(decl)
+			sym := c.pkgScope.LookupLocal(name)
+			if sym != nil && sym.Kind == SymType {
+				if nt, nok := sym.Type.(*NamedType); nok {
+					if st, stok := unwrapNamed(nt).(*StructType); stok {
+						for k, field := range st.Fields {
+							if ds.Fields[k].Eq != nil && ds.Fields[k].Default != nil {
+								c.resolveStructTypeDefaultValue(field.Type, ds.Fields[k])
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
+
+// resolveStructTypeDefaultValue resolves struct field with default value
+func (c *Checker) resolveStructTypeDefaultValue(targetType Type, field *ast.FieldDecl) {
+	if fn, ok := c.isValidStructDefaultExpr(field.Default); !ok {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden func/method/selector name %q assigment to struct default field %q at %d:%d-%d", fn, field.Name.Value, field.Name.Line, field.Default.Start().Column, field.Default.End().Column)})
+		return
+	}
+
+	valueType, _ := c.checkExprInCurrentMode(field.Default, exprConfig{})
+	if !isValidStructDefaultType(valueType) {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden assigment type %q to struct default field %q at %d:%d-%d", stringifyType(valueType), field.Name.Value, field.Name.Line, field.Default.Start().Column, field.Default.End().Column)})
+		return
+	}
+
+	if !IsAssignableTo(targetType, valueType) {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %q to type %q at %d:%d-%d", stringifyType(valueType), stringifyType(targetType), field.Name.Line, field.Default.Start().Column, field.Default.End().Column)})
+		return
+	}
 }
 
 // resolveInterfaceMethods resolves the ast interface declaration to return
@@ -2020,7 +2069,7 @@ func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
 			Decl: decl,
 			UnderlyingType: &StructType{
 				Decl:   decl,
-				Fields: c.resolveStructFields(decl.Fields),
+				Fields: c.resolveStructFields(decl.Fields, true),
 			},
 		},
 	}, "type") {
@@ -2207,7 +2256,7 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
 func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
 	baseType, _ := c.checkExprInCurrentMode(expr.X, exprConfig{})
 	if IsInvalid(baseType) {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type at %d:%d-%d", expr.Start().Line, expr.Start().Column, expr.End().Column)})
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type %q at %d:%d-%d", stringifyType(baseType), expr.Start().Line, expr.Start().Column, expr.End().Column)})
 		return TInvalid
 	}
 
@@ -3877,4 +3926,37 @@ func stringifyType(t Type) string {
 		return `<nil>`
 	}
 	return t.String()
+}
+
+// isValidStructDefault validates default struct type
+func isValidStructDefaultType(t Type) bool {
+	if t == nil || IsInvalid(t) {
+		return false
+	}
+
+	u := unwrapNamed(t)
+	switch u.(type) {
+	case *FuncMethod, *MapType, *HashMapType:
+		return false
+	}
+	return true
+}
+
+// isValidStructDefaultExpr validates default struct default expression
+func (c *Checker) isValidStructDefaultExpr(t ast.Expr) (string, bool) {
+	switch expr := t.(type) {
+	case *ast.CallExpr:
+		switch callee := expr.Callee.(type) {
+		case *ast.IdentExpr:
+			for _, fn := range c.funcDecls {
+				if fn.Name.Value == callee.Name.Value {
+					return fn.Name.Value, false
+				}
+			}
+
+		case *ast.SelectorExpr:
+			return callee.Selector.Value, false
+		}
+	}
+	return "", true
 }
