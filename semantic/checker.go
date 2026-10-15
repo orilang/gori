@@ -546,15 +546,17 @@ func (c *Checker) resolveStructFields(fields []*ast.FieldDecl, checkFieldsDefaul
 // resolveStructTypeDefaultValues resolves struct fields with default values
 func (c *Checker) resolveStructTypeDefaultValues() {
 	for _, decl := range c.typeDecls {
-		if ds, ok := decl.(*ast.StructDecl); ok {
+		if sd, ok := decl.(*ast.StructDecl); ok {
 			name := typeDeclName(decl)
 			sym := c.pkgScope.LookupLocal(name)
 			if sym != nil && sym.Kind == SymType {
 				if nt, nok := sym.Type.(*NamedType); nok {
 					if st, stok := unwrapNamed(nt).(*StructType); stok {
-						for k, field := range st.Fields {
-							if ds.Fields[k].Eq != nil && ds.Fields[k].Default != nil {
-								c.resolveStructTypeDefaultValue(field.Type, ds.Fields[k])
+						for _, field := range sd.Fields {
+							if field.Eq != nil && field.Default != nil {
+								if styp, sok := lookupStructField(st, field.Name.Value); sok {
+									c.resolveStructTypeDefaultValue(styp, field)
+								}
 							}
 						}
 					}
@@ -3991,7 +3993,6 @@ func (c *Checker) isStructHasDefaults(decl ast.Decl, expr *ast.StructExpr, typ *
 				shd.defaults = append(shd.defaults, v)
 			}
 		}
-		shd.hasDefaults = len(shd.defaults) > 0
 
 		var (
 			hasError      bool
