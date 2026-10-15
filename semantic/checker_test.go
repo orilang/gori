@@ -9555,6 +9555,104 @@ func f() {
 }
 `,
 			},
+			{
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int
+}
+
+func f() string {
+  p := User{age: int(0)}
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int
+}
+
+func f() string {
+  p := User{age: int(0),age: int(0)}
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int
+}
+
+func f() string {
+  p := User{}
+  return p.name
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int = int(0)
+}
+
+func f() string {
+  p := User{name: "new"}
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int = int(0)
+}
+
+func f() string {
+  p := User{name: int(0)}
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int = int(0)
+}
+
+func f() string {
+  p := User{xname: int(0)}
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type s struct {
+  a int
+  b int
+  c int = int(0)
+  d int = int(1)
+  e int = int(2)
+}
+
+func f() {
+  p := s{a: int(0),c: int(0),d: int(0)}
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
@@ -9569,6 +9667,9 @@ func f() {
 			if tc.err {
 				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
+				if len(diagnostics) > 0 {
+					fmt.Println("RATA", i, tc.data)
+				}
 				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}

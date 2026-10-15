@@ -240,3 +240,15 @@ type exprConfig struct {
 	// allowTypeIdentifier must be set to true if we want type used as value.
 	allowTypeIdentifier bool
 }
+
+// structHasDefaults hold requirements struct that contains fields
+// with default values
+type structHasDefaults struct {
+	// list of defaults found
+	defaults []*ast.FieldDecl
+
+	// list of overwritten defaults
+	overwritten []ast.StructFieldExpr
+	notSupplied []ast.StructFieldExpr
+	hasErrors   bool
+}
