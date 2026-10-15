@@ -267,4 +267,13 @@ type test struct{
 		parser := New(lex.FetchTokensFromString(data))
 		assert.Equal(false, parser.lookupStructExpr())
 	})
+
+	t.Run("lookup_struct_expr_false", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `test`
+		parser := New(lex.FetchTokensFromString(data))
+		parser.position = 6
+		assert.Equal(false, parser.lookupStructExpr())
+	})
 }
