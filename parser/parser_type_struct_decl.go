@@ -85,7 +85,17 @@ func (p *Parser) parseStructTypeField() *ast.FieldDecl {
 	if p.kind() == token.Assign {
 		kwa := p.expect(token.Assign, "expected '='")
 		fd.Eq = &kwa
-		fd.Default = p.parseExpr(LOWEST)
+
+		switch p.peek().Value {
+		case "make":
+			fd.Default = p.parseMakeExpr()
+
+		case "[":
+			fd.Default = p.parseSliceElements()
+
+		default:
+			fd.Default = p.parseExpr(LOWEST)
+		}
 	}
 	return fd
 }

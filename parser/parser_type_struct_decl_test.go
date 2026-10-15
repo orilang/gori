@@ -693,6 +693,288 @@ func f() {
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("x14", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+type User struct {
+  name string
+  m map[string]string = make(map[string]string, uint(10))
+}
+
+
+func f(p User) string {
+  return p.name
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  StructDecl:
+   Type: "type" @2:1 (kind=26)
+   Name: "User" @2:6 (kind=3)
+   Struct: "struct" @2:11 (kind=27)
+   Public: true
+   LBrace: "{" @2:18 (kind=41)
+    Name: "name" @3:3 (kind=3)
+    Type:
+     NamedType
+      Ident: "string" @3:8 (kind=24)
+    Name: "m" @4:3 (kind=3)
+    Type:
+     MapType:
+      Map: "map" @4:5 (kind=79)
+      LBracket: "[" @4:8 (kind=43)
+      KeyType:
+       NamedType
+        Ident: "string" @4:9 (kind=24)
+      RBracket: "]" @4:15 (kind=44)
+      ValueType:
+       NamedType
+        Ident: "string" @4:16 (kind=24)
+    Eq: "=" @4:23 (kind=49)
+    MakeExpr:
+     Make: "make" @4:25 (kind=3)
+     LParen: "(" @4:29 (kind=39)
+     MapType:
+      Map: "map" @4:30 (kind=79)
+      LBracket: "[" @4:33 (kind=43)
+      KeyType:
+       NamedType
+        Ident: "string" @4:34 (kind=24)
+      RBracket: "]" @4:40 (kind=44)
+      ValueType:
+       NamedType
+        Ident: "string" @4:41 (kind=24)
+     Size:
+      CallExpr
+       Callee
+        IdentExpr
+         Name: "uint" @4:49 (kind=3)
+       LParen: "(" @4:53 (kind=39)
+       Args:
+        IntLitExpr
+         Value: "10" @4:54 (kind=4)
+       RParen: ")" @4:56 (kind=40)
+     RParen: ")" @4:57 (kind=40)
+   RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @8:1 (kind=10)
+   Name: "f" @8:6 (kind=3)
+   Params
+    Param
+     Ident: "p" @8:8 (kind=3)
+     Type
+      NamedType
+       Ident: "User" @8:10 (kind=3)
+   Results
+     Param
+      Type
+       NamedType
+        Ident: "string" @8:16 (kind=24)
+   Body
+    BlockStmt
+     LBrace: "{" @8:23 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        SelectorExpr
+         X:
+          IdentExpr
+           Name: "p" @9:10 (kind=3)
+         Dot: "." @9:11 (kind=48)
+         Selector: "name" @9:12 (kind=3)
+     RBrace: "}" @10:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("x15", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+type User struct {
+  name string
+  s []string = []string{"a"}
+}
+
+func f(p User) string {
+  return p.name
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  StructDecl:
+   Type: "type" @2:1 (kind=26)
+   Name: "User" @2:6 (kind=3)
+   Struct: "struct" @2:11 (kind=27)
+   Public: true
+   LBrace: "{" @2:18 (kind=41)
+    Name: "name" @3:3 (kind=3)
+    Type:
+     NamedType
+      Ident: "string" @3:8 (kind=24)
+    Name: "s" @4:3 (kind=3)
+    Type:
+     SliceType:
+      LBracket: "[" @4:5 (kind=43)
+      RBracket: "]" @4:6 (kind=44)
+      NamedType
+       Ident: "string" @4:7 (kind=24)
+    Eq: "=" @4:14 (kind=49)
+    SliceType:
+     LBracket: "[" @4:16 (kind=43)
+     RBracket: "]" @4:17 (kind=44)
+     NamedType
+      Ident: "string" @4:18 (kind=24)
+     LBrace: "{" @4:24 (kind=41)
+      Elements
+       StringLitExpr
+        Value: "a" @4:25 (kind=6)
+      RBrace: "}" @4:28 (kind=42)
+   RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "f" @7:6 (kind=3)
+   Params
+    Param
+     Ident: "p" @7:8 (kind=3)
+     Type
+      NamedType
+       Ident: "User" @7:10 (kind=3)
+   Results
+     Param
+      Type
+       NamedType
+        Ident: "string" @7:16 (kind=24)
+   Body
+    BlockStmt
+     LBrace: "{" @7:23 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        SelectorExpr
+         X:
+          IdentExpr
+           Name: "p" @8:10 (kind=3)
+         Dot: "." @8:11 (kind=48)
+         Selector: "name" @8:12 (kind=3)
+     RBrace: "}" @9:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
+	t.Run("x16", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+type User struct {
+  name string
+  s []string = []string{"a"}
+}
+
+func f() string {
+  p := User{s: []string{"b","c"}}
+  return p.name
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  StructDecl:
+   Type: "type" @2:1 (kind=26)
+   Name: "User" @2:6 (kind=3)
+   Struct: "struct" @2:11 (kind=27)
+   Public: true
+   LBrace: "{" @2:18 (kind=41)
+    Name: "name" @3:3 (kind=3)
+    Type:
+     NamedType
+      Ident: "string" @3:8 (kind=24)
+    Name: "s" @4:3 (kind=3)
+    Type:
+     SliceType:
+      LBracket: "[" @4:5 (kind=43)
+      RBracket: "]" @4:6 (kind=44)
+      NamedType
+       Ident: "string" @4:7 (kind=24)
+    Eq: "=" @4:14 (kind=49)
+    SliceType:
+     LBracket: "[" @4:16 (kind=43)
+     RBracket: "]" @4:17 (kind=44)
+     NamedType
+      Ident: "string" @4:18 (kind=24)
+     LBrace: "{" @4:24 (kind=41)
+      Elements
+       StringLitExpr
+        Value: "a" @4:25 (kind=6)
+      RBrace: "}" @4:28 (kind=42)
+   RBrace: "}" @5:1 (kind=42)
+  FuncDecl
+   Function: "func" @7:1 (kind=10)
+   Name: "f" @7:6 (kind=3)
+   Params
+    (none)
+   Results
+     Param
+      Type
+       NamedType
+        Ident: "string" @7:10 (kind=24)
+   Body
+    BlockStmt
+     LBrace: "{" @7:17 (kind=41)
+     Stmts
+      AssignStmt
+       Left
+        IdentExpr
+         Name: "p" @8:3 (kind=3)
+       Operator: ":=" @8:5 (kind=50)
+       Right
+         Name: "User" @8:8 (kind=3)
+          LBrace: "{" @8:12 (kind=41)
+           Fields:
+            Field:
+             Name: "s" @8:13 (kind=3)
+             Value:
+              SliceType:
+               LBracket: "[" @8:16 (kind=43)
+               RBracket: "]" @8:17 (kind=44)
+               NamedType
+                Ident: "string" @8:18 (kind=24)
+               LBrace: "{" @8:24 (kind=41)
+                Elements
+                 StringLitExpr
+                  Value: "b" @8:25 (kind=6)
+                 StringLitExpr
+                  Value: "c" @8:29 (kind=6)
+                RBrace: "}" @8:32 (kind=42)
+          RBrace: "}" @8:33 (kind=42)
+      ReturnStmt
+       Values
+        SelectorExpr
+         X:
+          IdentExpr
+           Name: "p" @9:10 (kind=3)
+         Dot: "." @9:11 (kind=48)
+         Selector: "name" @9:12 (kind=3)
+     RBrace: "}" @10:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("bad_type", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)
