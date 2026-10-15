@@ -1037,6 +1037,25 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 		}
 
 		if len(st.Fields) != len(t.Fields) {
+			if shd := c.isStructHasDefaults(st.Decl, t, st); len(shd.defaults) > 0 {
+				if shd.hasErrors {
+					return TInvalid, nil
+				}
+
+				for _, v := range t.Fields {
+					ftyp, _ := c.checkExprInCurrentMode(v.Value, exprConfig{})
+					styp, _ := lookupStructField(st, v.Key.Value)
+					if !IsAssignableTo(styp, ftyp) {
+						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid field %q type in struct %q, expected %q, got %q at %d:%d-%d", v.Key.Value, t.Name.Value, stringifyType(styp), stringifyType(ftyp), v.Value.Start().Line, v.Value.Start().Column, v.Value.End().Column)})
+						return TInvalid, nil
+					}
+				}
+
+				if len(shd.notSupplied) == 0 {
+					return sym.Type, nil
+				}
+			}
+
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid struct %q signature, expected %d fields, got %d at %d:%d-%d", t.Name.Value, len(st.Fields), len(t.Fields), t.Start().Line, t.Start().Column, t.End().Column)})
 			return TInvalid, nil
 		}
@@ -1523,7 +1542,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 	for index, right := range decl.Right {
 		valueType, valueExpr := c.checkExprInCurrentMode(right, exprConfig{})
 		if IsInvalid(valueType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d-%d", stringifyType(valueType), right.Start().Line, right.Start().Column, right.End().Column)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression type is invalid %q at %d:%d-%d", stringifyType(valueType), right.Start().Line, right.Start().Column, right.End().Column)})
 			return nil, nil
 		}
 
@@ -1761,7 +1780,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		valueType, valueExpr := c.checkExprInCurrentMode(right, exprConfig{})
 		fn, fromFunc := valueExpr.(*CallExpr)
 		if IsInvalid(valueType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d-%d", stringifyType(valueType), right.Start().Line, right.Start().Column, right.End().Column)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression type is invalid %q at %d:%d-%d", stringifyType(valueType), right.Start().Line, right.Start().Column, right.End().Column)})
 			return nil
 		}
 		stmt.Right = append(stmt.Right, valueExpr)
@@ -1864,7 +1883,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		valueType, expr := c.checkExprInCurrentMode(right, exprConfig{})
 		fn, fromFunc := expr.(*CallExpr)
 		if IsInvalid(valueType) {
-			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression %s is invalid at %d:%d-%d", stringifyType(valueType), right.Start().Line, right.Start().Column, right.End().Column)})
+			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("expression type is invalid %q at %d:%d-%d", stringifyType(valueType), right.Start().Line, right.Start().Column, right.End().Column)})
 			return nil
 		}
 		stmt.Right = append(stmt.Right, expr)
@@ -3959,4 +3978,73 @@ func (c *Checker) isValidStructDefaultExpr(t ast.Expr) (string, bool) {
 		}
 	}
 	return "", true
+}
+
+// isStructHasDefaults checks if struct has fields with default values.
+// It also checks if struct expression overwrite those fields.
+func (c *Checker) isStructHasDefaults(decl ast.Decl, expr *ast.StructExpr, typ *StructType) (shd structHasDefaults) {
+	if st, ok := decl.(*ast.StructDecl); ok {
+		seen := make(map[string]bool, len(st.Fields))
+		for _, v := range st.Fields {
+			if v.Eq != nil && v.Default != nil {
+				seen[v.Name.Value] = true
+				shd.defaults = append(shd.defaults, v)
+			}
+		}
+		shd.hasDefaults = len(shd.defaults) > 0
+
+		var (
+			hasError      bool
+			hasDuplicates bool
+		)
+		exprSeen := make(map[string]bool, len(expr.Fields))
+		for _, v := range expr.Fields {
+			if exprSeen[v.Key.Value] {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("duplicate field %q in struct expression %q at %d:%d", v.Key.Value, expr.Name.Value, v.Key.Line, v.Key.Column)})
+				hasDuplicates = true
+			}
+
+			exprSeen[v.Key.Value] = true
+			if seen[v.Key.Value] {
+				shd.overwritten = append(shd.overwritten, v)
+			}
+
+			if _, sok := lookupStructField(typ, v.Key.Value); !sok {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q in struct %q at %d:%d", v.Key.Value, expr.Name.Value, v.Key.Line, v.Key.Column)})
+				hasError = true
+			}
+		}
+
+		if hasError {
+			shd.hasErrors = true
+		}
+		if hasDuplicates {
+			shd.hasErrors = true
+		}
+
+		var noDefaults []*ast.FieldDecl
+		noDefaultsSeen := make(map[string]bool, len(expr.Fields))
+		for _, v := range st.Fields {
+			if v.Eq == nil {
+				noDefaultsSeen[v.Name.Value] = true
+				noDefaults = append(noDefaults, v)
+			}
+		}
+
+		if len(noDefaults) > 0 {
+			if len(expr.Fields) == 0 {
+				for _, v := range noDefaults {
+					shd.notSupplied = append(shd.notSupplied, ast.StructFieldExpr{Key: v.Name})
+				}
+			} else {
+				for _, v := range expr.Fields {
+					if !noDefaultsSeen[v.Key.Value] {
+						shd.notSupplied = append(shd.notSupplied, v)
+					}
+				}
+			}
+		}
+	}
+
+	return
 }
