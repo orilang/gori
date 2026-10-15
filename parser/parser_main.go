@@ -437,11 +437,29 @@ func (p *Parser) parseStmt() ast.Stmt {
 		return p.parseStmtExprMutipleAssigment(kind)
 	}
 
-	left := p.parseExpr(LOWEST)
+	var left ast.Expr
+	if p.lookupStructExpr() {
+		// struct expression, if and switch statements has VERY similar
+		// declaration with curly braces. This is the cleanest way I found
+		// to make sure we parse struct expression correctly
+		// without colliding with other statements.
+		left = p.parseStructExpr()
+		for p.kind() != token.EOF && p.peekPrecedence() >= LOWEST {
+			if token.IsPostfix(p.kind()) {
+				left = p.parsePostfix(left)
+			} else {
+				break
+			}
+		}
+	} else {
+		left = p.parseExpr(LOWEST)
+	}
+
 	_, iok := left.(*ast.IdentExpr)
 	_, sok := left.(*ast.SelectorExpr)
 	_, xok := left.(*ast.IndexExpr)
-	if iok || sok || xok {
+	_, stok := left.(*ast.StructExpr)
+	if iok || sok || xok || stok {
 		if token.IsAssignment(p.kind()) {
 			return p.parseStmtExpr(left)
 		}
@@ -533,12 +551,7 @@ func (p *Parser) parsePrefix() ast.Expr {
 		expr = &ast.StringLitExpr{Name: p.next()}
 
 	case token.Ident:
-		switch {
-		case p.lookupStructExpr():
-			expr = p.parseStructExpr()
-		default:
-			expr = &ast.IdentExpr{Name: p.expectValidIdent(p.kind(), false, "expected valid ident")}
-		}
+		expr = &ast.IdentExpr{Name: p.expectValidIdent(p.kind(), false, "expected valid ident")}
 
 	case token.LParen:
 		expr = p.parseGroupExpr()
