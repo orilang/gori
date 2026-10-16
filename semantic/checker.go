@@ -3964,21 +3964,36 @@ func isValidStructDefaultType(t Type) bool {
 }
 
 // isValidStructDefaultExpr validates default struct default expression
-func (c *Checker) isValidStructDefaultExpr(t ast.Expr) (string, bool) {
-	switch expr := t.(type) {
-	case *ast.CallExpr:
-		switch callee := expr.Callee.(type) {
-		case *ast.IdentExpr:
-			for _, fn := range c.funcDecls {
-				if fn.Name.Value == callee.Name.Value {
-					return fn.Name.Value, false
-				}
-			}
+func (c *Checker) isValidStructDefaultExpr(expr ast.Expr) (string, bool) {
+	switch t := expr.(type) {
+	case *ast.IntLitExpr, *ast.FloatLitExpr:
+		return "", true
 
-		case *ast.SelectorExpr:
-			return callee.Selector.Value, false
+	case *ast.ParenExpr:
+		return c.isValidStructDefaultExpr(t.Inner)
+
+	case *ast.BinaryExpr:
+		_, lok := c.isValidStructDefaultExpr(t.Left)
+		_, rok := c.isValidStructDefaultExpr(t.Right)
+		return "", lok && rok
+
+	case *ast.UnaryExpr:
+		return c.isValidStructDefaultExpr(t.Right)
+
+	case *ast.CallExpr:
+		return c.isValidStructDefaultExpr(t.Callee)
+
+	case *ast.IdentExpr:
+		for _, fn := range c.funcDecls {
+			if fn.Name.Value == t.Name.Value {
+				return fn.Name.Value, false
+			}
 		}
+
+	case *ast.SelectorExpr:
+		return t.Selector.Value, false
 	}
+
 	return "", true
 }
 
