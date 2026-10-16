@@ -9653,6 +9653,159 @@ func f() {
 }
 `,
 			},
+			{
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int = int(1) * int(2)
+}
+
+func f() string {
+  p := User{}
+  return p.name
+}
+`,
+			},
+			{
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int = -(int(0))
+}
+
+func f() string {
+  p := User{name: "new"}
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type User struct {
+  name string = "test"
+  age  int = int(g())
+}
+
+func g() int {
+  return int(0)
+}
+
+func f() string {
+  p := User{name: "new"}
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  x := int(10)
+  type S struct {
+    value int = x
+  }
+  x = int(20)
+  s := S{}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(x int) {
+  type S struct {
+    value int = x
+  }
+  x = int(20)
+  s := S{}
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  type S struct {
+    value []string = make([]string,5)
+  }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() {
+  type S struct {
+    value string = g()
+  }
+}
+
+func g() string {
+ return "hello"
+}
+`,
+			},
+			{
+				data: `package main
+func f() {
+ const x int = int(0)
+  type S struct {
+    value int = x
+  }
+}
+`,
+			},
+			{
+				data: `package main
+func f() string {
+  type User struct {
+    name string = "test"
+    age  int = int(0)
+  }
+
+  p := User{}
+  return p.name
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(x int) {
+  const y int = int(4)
+
+  type A struct {
+    a int = y + int(1) // OK
+    b int = x + int(1) // reject
+  }
+}
+`,
+			},
+			{
+				data: `package main
+type UserID int
+func f() {
+  type A struct {
+    a UserID = UserID(1)
+  }
+}
+`,
+			},
+			{
+				err: true,
+				data: `package main
+type X struct {
+  value int = int(0)
+}
+func f() {
+  x := X{}
+  type S struct {
+    value int = x.X
+  }
+}
+`,
+			},
 		}
 
 		for i, tc := range tests {
@@ -9667,9 +9820,6 @@ func f() {
 			if tc.err {
 				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				if len(diagnostics) > 0 {
-					fmt.Println("RATA", i, tc.data)
-				}
 				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
@@ -9677,5 +9827,6 @@ func f() {
 
 	t.Run("dummy_isValid_struct_default_type", func(t *testing.T) {
 		assert.Equal(t, false, isValidStructDefaultType(nil))
+		assert.Equal(t, false, isValidStructDefaultType(&MapType{}))
 	})
 }

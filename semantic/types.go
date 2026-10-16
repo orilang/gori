@@ -248,7 +248,6 @@ type structHasDefaults struct {
 	defaults []*ast.FieldDecl
 
 	// list of overwritten defaults
-	overwritten []ast.StructFieldExpr
 	notSupplied []ast.StructFieldExpr
 	hasErrors   bool
 }

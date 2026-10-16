@@ -568,8 +568,8 @@ func (c *Checker) resolveStructTypeDefaultValues() {
 
 // resolveStructTypeDefaultValue resolves struct field with default value
 func (c *Checker) resolveStructTypeDefaultValue(targetType Type, field *ast.FieldDecl) {
-	if fn, ok := c.isValidStructDefaultExpr(field.Default); !ok {
-		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden func/method/selector name %q assigment to struct default field %q at %d:%d-%d", fn, field.Name.Value, field.Name.Line, field.Default.Start().Column, field.Default.End().Column)})
+	if !c.isValidStructDefaultExpr(field.Default) {
+		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden assigment to struct default field %q at %d:%d-%d", field.Name.Value, field.Name.Line, field.Default.Start().Column, field.Default.End().Column)})
 		return
 	}
 
@@ -3964,55 +3964,71 @@ func isValidStructDefaultType(t Type) bool {
 }
 
 // isValidStructDefaultExpr validates default struct default expression
-func (c *Checker) isValidStructDefaultExpr(expr ast.Expr) (string, bool) {
+func (c *Checker) isValidStructDefaultExpr(expr ast.Expr) bool {
 	switch t := expr.(type) {
-	case *ast.IntLitExpr, *ast.FloatLitExpr:
-		return "", true
+	case *ast.StringLitExpr, *ast.IntLitExpr, *ast.BoolLitExpr, *ast.FloatLitExpr:
+		return true
 
 	case *ast.ParenExpr:
 		return c.isValidStructDefaultExpr(t.Inner)
 
 	case *ast.BinaryExpr:
-		_, lok := c.isValidStructDefaultExpr(t.Left)
-		_, rok := c.isValidStructDefaultExpr(t.Right)
-		return "", lok && rok
+		return c.isValidStructDefaultExpr(t.Left) && c.isValidStructDefaultExpr(t.Right)
 
 	case *ast.UnaryExpr:
 		return c.isValidStructDefaultExpr(t.Right)
 
 	case *ast.CallExpr:
-		return c.isValidStructDefaultExpr(t.Callee)
-
-	case *ast.IdentExpr:
-		for _, fn := range c.funcDecls {
-			if fn.Name.Value == t.Name.Value {
-				return fn.Name.Value, false
+		if !c.isValidStructDefaultExpr(t.Callee) {
+			return false
+		}
+		for _, arg := range t.Args {
+			if !c.isValidStructDefaultExpr(arg) {
+				return false
 			}
 		}
+		return true
+
+	case *ast.IdentExpr:
+		var sym *Symbol
+		if c.useScope {
+			sym = c.scope.Lookup(t.Name.Value)
+		} else {
+			sym = c.pkgScope.Lookup(t.Name.Value)
+		}
+
+		if sym != nil && sym.Type != nil {
+			if sym.Kind == SymConst || sym.Kind == SymType {
+				return true
+			}
+		}
+		return false
 
 	case *ast.SelectorExpr:
-		return t.Selector.Value, false
+		return false
 	}
 
-	return "", true
+	return false
 }
 
 // isStructHasDefaults checks if struct has fields with default values.
 // It also checks if struct expression overwrite those fields.
 func (c *Checker) isStructHasDefaults(decl ast.Decl, expr *ast.StructExpr, typ *StructType) (shd structHasDefaults) {
 	if st, ok := decl.(*ast.StructDecl); ok {
-		seen := make(map[string]bool, len(st.Fields))
-		for _, v := range st.Fields {
-			if v.Eq != nil && v.Default != nil {
-				seen[v.Name.Value] = true
-				shd.defaults = append(shd.defaults, v)
-			}
-		}
-
 		var (
+			noDefaults    []*ast.FieldDecl
 			hasError      bool
 			hasDuplicates bool
 		)
+
+		for _, v := range st.Fields {
+			if v.Eq != nil && v.Default != nil {
+				shd.defaults = append(shd.defaults, v)
+			} else {
+				noDefaults = append(noDefaults, v)
+			}
+		}
+
 		exprSeen := make(map[string]bool, len(expr.Fields))
 		for _, v := range expr.Fields {
 			if exprSeen[v.Key.Value] {
@@ -4021,10 +4037,6 @@ func (c *Checker) isStructHasDefaults(decl ast.Decl, expr *ast.StructExpr, typ *
 			}
 
 			exprSeen[v.Key.Value] = true
-			if seen[v.Key.Value] {
-				shd.overwritten = append(shd.overwritten, v)
-			}
-
 			if _, sok := lookupStructField(typ, v.Key.Value); !sok {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q in struct %q at %d:%d", v.Key.Value, expr.Name.Value, v.Key.Line, v.Key.Column)})
 				hasError = true
@@ -4033,18 +4045,12 @@ func (c *Checker) isStructHasDefaults(decl ast.Decl, expr *ast.StructExpr, typ *
 
 		if hasError {
 			shd.hasErrors = true
-		}
-		if hasDuplicates {
-			shd.hasErrors = true
+			return
 		}
 
-		var noDefaults []*ast.FieldDecl
-		noDefaultsSeen := make(map[string]bool, len(expr.Fields))
-		for _, v := range st.Fields {
-			if v.Eq == nil {
-				noDefaultsSeen[v.Name.Value] = true
-				noDefaults = append(noDefaults, v)
-			}
+		if hasDuplicates {
+			shd.hasErrors = true
+			return
 		}
 
 		if len(noDefaults) > 0 {
@@ -4053,9 +4059,9 @@ func (c *Checker) isStructHasDefaults(decl ast.Decl, expr *ast.StructExpr, typ *
 					shd.notSupplied = append(shd.notSupplied, ast.StructFieldExpr{Key: v.Name})
 				}
 			} else {
-				for _, v := range expr.Fields {
-					if !noDefaultsSeen[v.Key.Value] {
-						shd.notSupplied = append(shd.notSupplied, v)
+				for _, nd := range noDefaults {
+					if !exprSeen[nd.Name.Value] {
+						shd.notSupplied = append(shd.notSupplied, ast.StructFieldExpr{Key: nd.Name})
 					}
 				}
 			}
