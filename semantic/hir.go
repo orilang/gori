@@ -27,3 +27,7 @@ func (*BlockStmt) stmtNode()       {}
 func (*IfStmt) stmtNode()          {}
 func (*SwitchStmt) stmtNode()      {}
 func (*FallThroughStmt) stmtNode() {}
+func (*ForStmt) stmtNode()         {}
+func (*RangeStmt) stmtNode()       {}
+func (*BreakStmt) stmtNode()       {}
+func (*ContinueStmt) stmtNode()    {}

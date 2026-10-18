@@ -81,9 +81,6 @@ const a bool = true
 		require.NoError(t, err)
 		parser := parser.New(lex.FetchTokensFromString(data))
 		pr := parser.ParseFile()
-		for _, v := range parser.Errors {
-			fmt.Println(v.Error())
-		}
 		require.Equal(t, 0, len(parser.Errors))
 		check := NewChecker()
 
@@ -320,9 +317,6 @@ func main() {
 		check := NewChecker()
 
 		program, diagnostics := check.Check(pr)
-		for _, d := range diagnostics {
-			fmt.Println(d.Err.Error())
-		}
 		require.Equal(t, 0, len(diagnostics))
 		require.Equal(t, 1, len(program.Files))
 
@@ -470,9 +464,6 @@ func main() {
 		check := NewChecker()
 
 		program, diagnostics := check.Check(pr)
-		for _, d := range diagnostics {
-			fmt.Println(d.Err.Error())
-		}
 		require.Equal(t, 0, len(diagnostics))
 		require.Equal(t, 1, len(program.Files))
 
@@ -798,9 +789,6 @@ func f() {
 		check := NewChecker()
 
 		program, diagnostics := check.Check(pr)
-		for _, d := range diagnostics {
-			fmt.Println(d.Err.Error())
-		}
 		require.Equal(t, 0, len(diagnostics))
 		require.Equal(t, 1, len(program.Files))
 
@@ -882,9 +870,6 @@ func f() {
 		check := NewChecker()
 
 		program, diagnostics := check.Check(pr)
-		for _, d := range diagnostics {
-			fmt.Println(d.Err.Error())
-		}
 		require.Equal(t, 0, len(diagnostics))
 		require.Equal(t, 1, len(program.Files))
 
@@ -968,9 +953,6 @@ func f() {
 		check := NewChecker()
 
 		program, diagnostics := check.Check(pr)
-		for _, d := range diagnostics {
-			fmt.Println(d.Err.Error())
-		}
 		require.Equal(t, 0, len(diagnostics))
 		require.Equal(t, 1, len(program.Files))
 
@@ -1054,9 +1036,6 @@ func f() {
 		check := NewChecker()
 
 		program, diagnostics := check.Check(pr)
-		for _, d := range diagnostics {
-			fmt.Println(d.Err.Error())
-		}
 		require.Equal(t, 0, len(diagnostics))
 		require.Equal(t, 1, len(program.Files))
 
@@ -1143,9 +1122,6 @@ func f() {
 		check := NewChecker()
 
 		program, diagnostics := check.Check(pr)
-		for _, d := range diagnostics {
-			fmt.Println(d.Err.Error())
-		}
 		require.Equal(t, 0, len(diagnostics))
 		require.Equal(t, 1, len(program.Files))
 
@@ -1263,9 +1239,6 @@ func f() {
 		check := NewChecker()
 
 		program, diagnostics := check.Check(pr)
-		for _, d := range diagnostics {
-			fmt.Println(d.Err.Error())
-		}
 		require.Equal(t, 0, len(diagnostics))
 		require.Equal(t, 1, len(program.Files))
 
@@ -1621,5 +1594,577 @@ func f() {
 		calleeType1, ok := ca1.CalleeType.(*FuncMethod)
 		require.Equal(t, true, ok)
 		require.Equal(t, "multi", calleeType1.Name)
+	})
+
+	t.Run("x21", func(t *testing.T) {
+		data := `package main
+func f(a int, b int) bool {
+	for a < b {
+		return false
+	}
+	return false
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 2, len(fn1.Params))
+		require.Equal(t, "a", fn1.Params[0].Name)
+		require.Equal(t, TInt, fn1.Params[0].Type)
+		require.Equal(t, "b", fn1.Params[1].Name)
+		require.Equal(t, TInt, fn1.Params[1].Type)
+
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "", fn1.Results[0].Name)
+		require.Equal(t, TBool, fn1.Results[0].Type)
+		require.NotNil(t, fn1.Body)
+
+		fr1, ok := fn1.Body.Stmts[0].(*ForStmt)
+		require.Equal(t, true, ok)
+		require.Nil(t, fr1.Init)
+		require.NotNil(t, fr1.Condition)
+		require.Nil(t, fr1.Post)
+
+		bn1, ok := fr1.Condition.(*BinaryExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TBool, bn1.Type)
+
+		require.NotNil(t, bn1.Left)
+		l1, ok := bn1.Left.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, l1.Type)
+		require.Equal(t, "a", l1.Value)
+
+		r1, ok := bn1.Right.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, r1.Type)
+		require.Equal(t, "b", r1.Value)
+
+		require.Equal(t, token.Lt, bn1.Operator)
+
+		require.NotNil(t, fr1.Body)
+		require.Equal(t, 1, len(fr1.Body.Stmts))
+		rst1, ok := fr1.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rst1.Values))
+
+		bl1, ok := rst1.Values[0].(*BoolLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TBool, bl1.Type)
+		require.Equal(t, "false", bl1.Value)
+	})
+
+	t.Run("x21", func(t *testing.T) {
+		data := `package main
+func f(a int, b int) bool {
+  for a < b {
+    return false
+  }
+  return false
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 2, len(fn1.Params))
+		require.Equal(t, "a", fn1.Params[0].Name)
+		require.Equal(t, TInt, fn1.Params[0].Type)
+		require.Equal(t, "b", fn1.Params[1].Name)
+		require.Equal(t, TInt, fn1.Params[1].Type)
+
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "", fn1.Results[0].Name)
+		require.Equal(t, TBool, fn1.Results[0].Type)
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 2, len(fn1.Body.Stmts))
+
+		fr1, ok := fn1.Body.Stmts[0].(*ForStmt)
+		require.Equal(t, true, ok)
+		require.Nil(t, fr1.Init)
+		require.NotNil(t, fr1.Condition)
+		require.Nil(t, fr1.Post)
+
+		bn1, ok := fr1.Condition.(*BinaryExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TBool, bn1.Type)
+
+		require.NotNil(t, bn1.Left)
+		l1, ok := bn1.Left.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, l1.Type)
+		require.Equal(t, "a", l1.Value)
+
+		r1, ok := bn1.Right.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, r1.Type)
+		require.Equal(t, "b", r1.Value)
+
+		require.Equal(t, token.Lt, bn1.Operator)
+		require.NotNil(t, fr1.Body)
+		require.Equal(t, 1, len(fr1.Body.Stmts))
+		rst1, ok := fr1.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rst1.Values))
+
+		bl1, ok := rst1.Values[0].(*BoolLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TBool, bl1.Type)
+		require.Equal(t, "false", bl1.Value)
+
+		rst2, ok := fn1.Body.Stmts[1].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rst2.Values))
+
+		bl2, ok := rst2.Values[0].(*BoolLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TBool, bl2.Type)
+		require.Equal(t, "false", bl2.Value)
+	})
+
+	t.Run("x22", func(t *testing.T) {
+		data := `package main
+func f() bool {
+  for {
+    break
+  }
+  return false
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "", fn1.Results[0].Name)
+		require.Equal(t, TBool, fn1.Results[0].Type)
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 2, len(fn1.Body.Stmts))
+
+		fr1, ok := fn1.Body.Stmts[0].(*ForStmt)
+		require.Equal(t, true, ok)
+		require.Nil(t, fr1.Init)
+		require.Nil(t, fr1.Condition)
+		require.Nil(t, fr1.Post)
+
+		require.NotNil(t, fr1.Body)
+		require.Equal(t, 1, len(fr1.Body.Stmts))
+		_, ok = fr1.Body.Stmts[0].(*BreakStmt)
+		require.Equal(t, true, ok)
+
+		rst1, ok := fn1.Body.Stmts[1].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rst1.Values))
+
+		bl1, ok := rst1.Values[0].(*BoolLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TBool, bl1.Type)
+		require.Equal(t, "false", bl1.Value)
+	})
+
+	t.Run("x23", func(t *testing.T) {
+		data := `package main
+func f(run bool) (result int) {
+  result = int(1)
+
+  for i := int(0); run; i += int(1) {
+    continue
+  }
+
+  return result
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 1, len(fn1.Params))
+		require.Equal(t, "run", fn1.Params[0].Name)
+		require.Equal(t, TBool, fn1.Params[0].Type)
+
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "result", fn1.Results[0].Name)
+		require.Equal(t, TInt, fn1.Results[0].Type)
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 3, len(fn1.Body.Stmts))
+
+		as1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(as1.Right))
+
+		require.Equal(t, 1, len(as1.Symbol))
+		require.Equal(t, "result", as1.Symbol[0].Name)
+		require.Equal(t, TInt, as1.Symbol[0].Type)
+
+		ce1, ok := as1.Right[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+
+		av1, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, av1.Type)
+		require.Equal(t, "1", av1.Value)
+
+		fr1, ok := fn1.Body.Stmts[1].(*ForStmt)
+		require.Equal(t, true, ok)
+		require.NotNil(t, fr1.Init)
+		require.NotNil(t, fr1.Condition)
+		require.NotNil(t, fr1.Post)
+
+		init, ok := fr1.Init.(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(init.Symbol))
+		require.Equal(t, "i", init.Symbol[0].Name)
+
+		require.Equal(t, token.Define, init.Operator)
+
+		require.Equal(t, 1, len(init.Right))
+		initr, ok := init.Right[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, initr.To)
+
+		iav1, ok := initr.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, iav1.Type)
+		require.Equal(t, "0", iav1.Value)
+
+		cond, ok := fr1.Condition.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TBool, cond.Type)
+		require.Equal(t, "run", cond.Value)
+
+		post, ok := fr1.Post.(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(post.Symbol))
+		require.Equal(t, "i", post.Symbol[0].Name)
+
+		require.Equal(t, token.PlusEq, post.Operator)
+
+		require.Equal(t, 1, len(post.Right))
+		postr, ok := post.Right[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, postr.To)
+
+		pav1, ok := postr.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, pav1.Type)
+		require.Equal(t, "1", pav1.Value)
+
+		require.NotNil(t, fr1.Body)
+		require.Equal(t, 1, len(fr1.Body.Stmts))
+		_, ok = fr1.Body.Stmts[0].(*ContinueStmt)
+		require.Equal(t, true, ok)
+
+		rst1, ok := fn1.Body.Stmts[2].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rst1.Values))
+
+		id1, ok := rst1.Values[0].(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, id1.Type)
+		require.Equal(t, "result", id1.Value)
+	})
+
+	t.Run("x24", func(t *testing.T) {
+		data := `package main
+func f() (result int) {
+  result = int(1)
+  for k := range int(5) {
+    result = int(2)
+  }
+  return
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "result", fn1.Results[0].Name)
+		require.Equal(t, TInt, fn1.Results[0].Type)
+
+		require.NotNil(t, fn1.Body)
+		as1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(as1.Right))
+
+		require.Equal(t, 1, len(as1.Symbol))
+		require.Equal(t, "result", as1.Symbol[0].Name)
+		require.Equal(t, TInt, as1.Symbol[0].Type)
+
+		ce1, ok := as1.Right[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+
+		av1, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, av1.Type)
+		require.Equal(t, "1", av1.Value)
+
+		fr1, ok := fn1.Body.Stmts[1].(*RangeStmt)
+		require.Equal(t, true, ok)
+		require.NotNil(t, fr1.Key)
+
+		key, ok := fr1.Key.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, key.Type)
+		require.Equal(t, "k", key.Value)
+		require.Equal(t, token.Define, fr1.Op)
+		require.Equal(t, token.KWRange, fr1.Range)
+
+		rg1, ok := fr1.X.(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rg1.To)
+
+		arv1, ok := rg1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, arv1.Type)
+		require.Equal(t, "5", arv1.Value)
+
+		require.Equal(t, 1, len(fr1.Body.Stmts))
+		br1, ok := fr1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(br1.Right))
+
+		require.Equal(t, 1, len(br1.Symbol))
+		require.Equal(t, "result", br1.Symbol[0].Name)
+		require.Equal(t, TInt, br1.Symbol[0].Type)
+
+		rst1, ok := fn1.Body.Stmts[2].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(rst1.Values))
+	})
+
+	t.Run("x25", func(t *testing.T) {
+		data := `package main
+func f() (result int) {
+  result = int(1)
+  for k,v := range int(5) {
+    result = int(2)
+  }
+  return
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "result", fn1.Results[0].Name)
+		require.Equal(t, TInt, fn1.Results[0].Type)
+
+		require.NotNil(t, fn1.Body)
+		as1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(as1.Right))
+
+		require.Equal(t, 1, len(as1.Symbol))
+		require.Equal(t, "result", as1.Symbol[0].Name)
+		require.Equal(t, TInt, as1.Symbol[0].Type)
+
+		ce1, ok := as1.Right[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+
+		av1, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, av1.Type)
+		require.Equal(t, "1", av1.Value)
+
+		fr1, ok := fn1.Body.Stmts[1].(*RangeStmt)
+		require.Equal(t, true, ok)
+		require.NotNil(t, fr1.Key)
+		require.NotNil(t, fr1.Value)
+
+		key, ok := fr1.Key.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, key.Type)
+		require.Equal(t, "k", key.Value)
+
+		value, ok := fr1.Value.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, value.Type)
+		require.Equal(t, "v", value.Value)
+
+		require.Equal(t, token.Define, fr1.Op)
+		require.Equal(t, token.KWRange, fr1.Range)
+
+		rg1, ok := fr1.X.(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, rg1.To)
+
+		arv1, ok := rg1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, arv1.Type)
+		require.Equal(t, "5", arv1.Value)
+
+		require.Equal(t, 1, len(fr1.Body.Stmts))
+		br1, ok := fr1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(br1.Right))
+
+		require.Equal(t, 1, len(br1.Symbol))
+		require.Equal(t, "result", br1.Symbol[0].Name)
+		require.Equal(t, TInt, br1.Symbol[0].Type)
+
+		rst1, ok := fn1.Body.Stmts[2].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(rst1.Values))
+	})
+
+	t.Run("x26", func(t *testing.T) {
+		data := `package main
+func f(z int){
+	for z = range int(5) {}
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 1, len(fn1.Params))
+		require.Equal(t, "z", fn1.Params[0].Name)
+		require.Equal(t, TInt, fn1.Params[0].Type)
+		require.Equal(t, 0, len(fn1.Results))
+
+		require.NotNil(t, fn1.Body)
+		fr1, ok := fn1.Body.Stmts[0].(*RangeStmt)
+		require.Equal(t, true, ok)
+		require.NotNil(t, fr1.Key)
+		require.Nil(t, fr1.Value)
+		require.NotNil(t, fr1.Body)
+
+		key, ok := fr1.Key.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "z", key.Symbol.Name)
+		require.Equal(t, TInt, key.Symbol.Type)
+
+		ce1, ok := fr1.X.(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+
+		av1, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, av1.Type)
+		require.Equal(t, "5", av1.Value)
+
+		require.Equal(t, 0, len(fr1.Body.Stmts))
 	})
 }

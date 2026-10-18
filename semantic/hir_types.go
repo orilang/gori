@@ -129,8 +129,9 @@ type ReturnStmt struct {
 }
 
 type AssigmentStmt struct {
-	Symbol []ResolvedSymbol
-	Right  []Expr
+	Symbol   []ResolvedSymbol
+	Operator token.Kind
+	Right    []Expr
 }
 
 type IfStmt struct {
@@ -209,3 +210,22 @@ type SelectorExpr struct {
 	X        Expr
 	Selector string
 }
+
+type ForStmt struct {
+	Init      Stmt
+	Condition Expr
+	Post      Stmt
+	Body      *BlockStmt
+}
+
+type RangeStmt struct {
+	Key   Expr
+	Value Expr
+	Op    token.Kind
+	Range token.Kind
+	X     Expr
+	Body  *BlockStmt
+}
+
+type BreakStmt token.Kind
+type ContinueStmt token.Kind

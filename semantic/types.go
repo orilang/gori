@@ -198,7 +198,6 @@ type stmtInfo struct {
 	returnFlowResult             returnFlow
 	returnedInputVarsInitialized []string
 	switchCaseHasFallThrough     bool
-	stmt                         Stmt
 	blockStmt                    []Stmt
 }
 

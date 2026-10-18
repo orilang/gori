@@ -1340,7 +1340,7 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 			cStmt = c.checkStmt(stmt, cStmt.returnedInputVarsInitialized)
 		}
 		returnInputVarsInitialized = slices.Clone(cStmt.returnedInputVarsInitialized)
-		bStmt = append(bStmt, cStmt.stmt)
+		bStmt = append(bStmt, cStmt.blockStmt...)
 		if flow == flowFallsThrough && cStmt.returnFlowResult == flowReturns {
 			flow = flowReturns
 		}
@@ -1361,9 +1361,10 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 	case *ast.DeclStmt:
 		switch decl := t.Decl.(type) {
 		case *ast.ConstDecl:
-			st.stmt = &DeclStmt{c.checkScopeConstDecl(decl)}
+			st.blockStmt = append(st.blockStmt, &DeclStmt{c.checkScopeConstDecl(decl)})
+
 		case *ast.VarDecl:
-			st.stmt = &DeclStmt{c.checkScopeVarDecl(decl)}
+			st.blockStmt = append(st.blockStmt, &DeclStmt{c.checkScopeVarDecl(decl)})
 
 		case *ast.DefinedTypeDecl:
 			c.checkDefinedTypeDecl(decl)
@@ -1387,12 +1388,12 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 	case *ast.AssignStmt:
 		rvi, cStmt := c.checkAssigmentStmt(t, returnInputVarsInitialized)
 		returnInputVarsInitialized = slices.Clone(rvi)
-		st.stmt = cStmt
+		st.blockStmt = append(st.blockStmt, cStmt)
 
 	case *ast.ReturnStmt:
 		rflow, expr := c.checkReturnStmt(t, returnInputVarsInitialized)
 		flow = rflow
-		st.stmt = &ReturnStmt{expr}
+		st.blockStmt = append(st.blockStmt, &ReturnStmt{expr})
 
 	case *ast.IncDecStmt:
 		c.checkIncDecStmt(t)
@@ -1417,9 +1418,13 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 
 	case *ast.BreakStmt:
 		returnInputVarsInitialized = c.checkBreakStmt(t, returnInputVarsInitialized)
+		brk := BreakStmt(token.KWBreak)
+		st.blockStmt = append(st.blockStmt, &brk)
 
 	case *ast.ContinueStmt:
 		c.checkContinueStmt(t)
+		cte := ContinueStmt(token.KWContinue)
+		st.blockStmt = append(st.blockStmt, &cte)
 
 	default:
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %#v at %d:%d-%d", stmt, stmt.Start().Line, stmt.Start().Column, stmt.End().Column)})
@@ -1540,7 +1545,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 	a, b = int(0), int(1) // OK
 	*/
 
-	stmt := &AssigmentStmt{}
+	stmt := &AssigmentStmt{Operator: decl.Operator.Kind}
 	for index, right := range decl.Right {
 		valueType, valueExpr := c.checkExprInCurrentMode(right, exprConfig{})
 		if IsInvalid(valueType) {
@@ -1776,7 +1781,7 @@ func isNumericExpr(expr ast.Expr) bool {
 // An error is emitted if any
 func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 	if len(decl.Right) == 1 {
-		stmt := &AssigmentStmt{}
+		stmt := &AssigmentStmt{Operator: decl.Operator.Kind}
 		right := decl.Right[0]
 
 		valueType, valueExpr := c.checkExprInCurrentMode(right, exprConfig{})
@@ -1880,7 +1885,7 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 		return nil
 	}
 
-	stmt := &AssigmentStmt{}
+	stmt := &AssigmentStmt{Operator: decl.Operator.Kind}
 	for k, right := range decl.Right {
 		valueType, expr := c.checkExprInCurrentMode(right, exprConfig{})
 		fn, fromFunc := expr.(*CallExpr)
@@ -2381,13 +2386,12 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 		switch t := stmt.Else.(type) {
 		case *ast.BlockStmt:
 			elseStmt = c.checkBlockStmt(t, returnInputVarsInitialized)
-			hir.Else = elseStmt.blockStmt
 		default:
 			elseStmt = c.checkStmt(t, returnInputVarsInitialized)
-			hir.Else = append(hir.Else, elseStmt.stmt)
 		}
+		hir.Else = elseStmt.blockStmt
 	}
-	st.stmt = &hir
+	st.blockStmt = append(st.blockStmt, &hir)
 
 	if initializedIfThen && initializedIfElse {
 		if thenStmt.returnFlowResult == flowFallsThrough && elseStmt.returnFlowResult == flowFallsThrough {
@@ -2485,35 +2489,46 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 	c.breakFound = false
 
 	var initStmt, bodyStmt stmtInfo
+	var forStmt ForStmt
 	afterInit := slices.Clone(returnInputVarsInitialized)
 	if stmt.Init != nil {
 		initStmt = c.checkStmt(stmt.Init, returnInputVarsInitialized)
 		afterInit = slices.Clone(initStmt.returnedInputVarsInitialized)
+		if len(initStmt.blockStmt) > 0 {
+			forStmt.Init = initStmt.blockStmt[0]
+		}
 	}
 
 	if stmt.Condition != nil {
-		condType, _ := c.checkExprInCurrentMode(stmt.Condition, exprConfig{})
+		condType, condExpr := c.checkExprInCurrentMode(stmt.Condition, exprConfig{})
 		if !IsBool(condType) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("for condition must return a boolean at %d:%d-%d", stmt.Condition.Start().Line, stmt.Start().Column, stmt.End().Column)})
 			st.returnFlowResult = flowFallsThrough
 			st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
 			return
 		}
+		forStmt.Condition = condExpr
 	}
 
 	if stmt.Post != nil {
-		c.checkStmt(stmt.Post, nil)
+		post := c.checkStmt(stmt.Post, nil)
+		if len(post.blockStmt) > 0 {
+			forStmt.Post = post.blockStmt[0]
+		}
 	}
 
 	if stmt.Body != nil {
 		if stmt.Condition == nil && len(stmt.Body.Stmts) == 0 {
 			st.returnFlowResult = flowFallsThrough
 			st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
+			st.blockStmt = append(st.blockStmt, &forStmt)
 			return
 		}
 
 		bodyStmt = c.checkBlockStmt(stmt.Body, afterInit)
 		if stmt.Condition == nil {
+			forStmt.Body = &BlockStmt{Stmts: bodyStmt.blockStmt}
+			st.blockStmt = append(st.blockStmt, &forStmt)
 			if c.breakFound {
 				st.returnFlowResult = flowFallsThrough
 				st.returnedInputVarsInitialized = slices.Clone(c.breakInputVarsInitialized)
@@ -2527,11 +2542,15 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 	}
 
 	if stmt.Condition != nil || c.breakFound {
+		forStmt.Body = &BlockStmt{Stmts: bodyStmt.blockStmt}
+		st.blockStmt = append(st.blockStmt, &forStmt)
 		st.returnFlowResult = flowFallsThrough
 		st.returnedInputVarsInitialized = slices.Clone(afterInit)
 		return
 	}
 
+	forStmt.Body = &BlockStmt{Stmts: bodyStmt.blockStmt}
+	st.blockStmt = append(st.blockStmt, &forStmt)
 	st.returnFlowResult = flowReturns
 	st.returnedInputVarsInitialized = slices.Clone(afterInit)
 	return
@@ -2574,12 +2593,13 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	c.scope = NewScope(c.scope)
 	c.breakFound = false
 
-	iteratorType, _ := c.checkExprInCurrentMode(stmt.X, exprConfig{})
+	iteratorType, iteratorExpr := c.checkExprInCurrentMode(stmt.X, exprConfig{})
 	if IsInvalid(iteratorType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range expression is invalid at %d:%d-%d", stmt.X.Start().Line, stmt.X.Start().Column, stmt.X.End().Column)})
 		return
 	}
 
+	rstmt := &RangeStmt{Op: stmt.Op.Kind, Range: stmt.Range.Kind, X: iteratorExpr}
 	rangekeyType, rangeValueType, ok := rangeVars(iteratorType)
 	if !ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported range var type at %d:%d", stmt.X.Start().Line, stmt.X.End().Column)})
@@ -2589,7 +2609,10 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	// for range x {}
 	if stmt.Op == (token.Token{}) && stmt.Body != nil {
 		// Range block must always be a flowFallsThrough as it might not be executed
-		c.checkBlockStmt(stmt.Body, returnInputVarsInitialized)
+		bStmt := c.checkBlockStmt(stmt.Body, returnInputVarsInitialized)
+		body := &BlockStmt{Stmts: bStmt.blockStmt}
+		rstmt.Body = body
+		st.blockStmt = append(st.blockStmt, rstmt)
 		return
 	}
 
@@ -2612,12 +2635,13 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			key, _ := c.checkExpr(stmt.Key, exprConfig{})
-			if stmt.Key.Name.Value != "_" && !IsAssignableTo(rangekeyType, key) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %q, got %q at %d:%d-%d", stringifyType(rangekeyType), stringifyType(key), stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Key.End().Column)})
+			keyType, keyExpr := c.checkExpr(stmt.Key, exprConfig{})
+			if stmt.Key.Name.Value != "_" && !IsAssignableTo(rangekeyType, keyType) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %q, got %q at %d:%d-%d", stringifyType(rangekeyType), stringifyType(keyType), stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Key.End().Column)})
 				return
 			}
 
+			rstmt.Key = keyExpr
 			name, found = exprName(stmt.Value)
 			if !found {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d-%d", name, stmt.Value.Start().Line, stmt.Value.Start().Column, stmt.Value.End().Column)})
@@ -2635,12 +2659,13 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			value, _ := c.checkExpr(stmt.Value, exprConfig{})
-			if stmt.Value.Name.Value != "_" && !IsAssignableTo(rangeValueType, value) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range value type, expected %q, got %q at %d:%d-%d", stringifyType(rangeValueType), stringifyType(value), stmt.Value.Start().Line, stmt.Value.Start().Column, stmt.Value.End().Column)})
+			valueType, valueExpr := c.checkExpr(stmt.Value, exprConfig{})
+			if stmt.Value.Name.Value != "_" && !IsAssignableTo(rangeValueType, valueType) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range value type, expected %q, got %q at %d:%d-%d", stringifyType(rangeValueType), stringifyType(valueType), stmt.Value.Start().Line, stmt.Value.Start().Column, stmt.Value.End().Column)})
 				return
 			}
 
+			rstmt.Value = valueExpr
 			if c.currentFunc != nil {
 				for _, v := range c.currentFunc.Results {
 					if v.Name != "" && v.Name == stmt.Key.Name.Value {
@@ -2674,12 +2699,13 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			key, _ := c.checkExpr(stmt.Key, exprConfig{})
-			if !IsAssignableTo(rangekeyType, key) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %q, got %q at %d:%d-%d", stringifyType(rangekeyType), stringifyType(key), stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Key.End().Column)})
+			keyType, keyExpr := c.checkExpr(stmt.Key, exprConfig{})
+			if !IsAssignableTo(rangekeyType, keyType) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid range key type, expected %q, got %q at %d:%d-%d", stringifyType(rangekeyType), stringifyType(keyType), stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Key.End().Column)})
 				return
 			}
 
+			rstmt.Key = keyExpr
 			if c.currentFunc != nil {
 				for _, v := range c.currentFunc.Results {
 					if v.Name != "" && v.Name == stmt.Key.Name.Value {
@@ -2696,34 +2722,45 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				return
 			}
 
-			if !c.declareNoShadow(c.scope, &Symbol{
+			keySym := &Symbol{
 				Name: stmt.Key.Name.Value,
 				Kind: SymVar,
 				Type: rangekeyType,
-			}, "variable") {
+			}
+			if !c.declareNoShadow(c.scope, keySym, "variable") {
 				return
 			}
 
-			if !c.declareNoShadow(c.scope, &Symbol{
+			valueSym := &Symbol{
 				Name: stmt.Value.Name.Value,
 				Kind: SymVar,
 				Type: rangeValueType,
-			}, "variable") {
+			}
+			if !c.declareNoShadow(c.scope, valueSym, "variable") {
 				return
 			}
+
+			keyExpr := &IdentExpr{Type: rangekeyType, Symbol: resolvedSymbol(keySym, false, false), Value: stmt.Key.Name.Value}
+			valueExpr := &IdentExpr{Type: rangeValueType, Symbol: resolvedSymbol(valueSym, false, false), Value: stmt.Value.Name.Value}
+			rstmt.Key = keyExpr
+			rstmt.Value = valueExpr
 		} else if stmt.Key != nil {
 			if isBlank(stmt.Key.Name.Value) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d-%d", stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Key.End().Column)})
 				return
 			}
 
-			if !c.declareNoShadow(c.scope, &Symbol{
+			keySym := &Symbol{
 				Name: stmt.Key.Name.Value,
 				Kind: SymVar,
 				Type: rangekeyType,
-			}, "variable") {
+			}
+			if !c.declareNoShadow(c.scope, keySym, "variable") {
 				return
 			}
+
+			keyExpr := &IdentExpr{Type: rangekeyType, Symbol: resolvedSymbol(keySym, false, false), Value: stmt.Key.Name.Value}
+			rstmt.Key = keyExpr
 		}
 
 	default:
@@ -2733,7 +2770,10 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 
 	if stmt.Body != nil {
 		// Range block must always be a flowFallsThrough as it might not be executed
-		c.checkBlockStmt(stmt.Body, returnInputVarsInitialized)
+		bStmt := c.checkBlockStmt(stmt.Body, returnInputVarsInitialized)
+		body := &BlockStmt{Stmts: bStmt.blockStmt}
+		rstmt.Body = body
+		st.blockStmt = append(st.blockStmt, rstmt)
 	}
 	return
 }
@@ -2806,7 +2846,9 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			}
 		}
 
-		sw.Init = cStmt.stmt
+		if len(cStmt.blockStmt) > 0 {
+			sw.Init = cStmt.blockStmt[0]
+		}
 	}
 
 	var (
@@ -2901,11 +2943,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 
 			if cc.Body != nil {
 				sStmt := c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1, returnInputVarsInitialized)
-				if sStmt.stmt == nil {
-					swc.Body = sStmt.blockStmt
-				} else {
-					swc.Body = append(swc.Body, sStmt.stmt)
-				}
+				swc.Body = append(swc.Body, sStmt.blockStmt...)
 				sw.Cases = append(sw.Cases, swc)
 
 				if sStmt.switchCaseHasFallThrough {
@@ -2998,11 +3036,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 
 			if cc.Body != nil {
 				sStmt := c.checkSwitchBody(cc.Body, i == len(stmt.Cases)-1, returnInputVarsInitialized)
-				if sStmt.stmt == nil {
-					swc.Body = sStmt.blockStmt
-				} else {
-					swc.Body = append(swc.Body, sStmt.stmt)
-				}
+				swc.Body = append(swc.Body, sStmt.blockStmt...)
 				sw.Cases = append(sw.Cases, swc)
 
 				if sStmt.switchCaseHasFallThrough {
@@ -3057,7 +3091,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 		}
 	}
 
-	st.stmt = &sw
+	st.blockStmt = append(st.blockStmt, &sw)
 	st.returnedInputVarsInitialized = slices.Clone(intersection)
 	if dcount == 0 {
 		st.returnedInputVarsInitialized = slices.Clone(returnInputVarsInitialized)
@@ -3156,10 +3190,9 @@ func (c *Checker) checkSwitchBody(body []ast.Stmt, isLastCaseClause bool, return
 
 		cStmt = c.checkStmt(b, cStmt.returnedInputVarsInitialized)
 		returnFlowResult = cStmt.returnFlowResult
-		stmts = append(stmts, cStmt.stmt)
+		stmts = append(stmts, cStmt.blockStmt...)
 	}
 
-	cStmt.stmt = nil
 	cStmt.blockStmt = stmts
 	return cStmt
 }
