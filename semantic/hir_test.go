@@ -2258,6 +2258,7 @@ func f(run bool) (result int) {
 		post, ok := fr1.Post.(*IncDecStmt)
 		require.Equal(t, true, ok)
 		id1, ok := post.X.(*IdentExpr)
+		require.Equal(t, true, ok)
 		require.Equal(t, TInt, id1.Type)
 		require.Equal(t, "i", id1.Symbol.Name)
 		require.Equal(t, token.PPlus, post.Operator)
