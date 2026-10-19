@@ -2534,7 +2534,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 
 		bodyStmt = c.checkBlockStmt(stmt.Body, afterInit)
 		if stmt.Condition == nil {
-			forStmt.Body = &BlockStmt{Stmts: bodyStmt.blockStmt}
+			forStmt.Body = BlockStmt{Stmts: bodyStmt.blockStmt}
 			st.blockStmt = append(st.blockStmt, &forStmt)
 			if c.breakFound {
 				st.returnFlowResult = flowFallsThrough
@@ -2549,14 +2549,14 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 	}
 
 	if stmt.Condition != nil || c.breakFound {
-		forStmt.Body = &BlockStmt{Stmts: bodyStmt.blockStmt}
+		forStmt.Body = BlockStmt{Stmts: bodyStmt.blockStmt}
 		st.blockStmt = append(st.blockStmt, &forStmt)
 		st.returnFlowResult = flowFallsThrough
 		st.returnedInputVarsInitialized = slices.Clone(afterInit)
 		return
 	}
 
-	forStmt.Body = &BlockStmt{Stmts: bodyStmt.blockStmt}
+	forStmt.Body = BlockStmt{Stmts: bodyStmt.blockStmt}
 	st.blockStmt = append(st.blockStmt, &forStmt)
 	st.returnFlowResult = flowReturns
 	st.returnedInputVarsInitialized = slices.Clone(afterInit)
@@ -2617,8 +2617,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	if stmt.Op == (token.Token{}) && stmt.Body != nil {
 		// Range block must always be a flowFallsThrough as it might not be executed
 		bStmt := c.checkBlockStmt(stmt.Body, returnInputVarsInitialized)
-		body := &BlockStmt{Stmts: bStmt.blockStmt}
-		rstmt.Body = body
+		rstmt.Body = BlockStmt{Stmts: bStmt.blockStmt}
 		st.blockStmt = append(st.blockStmt, rstmt)
 		return
 	}
@@ -2778,8 +2777,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	if stmt.Body != nil {
 		// Range block must always be a flowFallsThrough as it might not be executed
 		bStmt := c.checkBlockStmt(stmt.Body, returnInputVarsInitialized)
-		body := &BlockStmt{Stmts: bStmt.blockStmt}
-		rstmt.Body = body
+		rstmt.Body = BlockStmt{Stmts: bStmt.blockStmt}
 		st.blockStmt = append(st.blockStmt, rstmt)
 	}
 	return

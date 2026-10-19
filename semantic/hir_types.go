@@ -215,7 +215,7 @@ type ForStmt struct {
 	Init      Stmt
 	Condition Expr
 	Post      Stmt
-	Body      *BlockStmt
+	Body      BlockStmt
 }
 
 type RangeStmt struct {
@@ -224,7 +224,7 @@ type RangeStmt struct {
 	Op    token.Kind
 	Range token.Kind
 	X     Expr
-	Body  *BlockStmt
+	Body  BlockStmt
 }
 
 type BreakStmt token.Kind
