@@ -31,3 +31,4 @@ func (*ForStmt) stmtNode()         {}
 func (*RangeStmt) stmtNode()       {}
 func (*BreakStmt) stmtNode()       {}
 func (*ContinueStmt) stmtNode()    {}
+func (*IncDecStmt) stmtNode()      {}

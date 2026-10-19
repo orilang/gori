@@ -229,3 +229,8 @@ type RangeStmt struct {
 
 type BreakStmt token.Kind
 type ContinueStmt token.Kind
+
+type IncDecStmt struct {
+	X        Expr
+	Operator token.Kind
+}

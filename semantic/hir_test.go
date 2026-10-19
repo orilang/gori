@@ -2167,4 +2167,99 @@ func f(z int){
 
 		require.Equal(t, 0, len(fr1.Body.Stmts))
 	})
+
+	t.Run("x27", func(t *testing.T) {
+		data := `package main
+func f(run bool) (result int) {
+  result = int(1)
+
+  for i := int(0); run; i++ {
+    continue
+  }
+
+  return result
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 1, len(fn1.Params))
+		require.Equal(t, "run", fn1.Params[0].Name)
+		require.Equal(t, TBool, fn1.Params[0].Type)
+
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "result", fn1.Results[0].Name)
+		require.Equal(t, TInt, fn1.Results[0].Type)
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 3, len(fn1.Body.Stmts))
+
+		as1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(as1.Right))
+
+		require.Equal(t, 1, len(as1.Symbol))
+		require.Equal(t, "result", as1.Symbol[0].Name)
+		require.Equal(t, TInt, as1.Symbol[0].Type)
+
+		ce1, ok := as1.Right[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+
+		av1, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, av1.Type)
+		require.Equal(t, "1", av1.Value)
+
+		fr1, ok := fn1.Body.Stmts[1].(*ForStmt)
+		require.Equal(t, true, ok)
+		require.NotNil(t, fr1.Init)
+		require.NotNil(t, fr1.Condition)
+		require.NotNil(t, fr1.Post)
+
+		init, ok := fr1.Init.(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(init.Symbol))
+		require.Equal(t, "i", init.Symbol[0].Name)
+
+		require.Equal(t, token.Define, init.Operator)
+
+		require.Equal(t, 1, len(init.Right))
+		initr, ok := init.Right[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, initr.To)
+
+		iav1, ok := initr.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, iav1.Type)
+		require.Equal(t, "0", iav1.Value)
+
+		cond, ok := fr1.Condition.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TBool, cond.Type)
+		require.Equal(t, "run", cond.Value)
+
+		post, ok := fr1.Post.(*IncDecStmt)
+		require.Equal(t, true, ok)
+		id1, ok := post.X.(*IdentExpr)
+		require.Equal(t, TInt, id1.Type)
+		require.Equal(t, "i", id1.Symbol.Name)
+		require.Equal(t, token.PPlus, post.Operator)
+	})
 }

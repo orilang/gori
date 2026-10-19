@@ -1396,7 +1396,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		st.blockStmt = append(st.blockStmt, &ReturnStmt{expr})
 
 	case *ast.IncDecStmt:
-		c.checkIncDecStmt(t)
+		if incDec := c.checkIncDecStmt(t); incDec != nil {
+			st.blockStmt = append(st.blockStmt, incDec)
+		}
 
 	case *ast.ExprStmt:
 		c.checkExprStmt(t)
@@ -2045,17 +2047,17 @@ func (c *Checker) checkReturnStmt(decl *ast.ReturnStmt, returnInputVarsInitializ
 
 // checkIncDecStmt validates increment/decrement statement.
 // An error is emitted if any
-func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) {
+func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) *IncDecStmt {
 	x, ok := decl.X.(*ast.IdentExpr)
 	if !ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %#v is not an identifier at %d:%d-%d", decl, decl.Start().Line, decl.Start().Column, decl.End().Column)})
-		return
+		return nil
 	}
 
 	sym := c.scope.Lookup(x.Name.Value)
 	if sym == nil {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigment %q is undefined at %d:%d-%d", x.Name.Value, decl.Start().Line, decl.Start().Column, decl.End().Column)})
-		return
+		return nil
 	}
 
 	if sym.Kind == SymConst {
@@ -2064,7 +2066,12 @@ func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) {
 
 	if !IsNumeric(sym.Type) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("variable %q is a non-numeric type at %d:%d-%d", x.Name.Value, decl.Start().Line, decl.Start().Column, decl.End().Column)})
-		return
+		return nil
+	}
+
+	return &IncDecStmt{
+		X:        &IdentExpr{Type: sym.Type, Symbol: resolvedSymbol(sym, false, false), Value: x.Name.Value},
+		Operator: decl.Operator.Kind,
 	}
 }
 
