@@ -528,4 +528,52 @@ func TestToken(t *testing.T) {
 			assert.Equal(tc.expected, UnaryOpString(tc.input))
 		}
 	})
+
+	t.Run("assign_op_string", func(t *testing.T) {
+		tests := []struct {
+			input    Kind
+			expected string
+		}{
+			{
+				input:    IntLit,
+				expected: "unknown",
+			},
+			{
+				input:    MinusEq,
+				expected: "-=",
+			},
+			{
+				input:    PlusEq,
+				expected: "+=",
+			},
+			{
+				input:    PPlus,
+				expected: "++",
+			},
+			{
+				input:    MMinus,
+				expected: "--",
+			},
+			{
+				input:    Define,
+				expected: ":=",
+			},
+			{
+				input:    Assign,
+				expected: "=",
+			},
+			{
+				input:    StarEq,
+				expected: "*=",
+			},
+			{
+				input:    SlashEq,
+				expected: "/=",
+			},
+		}
+
+		for _, tc := range tests {
+			assert.Equal(tc.expected, AssignOpString(tc.input))
+		}
+	})
 }

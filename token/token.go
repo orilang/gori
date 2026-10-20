@@ -150,3 +150,26 @@ func UnaryOpString(k Kind) string {
 		return "-"
 	}
 }
+
+func AssignOpString(k Kind) string {
+	switch k {
+	default:
+		return "unknown"
+	case MinusEq:
+		return "-="
+	case PlusEq:
+		return "+="
+	case PPlus:
+		return "++"
+	case MMinus:
+		return "--"
+	case Define:
+		return ":="
+	case Assign:
+		return "="
+	case StarEq:
+		return "*="
+	case SlashEq:
+		return "/="
+	}
+}
