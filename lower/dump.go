@@ -90,7 +90,7 @@ func (d *dumper) node(indent int, n any) {
 		}
 
 	case *ir.Assigment:
-		d.line(indent, fmt.Sprintf("%s = %s", t.Result, t.Value))
+		d.line(indent, fmt.Sprintf("%s %s %s", t.Result, t.Operator, t.Value))
 
 	case *ir.Extract:
 		d.line(indent, fmt.Sprintf("%s = extract %s, %d", t.Result, t.Value, t.Index))

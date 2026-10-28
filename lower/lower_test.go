@@ -725,7 +725,7 @@ if_else_0:
 
 		for i, tc := range tests {
 			l := NewLower(true)
-			result := l.lower(tc.data)
+			result := l.lower(tc.data, inputConfig{})
 			if tc.err {
 				require.Equal(t, tc.err, len(l.errors) > 0, i)
 			} else {
@@ -758,7 +758,7 @@ if_else_0:
 
 	t.Run("dummy_stmt_error", func(t *testing.T) {
 		l := NewLower(true)
-		l.lowerStmt(nil)
+		l.lowerStmt(nil, inputConfig{})
 		require.Equal(t, true, len(l.errors) > 0)
 	})
 
@@ -2419,4 +2419,739 @@ entry:
 		}
 	})
 
+	t.Run("x5", func(t *testing.T) {
+		tests := []struct {
+			data     string
+			expected string
+		}{
+			{
+				data: `package main
+func f() bool {
+  for {
+    break
+  }
+  return false
+}`,
+				expected: `func f() -> bool
+entry:
+    jump for_body_0
+
+for_body_0:
+    jump for_end_0
+
+for_end_0:
+    return false
+
+`,
+			},
+			{
+				data: `package main
+
+func f(a int, b int) bool {
+  for {
+    if a == int(5) {
+      continue
+    } else if a > int(6) {
+      break
+    }
+    return false
+  }
+  return false
+}`,
+				expected: `func f(a:int, b:int) -> bool
+entry:
+    jump for_body_0
+
+for_body_0:
+    t0 = const_int 5
+    t1 = eq_bool a, t0
+    branch t1, if_then_1, if_else_1
+
+if_then_1:
+    jump for_body_0
+
+if_else_1:
+    t2 = const_int 6
+    t3 = gt_bool a, t2
+    branch t3, if_then_2, if_end_2
+
+if_then_2:
+    jump for_end_0
+
+if_end_2:
+    jump if_end_1
+
+if_end_1:
+    return false
+
+for_end_0:
+    return false
+
+`,
+			},
+			{
+				data: `package main
+
+func foo() {}
+
+func x() {
+  for {
+    foo()
+  }
+}`,
+				expected: `func foo()
+
+func x()
+entry:
+    jump for_body_0
+
+for_body_0:
+    jump for_body_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) bool {
+  for {
+    if a == int(5) {
+      continue
+    } else if a > int(6) {
+      continue
+    }
+  }
+  return false
+}`,
+				expected: `func f(a:int, b:int) -> bool
+entry:
+    jump for_body_0
+
+for_body_0:
+    t0 = const_int 5
+    t1 = eq_bool a, t0
+    branch t1, if_then_1, if_else_1
+
+if_then_1:
+    jump for_body_0
+
+if_else_1:
+    t2 = const_int 6
+    t3 = gt_bool a, t2
+    branch t3, if_then_2, if_end_2
+
+if_then_2:
+    jump for_body_0
+
+if_end_2:
+    jump if_end_1
+
+if_end_1:
+    jump for_body_0
+
+for_end_0:
+    return false
+
+`,
+			},
+			{
+				data: `package main
+
+func f(a int, b int) bool {
+  for {
+    if a == int(5) {
+      continue
+    } else if a > int(6) {
+      break
+    }
+    if a == int(3) {
+      continue
+    } else if a > int(4) {
+      break
+    }
+  }
+  return false
+}`,
+				expected: `func f(a:int, b:int) -> bool
+entry:
+    jump for_body_0
+
+for_body_0:
+    t0 = const_int 5
+    t1 = eq_bool a, t0
+    branch t1, if_then_1, if_else_1
+
+if_then_1:
+    jump for_body_0
+
+if_else_1:
+    t2 = const_int 6
+    t3 = gt_bool a, t2
+    branch t3, if_then_2, if_end_2
+
+if_then_2:
+    jump for_end_0
+
+if_end_2:
+    jump if_end_1
+
+if_end_1:
+    t4 = const_int 3
+    t5 = eq_bool a, t4
+    branch t5, if_then_3, if_else_3
+
+if_then_3:
+    jump for_body_0
+
+if_else_3:
+    t6 = const_int 4
+    t7 = gt_bool a, t6
+    branch t7, if_then_4, if_end_4
+
+if_then_4:
+    jump for_end_0
+
+if_end_4:
+    jump if_end_3
+
+if_end_3:
+    jump for_body_0
+
+for_end_0:
+    return false
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) bool {
+  for a < b {
+    return false
+  }
+  return false
+}`,
+				expected: `func f(a:int, b:int) -> bool
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    return false
+
+for_end_0:
+    return false
+
+`,
+			},
+			{
+				data: `package main
+
+func f(a int, b int, x bool) {
+  for a < b {
+    if x {
+      break
+    }
+  }
+}`,
+				expected: `func f(a:int, b:int, x:bool)
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    branch x, if_then_1, if_end_1
+
+if_then_1:
+    jump for_end_0
+
+if_end_1:
+    jump for_cond_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func f(a int, b int) {
+  for a < b {
+    a +=1
+  }
+}`,
+				expected: `func f(a:int, b:int)
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    a += 1
+    jump for_cond_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) bool {
+  for a < b {
+    if a == int(5) {
+      continue
+    }
+    return false
+  }
+  return false
+}`,
+				expected: `func f(a:int, b:int) -> bool
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    t1 = const_int 5
+    t2 = eq_bool a, t1
+    branch t2, if_then_1, if_end_1
+
+if_then_1:
+    jump for_cond_0
+
+if_end_1:
+    return false
+
+for_end_0:
+    return false
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) bool {
+  for a < b {
+    if a == int(5) {
+      continue
+    } else if a > int(6) {
+      break
+    }
+    return false
+  }
+  return false
+}`,
+				expected: `func f(a:int, b:int) -> bool
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    t1 = const_int 5
+    t2 = eq_bool a, t1
+    branch t2, if_then_1, if_else_1
+
+if_then_1:
+    jump for_cond_0
+
+if_else_1:
+    t3 = const_int 6
+    t4 = gt_bool a, t3
+    branch t4, if_then_2, if_end_2
+
+if_then_2:
+    jump for_end_0
+
+if_end_2:
+    jump if_end_1
+
+if_end_1:
+    return false
+
+for_end_0:
+    return false
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) bool {
+  for a < b {
+    if a == int(5) {
+      continue
+    } else if a > int(6) {
+      continue
+    }
+  }
+  return false
+}`,
+				expected: `func f(a:int, b:int) -> bool
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    t1 = const_int 5
+    t2 = eq_bool a, t1
+    branch t2, if_then_1, if_else_1
+
+if_then_1:
+    jump for_cond_0
+
+if_else_1:
+    t3 = const_int 6
+    t4 = gt_bool a, t3
+    branch t4, if_then_2, if_end_2
+
+if_then_2:
+    jump for_cond_0
+
+if_end_2:
+    jump if_end_1
+
+if_end_1:
+    jump for_cond_0
+
+for_end_0:
+    return false
+
+`,
+			},
+			{
+				data: `package main
+func x() int {
+  for a := int(0);a<5;a+=1 {
+    if a == int(2) {
+      return a
+    }
+  }
+  return int(1)
+}`,
+				expected: `func x() -> int
+entry:
+    t0 = const_int 0
+    a = t0
+    jump for_cond_0
+
+for_cond_0:
+    t1 = lt_bool a, 5
+    branch t1, for_body_0, for_end_0
+
+for_post_0:
+    a += 1
+    jump for_cond_0
+
+for_body_0:
+    t2 = const_int 2
+    t3 = eq_bool a, t2
+    branch t3, if_then_1, if_end_1
+
+if_then_1:
+    return a
+
+if_end_1:
+    jump for_post_0
+
+for_end_0:
+    t4 = const_int 1
+    return t4
+
+`,
+			},
+			{
+				data: `package main
+func x() (b int) {
+  for a := int(0);a<10;a+=1 {
+    switch a {
+      case int(1):
+        b = a
+      case int(2):
+        fallthrough
+      case int(3):
+        continue
+      case int(5):
+        return a
+      case 8:
+        break
+    }
+  }
+  return int(1)
+}`,
+				expected: `func x() -> (b:int)
+entry:
+    t0 = const_int 0
+    a = t0
+    jump for_cond_0
+
+for_cond_0:
+    t1 = lt_bool a, 10
+    branch t1, for_body_0, for_end_0
+
+for_post_0:
+    a += 1
+    jump for_cond_0
+
+for_body_0:
+    jump switch_1_check_1
+
+switch_1_check_1:
+    t3 = const_int 1
+    t2 = eq_bool a, t3
+    branch t2, switch_1_case_1, switch_1_check_2
+
+switch_1_check_2:
+    t4 = const_int 2
+    t2 = eq_bool a, t4
+    branch t2, switch_1_case_2, switch_1_check_3
+
+switch_1_check_3:
+    t5 = const_int 3
+    t2 = eq_bool a, t5
+    branch t2, switch_1_case_3, switch_1_check_4
+
+switch_1_check_4:
+    t6 = const_int 5
+    t2 = eq_bool a, t6
+    branch t2, switch_1_case_4, switch_1_check_5
+
+switch_1_check_5:
+    t2 = eq_bool a, 8
+    branch t2, switch_1_case_5, switch_1_end
+
+switch_1_case_1:
+    b = a
+    jump switch_1_end
+
+switch_1_case_2:
+    jump switch_1_case_3
+
+switch_1_case_3:
+    jump for_post_0
+
+switch_1_case_4:
+    return a
+
+switch_1_case_5:
+    jump for_end_0
+
+switch_1_end:
+    jump for_post_0
+
+for_end_0:
+    t7 = const_int 1
+    return t7
+
+`,
+			},
+			{
+				data: `package main
+func x() (b int) {
+  for a := int(0);a<10;a+=1 {
+    switch a {
+      case int(1):
+        b = a
+      case int(2):
+        fallthrough
+      case int(3):
+        continue
+      case int(5):
+        return a
+      case 8:
+        break
+    }
+
+    switch a {
+      case int(1):
+        b = a
+      case int(2):
+        fallthrough
+      case int(3):
+        continue
+      case int(5):
+        return a
+      case 8:
+        break
+    }
+  }
+  return int(1)
+}`,
+				expected: `func x() -> (b:int)
+entry:
+    t0 = const_int 0
+    a = t0
+    jump for_cond_0
+
+for_cond_0:
+    t1 = lt_bool a, 10
+    branch t1, for_body_0, for_end_0
+
+for_post_0:
+    a += 1
+    jump for_cond_0
+
+for_body_0:
+    jump switch_1_check_1
+
+switch_1_check_1:
+    t3 = const_int 1
+    t2 = eq_bool a, t3
+    branch t2, switch_1_case_1, switch_1_check_2
+
+switch_1_check_2:
+    t4 = const_int 2
+    t2 = eq_bool a, t4
+    branch t2, switch_1_case_2, switch_1_check_3
+
+switch_1_check_3:
+    t5 = const_int 3
+    t2 = eq_bool a, t5
+    branch t2, switch_1_case_3, switch_1_check_4
+
+switch_1_check_4:
+    t6 = const_int 5
+    t2 = eq_bool a, t6
+    branch t2, switch_1_case_4, switch_1_check_5
+
+switch_1_check_5:
+    t2 = eq_bool a, 8
+    branch t2, switch_1_case_5, switch_1_end
+
+switch_1_case_1:
+    b = a
+    jump switch_1_end
+
+switch_1_case_2:
+    jump switch_1_case_3
+
+switch_1_case_3:
+    jump for_post_0
+
+switch_1_case_4:
+    return a
+
+switch_1_case_5:
+    jump for_end_0
+
+switch_1_end:
+    jump switch_2_check_1
+
+switch_2_check_1:
+    t8 = const_int 1
+    t7 = eq_bool a, t8
+    branch t7, switch_2_case_1, switch_2_check_2
+
+switch_2_check_2:
+    t9 = const_int 2
+    t7 = eq_bool a, t9
+    branch t7, switch_2_case_2, switch_2_check_3
+
+switch_2_check_3:
+    t10 = const_int 3
+    t7 = eq_bool a, t10
+    branch t7, switch_2_case_3, switch_2_check_4
+
+switch_2_check_4:
+    t11 = const_int 5
+    t7 = eq_bool a, t11
+    branch t7, switch_2_case_4, switch_2_check_5
+
+switch_2_check_5:
+    t7 = eq_bool a, 8
+    branch t7, switch_2_case_5, switch_2_end
+
+switch_2_case_1:
+    b = a
+    jump switch_2_end
+
+switch_2_case_2:
+    jump switch_2_case_3
+
+switch_2_case_3:
+    jump for_post_0
+
+switch_2_case_4:
+    return a
+
+switch_2_case_5:
+    jump for_end_0
+
+switch_2_end:
+    jump for_post_0
+
+for_end_0:
+    t12 = const_int 1
+    return t12
+
+`,
+			},
+			{
+				data: `package main
+
+func x() {
+  for a := int(0); a < int(10); a += int(1) {
+    continue
+  }
+}`,
+				expected: `func x()
+entry:
+    t0 = const_int 0
+    a = t0
+    jump for_cond_0
+
+for_cond_0:
+    t1 = const_int 10
+    t2 = lt_bool a, t1
+    branch t2, for_body_0, for_end_0
+
+for_post_0:
+    t3 = const_int 1
+    a += t3
+    jump for_cond_0
+
+for_body_0:
+    jump for_post_0
+
+for_end_0:
+
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := semantic.NewChecker()
+
+			spr, diagnostics := check.Check(pr)
+			require.Equal(t, false, diagnostics.HasErrors())
+			var l *Lower
+			if i == 0 {
+				l = NewLower(true)
+			} else {
+				l = NewLower(false)
+			}
+			lir, ldiagnostics := l.Lower(spr)
+			require.Equal(t, false, ldiagnostics.HasErrors())
+
+			assert.Equal(t, tc.expected, dump(lir), i)
+		}
+	})
 }

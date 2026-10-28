@@ -39,6 +39,35 @@ type dumper struct {
 }
 
 type infos struct {
-	values  []ir.Value
-	returns bool
+	values    []ir.Value
+	returns   bool
+	breaks    bool
+	continues bool
+}
+
+type forStmtKind int
+
+const (
+	forStmtInfinite forStmtKind = iota
+	forStmtConditional
+	forStmt3Clauses
+)
+
+type inputConfig struct {
+	forStmt forStmtKind
+
+	// continues must be filled in for loop
+	// with continue statement
+	continues *ir.Jump
+
+	// post must be used when continue statement found
+	posts *ir.Jump
+
+	// breaks must be filled in for loop
+	// with break statement
+	breaks *ir.Jump
+
+	// isForSwitch must be used when we are in a for loop
+	// and found a switch. We need to connect to it with a Jump
+	isForSwitch bool
 }

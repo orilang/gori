@@ -74,8 +74,9 @@ type Jump struct {
 }
 
 type Assigment struct {
-	Result string
-	Value  string
+	Result   string
+	Operator string
+	Value    string
 }
 
 type Extract struct {

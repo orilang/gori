@@ -53,7 +53,7 @@ func (l *Lower) decl(decl semantic.Decl) {
 		l.funcs = append(l.funcs, l.fn(t))
 
 	case *semantic.VarDecl:
-		init := l.lower(t.Init)
+		init := l.lower(t.Init, inputConfig{})
 		l.instructions = append(l.instructions, &ir.Const{
 			Result: t.Symbol.Name,
 			Type:   t.Symbol.Type.String(),
@@ -95,18 +95,18 @@ func (l *Lower) fn(decl *semantic.FuncDecl) *ir.Func {
 
 	if decl.Body != nil {
 		f.Label = "entry"
-		_ = l.lower(decl.Body.Stmts)
+		_ = l.lower(decl.Body.Stmts, inputConfig{})
 		f.Blocks = l.blocks
 	}
 	return f
 }
 
 // lower lowers any input stmt/expr to later create an instruction
-func (l *Lower) lower(input any) (data infos) {
+func (l *Lower) lower(input any, config inputConfig) (data infos) {
 	switch in := input.(type) {
 	case []semantic.Stmt:
 		for _, st := range in {
-			_ = l.lower(st)
+			_ = l.lower(st, config)
 			l.blocks = append(l.blocks, &ir.Block{
 				Instructions: slices.Clone(l.instructions),
 			})
@@ -114,7 +114,7 @@ func (l *Lower) lower(input any) (data infos) {
 		}
 
 	case semantic.Stmt:
-		return l.lowerStmt(in)
+		return l.lowerStmt(in, config)
 
 	case semantic.Expr:
 		return l.lowerExpr(in)
@@ -127,7 +127,7 @@ func (l *Lower) lower(input any) (data infos) {
 }
 
 // lowerStmt lowers expr to later create an instruction
-func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
+func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 	switch stmt := t.(type) {
 	case *semantic.FallThroughStmt:
 	case *semantic.ReturnStmt:
@@ -141,7 +141,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		var rt []ir.Value
 		irr := &ir.Return{}
 		for _, v := range stmt.Values {
-			st := l.lower(v)
+			st := l.lower(v, config)
 			rt = append(rt, st.values...)
 			for _, rv := range st.values {
 				irr.Values = append(irr.Values, string(rv))
@@ -153,9 +153,16 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		return
 
 	case *semantic.AssigmentStmt:
+		var operator string
+		if stmt.Operator == token.Assign || stmt.Operator == token.Define {
+			operator = "="
+		} else {
+			operator = token.AssignOpString(stmt.Operator)
+		}
+
 		// One RHS can be a multi-value function call.
 		if len(stmt.Right) == 1 {
-			right := l.lower(stmt.Right[0])
+			right := l.lower(stmt.Right[0], inputConfig{})
 
 			for k, ss := range stmt.Symbol {
 				if ss.IsBlank {
@@ -170,8 +177,9 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 					})
 				} else {
 					l.instructions = append(l.instructions, &ir.Assigment{
-						Result: ss.Name,
-						Value:  singleValue(right.values),
+						Result:   ss.Name,
+						Operator: operator,
+						Value:    singleValue(right.values),
 					})
 				}
 
@@ -188,14 +196,15 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		snapshots := make([]string, len(stmt.Right))
 
 		for k, right := range stmt.Right {
-			result := l.lower(right)
+			result := l.lower(right, inputConfig{})
 
 			t := fmt.Sprintf("t%d", l.tIndex)
 			l.tIndex++
 
 			l.instructions = append(l.instructions, &ir.Assigment{
-				Result: t,
-				Value:  singleValue(result.values),
+				Result:   t,
+				Operator: operator,
+				Value:    singleValue(result.values),
 			})
 
 			snapshots[k] = t
@@ -207,8 +216,9 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 			}
 
 			l.instructions = append(l.instructions, &ir.Assigment{
-				Result: ss.Name,
-				Value:  snapshots[k],
+				Result:   ss.Name,
+				Operator: operator,
+				Value:    snapshots[k],
 			})
 
 			data.values = append(data.values, ir.Value(ss.Name))
@@ -219,7 +229,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		labelIndex := l.labelIndex
 		l.labelIndex++
 
-		cond := l.lower(stmt.Condition)
+		cond := l.lower(stmt.Condition, config)
 		br := &ir.Branch{Condition: singleValue(cond.values)}
 		br.List = append(br.List, ir.BranchSub{Name: "if_then", Index: labelIndex})
 
@@ -236,10 +246,17 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 
 		var thenr infos
 		for _, v := range stmt.Then {
-			thenr = l.lower(v)
+			thenr = l.lower(v, config)
 		}
 
-		if !thenr.returns {
+		if thenr.continues {
+			if config.posts != nil {
+				l.instructions = append(l.instructions, config.posts)
+			}
+			l.instructions = append(l.instructions, config.continues)
+		} else if thenr.breaks {
+			l.instructions = append(l.instructions, config.breaks)
+		} else if !thenr.returns {
 			l.instructions = append(l.instructions, jump)
 		}
 
@@ -247,16 +264,23 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		if len(stmt.Else) > 0 {
 			l.instructions = append(l.instructions, &ir.Label{Name: "if_else", Index: labelIndex})
 			for _, v := range stmt.Else {
-				elser = l.lower(v)
+				elser = l.lower(v, config)
 			}
 
-			if !elser.returns {
+			if elser.continues {
+				if config.posts != nil {
+					l.instructions = append(l.instructions, config.posts)
+				}
+				l.instructions = append(l.instructions, config.continues)
+			} else if elser.breaks {
+				l.instructions = append(l.instructions, config.breaks)
+			} else if !elser.returns {
 				l.instructions = append(l.instructions, jump)
 			}
 		}
 
 		x := thenr.returns && elser.returns
-		if !(x) {
+		if !x {
 			l.instructions = append(l.instructions, end)
 		}
 		data.returns = thenr.returns && elser.returns
@@ -437,6 +461,13 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 
 		lgl := len(swLabels)
 		if lgl > 0 {
+			if config.isForSwitch {
+				config.isForSwitch = false
+				swl := swLabels[0]
+				jump := &ir.Jump{Name: swl.label, Index: swl.index}
+				l.instructions = append(l.instructions, jump)
+			}
+
 			if hasDefault {
 				swLabels[lgl-1].branches = append(swLabels[lgl-1].branches, branch{
 					name: fmt.Sprintf("switch_%d_default", labelIndex),
@@ -452,11 +483,11 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 
 		var tagValue, result string
 		if stmt.Init != nil {
-			tagValue = singleValue(l.lower(stmt.Init).values)
+			tagValue = singleValue(l.lower(stmt.Init, inputConfig{}).values)
 		}
 
 		if stmt.Tag != nil {
-			tagValue = singleValue(l.lower(stmt.Tag).values)
+			tagValue = singleValue(l.lower(stmt.Tag, inputConfig{}).values)
 			result = fmt.Sprintf("t%d", l.tIndex)
 			l.tIndex++
 		}
@@ -472,13 +503,13 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 
 				br := &ir.Branch{}
 				if stmt.Tag == nil {
-					br.Condition = singleValue(l.lower(sc.value).values)
+					br.Condition = singleValue(l.lower(sc.value, inputConfig{}).values)
 				} else {
 					l.instructions = append(l.instructions, &ir.Binary{
 						Result: result,
 						Op:     token.BinaryOpString(token.Eq) + "_" + semantic.TBool.String(),
 						Left:   tagValue,
-						Right:  singleValue(l.lower(sc.value).values),
+						Right:  singleValue(l.lower(sc.value, inputConfig{}).values),
 					})
 					br.Condition = string(result)
 				}
@@ -505,15 +536,24 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 		}
 
 		post := func(body []semantic.Stmt, next next) bool {
-			var returns bool
+			var returns, continues, breaks bool
 			for _, st := range body {
 				if !isFallingThroughStmt([]semantic.Stmt{st}) {
-					result := l.lowerStmt(st)
+					result := l.lowerStmt(st, config)
 					returns = result.returns
+					continues = result.continues
+					breaks = result.breaks
 				}
 			}
 
-			if next.jump != "" {
+			if continues {
+				if config.posts != nil {
+					l.instructions = append(l.instructions, config.posts)
+				}
+				l.instructions = append(l.instructions, config.continues)
+			} else if breaks {
+				l.instructions = append(l.instructions, config.breaks)
+			} else if next.jump != "" {
 				l.instructions = append(l.instructions, &ir.Jump{
 					Name:     next.jump,
 					Index:    next.index,
@@ -560,6 +600,186 @@ func (l *Lower) lowerStmt(t semantic.Stmt) (data infos) {
 	case *semantic.DeclStmt:
 		l.decl(stmt.Decl)
 
+	case *semantic.ForStmt:
+		labelIndex := l.labelIndex
+		l.labelIndex++
+
+		type statementKind int
+		const (
+			kindNone statementKind = iota
+			kindAssigment
+		)
+
+		var (
+			config            inputConfig
+			stmtKind          statementKind
+			hasReturnLastStmt bool
+			direct            bool
+		)
+
+		if len(stmt.Body.Stmts) > 0 {
+			if _, ok := stmt.Body.Stmts[len(stmt.Body.Stmts)-1].(*semantic.ReturnStmt); ok {
+				hasReturnLastStmt = true
+			}
+		}
+
+		lcond := &ir.Label{Name: "for_cond", Index: labelIndex}
+		lbody := &ir.Label{Name: "for_body", Index: labelIndex}
+		lpost := &ir.Label{Name: "for_post", Index: labelIndex}
+		lend := &ir.Label{Name: "for_end", Index: labelIndex}
+
+		jumpCond := &ir.Jump{Name: "for_cond", Index: labelIndex}
+		jumpBody := &ir.Jump{Name: "for_body", Index: labelIndex}
+		jumpPost := &ir.Jump{Name: "for_post", Index: labelIndex}
+		jumpBreaks := &ir.Jump{Name: "for_end", Index: labelIndex}
+
+		config.isForSwitch = false
+		config.continues = jumpPost
+		config.breaks = jumpBreaks
+
+		// infinite
+		if stmt.Init == nil && stmt.Condition == nil {
+			config.forStmt = forStmtInfinite
+			config.continues = jumpBody
+
+			var result infos
+			l.instructions = append(l.instructions, jumpBody, lbody)
+			for _, body := range stmt.Body.Stmts {
+				switch body.(type) {
+				case *semantic.SwitchStmt:
+					config.isForSwitch = true
+				case *semantic.AssigmentStmt:
+					stmtKind = kindAssigment
+				}
+
+				result = l.lowerStmt(body, config)
+				// direct break/continue
+				if len(stmt.Body.Stmts) == 1 {
+					if result.breaks {
+						direct = true
+						l.instructions = append(l.instructions, jumpBreaks)
+					} else if result.continues {
+						direct = true
+						l.instructions = append(l.instructions, jumpBody)
+					} else if result.returns {
+						direct = true
+					}
+				}
+			}
+
+			if !hasReturnLastStmt && !direct {
+				if !result.returns && !result.breaks && !result.continues || stmtKind == kindAssigment {
+					l.instructions = append(l.instructions, jumpBody)
+				}
+			}
+		}
+
+		// conditionned
+		if stmt.Init == nil && stmt.Condition != nil {
+			config.forStmt = forStmtConditional
+			config.continues = jumpCond
+
+			l.instructions = append(l.instructions, jumpCond, lcond)
+
+			cond := l.lowerExpr(stmt.Condition)
+			br := &ir.Branch{Condition: singleValue(cond.values)}
+			br.List = append(br.List, ir.BranchSub{Name: "for_body", Index: labelIndex})
+			br.List = append(br.List, ir.BranchSub{Name: "for_end", Index: labelIndex})
+			l.instructions = append(l.instructions, br)
+			l.instructions = append(l.instructions, lbody)
+
+			var result infos
+			stmtKind = kindNone
+			for _, body := range stmt.Body.Stmts {
+				switch body.(type) {
+				case *semantic.SwitchStmt:
+					config.isForSwitch = true
+				case *semantic.AssigmentStmt:
+					stmtKind = kindAssigment
+				}
+
+				result = l.lowerStmt(body, config)
+				// direct break/continue
+				if len(stmt.Body.Stmts) == 1 {
+					if result.breaks {
+						direct = true
+						l.instructions = append(l.instructions, jumpBreaks)
+					} else if result.continues {
+						direct = true
+						l.instructions = append(l.instructions, jumpCond)
+					} else if result.returns {
+						direct = true
+					}
+				}
+			}
+
+			if !hasReturnLastStmt && !direct {
+				if !result.returns && !result.breaks && !result.continues || stmtKind == kindAssigment {
+					l.instructions = append(l.instructions, jumpCond)
+				}
+			}
+		}
+
+		// 3 clauses
+		if stmt.Init != nil && stmt.Condition != nil {
+			config.forStmt = forStmt3Clauses
+
+			_ = l.lowerStmt(stmt.Init, inputConfig{})
+
+			l.instructions = append(l.instructions, jumpCond, lcond)
+			cond := l.lowerExpr(stmt.Condition)
+			br := &ir.Branch{Condition: singleValue(cond.values)}
+			br.List = append(br.List, ir.BranchSub{Name: "for_body", Index: labelIndex})
+			br.List = append(br.List, ir.BranchSub{Name: "for_end", Index: labelIndex})
+			l.instructions = append(l.instructions, br)
+
+			l.instructions = append(l.instructions, lpost)
+			_ = l.lowerStmt(stmt.Post, inputConfig{})
+			l.instructions = append(l.instructions, jumpCond)
+			l.instructions = append(l.instructions, lbody)
+
+			var result infos
+			stmtKind = kindNone
+			for _, body := range stmt.Body.Stmts {
+				switch body.(type) {
+				case *semantic.SwitchStmt:
+					config.isForSwitch = true
+				case *semantic.AssigmentStmt:
+					stmtKind = kindAssigment
+				}
+
+				result = l.lowerStmt(body, config)
+				// direct break/continue
+				if len(stmt.Body.Stmts) == 1 {
+					if result.breaks {
+						direct = true
+						l.instructions = append(l.instructions, jumpBreaks)
+					} else if result.continues {
+						direct = true
+						l.instructions = append(l.instructions, jumpPost)
+					} else if result.returns {
+						direct = true
+					}
+				}
+			}
+
+			if !hasReturnLastStmt && !direct {
+				if !result.returns && !result.breaks && !result.continues || stmtKind == kindAssigment {
+					l.instructions = append(l.instructions, jumpPost)
+				}
+			}
+		}
+
+		l.instructions = append(l.instructions, lend)
+
+	case *semantic.BreakStmt:
+		data.breaks = true
+		return
+
+	case *semantic.ContinueStmt:
+		data.continues = true
+		return
+
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %T", stmt)})
 	}
@@ -591,8 +811,8 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		return
 
 	case *semantic.BinaryExpr:
-		left := l.lower(expr.Left)
-		right := l.lower(expr.Right)
+		left := l.lower(expr.Left, inputConfig{})
+		right := l.lower(expr.Right, inputConfig{})
 		t := fmt.Sprintf("t%d", l.tIndex)
 
 		l.instructions = append(l.instructions, &ir.Binary{
@@ -607,7 +827,7 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		return
 
 	case *semantic.ConversionExpr:
-		value := l.lower(expr.Value)
+		value := l.lower(expr.Value, inputConfig{})
 		t := fmt.Sprintf("t%d", l.tIndex)
 		l.instructions = append(l.instructions, &ir.Const{
 			Result: t,
@@ -622,10 +842,10 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 	case *semantic.CallExpr:
 		var args []string
 		for _, v := range expr.Args {
-			args = append(args, singleValue(l.lower(v).values))
+			args = append(args, singleValue(l.lower(v, inputConfig{}).values))
 		}
 
-		callee := l.lower(expr.Callee)
+		callee := l.lower(expr.Callee, inputConfig{})
 		t := fmt.Sprintf("t%d", l.tIndex)
 		l.instructions = append(l.instructions, &ir.Call{
 			Result:   t,
@@ -639,7 +859,7 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		return
 
 	case *semantic.UnaryExpr:
-		ex := l.lower(expr.Right)
+		ex := l.lower(expr.Right, inputConfig{})
 		t := fmt.Sprintf("t%d", l.tIndex)
 		l.instructions = append(l.instructions, &ir.Unary{
 			Result:   t,
