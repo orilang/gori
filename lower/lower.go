@@ -131,7 +131,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 	switch stmt := t.(type) {
 	case *semantic.FallThroughStmt:
 	case *semantic.ReturnStmt:
-		data.returns = true
+		data.flowTerminates = true
 		if len(stmt.Values) == 0 {
 			l.instructions = append(l.instructions, &ir.Return{})
 			data.values = append(data.values, ir.Value(""))
@@ -249,14 +249,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			thenr = l.lower(v, config)
 		}
 
-		if thenr.continues {
-			if config.posts != nil {
-				l.instructions = append(l.instructions, config.posts)
-			}
-			l.instructions = append(l.instructions, config.continues)
-		} else if thenr.breaks {
-			l.instructions = append(l.instructions, config.breaks)
-		} else if !thenr.returns {
+		if !thenr.flowTerminates {
 			l.instructions = append(l.instructions, jump)
 		}
 
@@ -267,23 +260,15 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 				elser = l.lower(v, config)
 			}
 
-			if elser.continues {
-				if config.posts != nil {
-					l.instructions = append(l.instructions, config.posts)
-				}
-				l.instructions = append(l.instructions, config.continues)
-			} else if elser.breaks {
-				l.instructions = append(l.instructions, config.breaks)
-			} else if !elser.returns {
+			if !elser.flowTerminates {
 				l.instructions = append(l.instructions, jump)
 			}
 		}
 
-		x := thenr.returns && elser.returns
-		if !x {
+		data.flowTerminates = thenr.flowTerminates && elser.flowTerminates
+		if !data.flowTerminates {
 			l.instructions = append(l.instructions, end)
 		}
-		data.returns = thenr.returns && elser.returns
 
 	case *semantic.SwitchStmt:
 		labelIndex := l.labelIndex
@@ -536,41 +521,32 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		}
 
 		post := func(body []semantic.Stmt, next next) bool {
-			var returns, continues, breaks bool
+			var flowTerminates bool
 			for _, st := range body {
 				if !isFallingThroughStmt([]semantic.Stmt{st}) {
 					result := l.lowerStmt(st, config)
-					returns = result.returns
-					continues = result.continues
-					breaks = result.breaks
+					flowTerminates = result.flowTerminates
 				}
 			}
 
-			if continues {
-				if config.posts != nil {
-					l.instructions = append(l.instructions, config.posts)
-				}
-				l.instructions = append(l.instructions, config.continues)
-			} else if breaks {
-				l.instructions = append(l.instructions, config.breaks)
-			} else if next.jump != "" {
+			if next.jump != "" {
 				l.instructions = append(l.instructions, &ir.Jump{
 					Name:     next.jump,
 					Index:    next.index,
 					NoSuffix: next.dft,
 				})
 			} else {
-				if !returns {
+				if !flowTerminates {
 					l.instructions = append(l.instructions, &ir.Jump{
 						Name:     fmt.Sprintf("switch_%d_end", labelIndex),
 						NoSuffix: true,
 					})
 				}
 			}
-			return returns
+			return flowTerminates
 		}
 
-		var returns bool
+		var flowTerminates bool
 		for k, sc := range swCases {
 			lb := &ir.Label{
 				Name:  sc.casee,
@@ -583,14 +559,14 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 
 			result := post(sc.body, sc.next)
 			if k == 0 {
-				returns = result
+				flowTerminates = result
 			} else {
-				returns = returns && result
+				flowTerminates = flowTerminates && result
 			}
 		}
 
-		data.returns = hasDefault && returns
-		if !data.returns {
+		data.flowTerminates = hasDefault && flowTerminates
+		if !data.flowTerminates {
 			l.instructions = append(l.instructions, &ir.Label{
 				Name:     fmt.Sprintf("switch_%d_end", labelIndex),
 				NoSuffix: true,
@@ -604,25 +580,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		labelIndex := l.labelIndex
 		l.labelIndex++
 
-		type statementKind int
-		const (
-			kindNone statementKind = iota
-			kindAssigment
-		)
-
-		var (
-			config            inputConfig
-			stmtKind          statementKind
-			hasReturnLastStmt bool
-			direct            bool
-		)
-
-		if len(stmt.Body.Stmts) > 0 {
-			if _, ok := stmt.Body.Stmts[len(stmt.Body.Stmts)-1].(*semantic.ReturnStmt); ok {
-				hasReturnLastStmt = true
-			}
-		}
-
+		var config inputConfig
 		lcond := &ir.Label{Name: "for_cond", Index: labelIndex}
 		lbody := &ir.Label{Name: "for_body", Index: labelIndex}
 		lpost := &ir.Label{Name: "for_post", Index: labelIndex}
@@ -641,36 +599,20 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		if stmt.Init == nil && stmt.Condition == nil {
 			config.forStmt = forStmtInfinite
 			config.continues = jumpBody
+			l.instructions = append(l.instructions, jumpBody, lbody)
 
 			var result infos
-			l.instructions = append(l.instructions, jumpBody, lbody)
 			for _, body := range stmt.Body.Stmts {
 				switch body.(type) {
 				case *semantic.SwitchStmt:
 					config.isForSwitch = true
-				case *semantic.AssigmentStmt:
-					stmtKind = kindAssigment
 				}
 
 				result = l.lowerStmt(body, config)
-				// direct break/continue
-				if len(stmt.Body.Stmts) == 1 {
-					if result.breaks {
-						direct = true
-						l.instructions = append(l.instructions, jumpBreaks)
-					} else if result.continues {
-						direct = true
-						l.instructions = append(l.instructions, jumpBody)
-					} else if result.returns {
-						direct = true
-					}
-				}
 			}
 
-			if !hasReturnLastStmt && !direct {
-				if !result.returns && !result.breaks && !result.continues || stmtKind == kindAssigment {
-					l.instructions = append(l.instructions, jumpBody)
-				}
+			if !result.flowTerminates {
+				l.instructions = append(l.instructions, jumpBody)
 			}
 		}
 
@@ -689,34 +631,17 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			l.instructions = append(l.instructions, lbody)
 
 			var result infos
-			stmtKind = kindNone
 			for _, body := range stmt.Body.Stmts {
 				switch body.(type) {
 				case *semantic.SwitchStmt:
 					config.isForSwitch = true
-				case *semantic.AssigmentStmt:
-					stmtKind = kindAssigment
 				}
 
 				result = l.lowerStmt(body, config)
-				// direct break/continue
-				if len(stmt.Body.Stmts) == 1 {
-					if result.breaks {
-						direct = true
-						l.instructions = append(l.instructions, jumpBreaks)
-					} else if result.continues {
-						direct = true
-						l.instructions = append(l.instructions, jumpCond)
-					} else if result.returns {
-						direct = true
-					}
-				}
 			}
 
-			if !hasReturnLastStmt && !direct {
-				if !result.returns && !result.breaks && !result.continues || stmtKind == kindAssigment {
-					l.instructions = append(l.instructions, jumpCond)
-				}
+			if !result.flowTerminates {
+				l.instructions = append(l.instructions, jumpCond)
 			}
 		}
 
@@ -739,45 +664,30 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			l.instructions = append(l.instructions, lbody)
 
 			var result infos
-			stmtKind = kindNone
 			for _, body := range stmt.Body.Stmts {
 				switch body.(type) {
 				case *semantic.SwitchStmt:
 					config.isForSwitch = true
-				case *semantic.AssigmentStmt:
-					stmtKind = kindAssigment
 				}
 
 				result = l.lowerStmt(body, config)
-				// direct break/continue
-				if len(stmt.Body.Stmts) == 1 {
-					if result.breaks {
-						direct = true
-						l.instructions = append(l.instructions, jumpBreaks)
-					} else if result.continues {
-						direct = true
-						l.instructions = append(l.instructions, jumpPost)
-					} else if result.returns {
-						direct = true
-					}
-				}
 			}
 
-			if !hasReturnLastStmt && !direct {
-				if !result.returns && !result.breaks && !result.continues || stmtKind == kindAssigment {
-					l.instructions = append(l.instructions, jumpPost)
-				}
+			if !result.flowTerminates {
+				l.instructions = append(l.instructions, jumpPost)
 			}
 		}
 
 		l.instructions = append(l.instructions, lend)
 
 	case *semantic.BreakStmt:
-		data.breaks = true
+		l.instructions = append(l.instructions, config.breaks)
+		data.flowTerminates = true
 		return
 
 	case *semantic.ContinueStmt:
-		data.continues = true
+		l.instructions = append(l.instructions, config.continues)
+		data.flowTerminates = true
 		return
 
 	default:

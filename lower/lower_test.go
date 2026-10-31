@@ -2491,29 +2491,6 @@ for_end_0:
 			},
 			{
 				data: `package main
-
-func foo() {}
-
-func x() {
-  for {
-    foo()
-  }
-}`,
-				expected: `func foo()
-
-func x()
-entry:
-    jump for_body_0
-
-for_body_0:
-    jump for_body_0
-
-for_end_0:
-
-`,
-			},
-			{
-				data: `package main
 func f(a int, b int) bool {
   for {
     if a == int(5) {
@@ -2834,6 +2811,197 @@ for_end_0:
 			},
 			{
 				data: `package main
+func f(a int, b int) {
+  for a < b {
+    a += int(1)
+    break
+  }
+}`,
+				expected: `func f(a:int, b:int)
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    t1 = const_int 1
+    a += t1
+    jump for_end_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int, x bool) {
+  for a < b {
+    if x {
+      a += int(1)
+    }
+    continue
+  }
+}`,
+				expected: `func f(a:int, b:int, x:bool)
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    branch x, if_then_1, if_end_1
+
+if_then_1:
+    t1 = const_int 1
+    a += t1
+    jump if_end_1
+
+if_end_1:
+    jump for_cond_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int, x bool) {
+  for a < b {
+    a += int(1)
+    if x {
+        return
+    } else {
+        return
+    }
+  }
+}`,
+				expected: `func f(a:int, b:int, x:bool)
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    t1 = const_int 1
+    a += t1
+    branch x, if_then_1, if_else_1
+
+if_then_1:
+    return
+
+if_else_1:
+    return
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int, x bool) {
+  for a < b {
+     if x {
+         break
+     } else {
+         break
+     }
+  }
+}`,
+				expected: `func f(a:int, b:int, x:bool)
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    branch x, if_then_1, if_else_1
+
+if_then_1:
+    jump for_end_0
+
+if_else_1:
+    jump for_end_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int) {
+  for a < b {
+    if a == int(5) {
+      continue
+    } else {
+      continue
+    }
+  }
+}`,
+				expected: `func f(a:int, b:int)
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    t1 = const_int 5
+    t2 = eq_bool a, t1
+    branch t2, if_then_1, if_else_1
+
+if_then_1:
+    jump for_cond_0
+
+if_else_1:
+    jump for_cond_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func f(a int, b int, x bool) {
+  for a < b {
+     if x {
+         break
+     } else {
+        return
+     }
+  }
+}`,
+				expected: `func f(a:int, b:int, x:bool)
+entry:
+    jump for_cond_0
+
+for_cond_0:
+    t0 = lt_bool a, b
+    branch t0, for_body_0, for_end_0
+
+for_body_0:
+    branch x, if_then_1, if_else_1
+
+if_then_1:
+    jump for_end_0
+
+if_else_1:
+    return
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
 func x() int {
   for a := int(0);a<5;a+=1 {
     if a == int(2) {
@@ -3124,6 +3292,88 @@ for_post_0:
     jump for_cond_0
 
 for_body_0:
+    jump for_post_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func x() {
+  b := int(0)
+  for a := int(0); a < int(10); a += int(1) {
+    b += int(1)
+    break
+  }
+}`,
+				expected: `func x()
+entry:
+    t0 = const_int 0
+    b = t0
+    t1 = const_int 0
+    a = t1
+    jump for_cond_0
+
+for_cond_0:
+    t2 = const_int 10
+    t3 = lt_bool a, t2
+    branch t3, for_body_0, for_end_0
+
+for_post_0:
+    t4 = const_int 1
+    a += t4
+    jump for_cond_0
+
+for_body_0:
+    t5 = const_int 1
+    b += t5
+    jump for_end_0
+
+for_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func x(y bool) {
+  b := int(0)
+  for a := int(0); a < int(10); a += int(1) {
+    if y {
+       b += int(1)
+    }
+    continue
+  }
+}`,
+				expected: `func x(y:bool)
+entry:
+    t0 = const_int 0
+    b = t0
+    t1 = const_int 0
+    a = t1
+    jump for_cond_0
+
+for_cond_0:
+    t2 = const_int 10
+    t3 = lt_bool a, t2
+    branch t3, for_body_0, for_end_0
+
+for_post_0:
+    t4 = const_int 1
+    a += t4
+    jump for_cond_0
+
+for_body_0:
+    branch y, if_then_1, if_end_1
+
+if_then_1:
+    t5 = const_int 1
+    b += t5
+    jump if_end_1
+
+if_end_1:
     jump for_post_0
 
 for_end_0:
