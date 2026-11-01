@@ -520,10 +520,11 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			}
 		}
 
-		post := func(body []semantic.Stmt, next next) bool {
-			var flowTerminates bool
+		post := func(body []semantic.Stmt, next next) (flowTerminates bool, fallsThrough bool) {
 			for _, st := range body {
-				if !isFallingThroughStmt([]semantic.Stmt{st}) {
+				if isFallingThroughStmt([]semantic.Stmt{st}) {
+					fallsThrough = true
+				} else {
 					result := l.lowerStmt(st, config)
 					flowTerminates = result.flowTerminates
 				}
@@ -543,10 +544,10 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 					})
 				}
 			}
-			return flowTerminates
+			return
 		}
 
-		var flowTerminates bool
+		var flowTerminates, inheritFallsThrough bool
 		for k, sc := range swCases {
 			lb := &ir.Label{
 				Name:  sc.casee,
@@ -557,11 +558,20 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			}
 			l.instructions = append(l.instructions, lb)
 
-			result := post(sc.body, sc.next)
-			if k == 0 {
-				flowTerminates = result
+			result, fallsThrough := post(sc.body, sc.next)
+			if fallsThrough {
+				inheritFallsThrough = true
 			} else {
-				flowTerminates = flowTerminates && result
+				if inheritFallsThrough {
+					inheritFallsThrough = false
+					flowTerminates = result
+				} else {
+					if k == 0 {
+						flowTerminates = result
+					} else {
+						flowTerminates = flowTerminates && result
+					}
+				}
 			}
 		}
 
