@@ -1959,6 +1959,114 @@ switch_0_default:
 
 `,
 			},
+			{
+				data: `package main
+
+func f(x int) {
+  switch x {
+    case int(0):
+      a := int(1)
+
+    case int(1):
+      fallthrough
+
+    case int(2):
+      return
+
+    default:
+      return
+  }
+}`,
+				expected: `func f(x:int)
+entry:
+
+switch_0_check_1:
+    t1 = const_int 0
+    t0 = eq_bool x, t1
+    branch t0, switch_0_case_1, switch_0_check_2
+
+switch_0_check_2:
+    t2 = const_int 1
+    t0 = eq_bool x, t2
+    branch t0, switch_0_case_2, switch_0_check_3
+
+switch_0_check_3:
+    t3 = const_int 2
+    t0 = eq_bool x, t3
+    branch t0, switch_0_case_3, switch_0_default
+
+switch_0_case_1:
+    t4 = const_int 1
+    a = t4
+    jump switch_0_end
+
+switch_0_case_2:
+    jump switch_0_case_3
+
+switch_0_case_3:
+    return
+
+switch_0_default:
+    return
+
+switch_0_end:
+
+`,
+			},
+			{
+				data: `package main
+
+func f(x int) {
+  switch x {
+    default:
+      return
+
+    case int(0):
+      a := int(1)
+
+    case int(1):
+      fallthrough
+
+    case int(2):
+      return
+  }
+}`,
+				expected: `func f(x:int)
+entry:
+
+switch_0_check_2:
+    t1 = const_int 0
+    t0 = eq_bool x, t1
+    branch t0, switch_0_case_2, switch_0_check_3
+
+switch_0_check_3:
+    t2 = const_int 1
+    t0 = eq_bool x, t2
+    branch t0, switch_0_case_3, switch_0_check_4
+
+switch_0_check_4:
+    t3 = const_int 2
+    t0 = eq_bool x, t3
+    branch t0, switch_0_case_4, switch_0_default
+
+switch_0_default:
+    return
+
+switch_0_case_2:
+    t4 = const_int 1
+    a = t4
+    jump switch_0_end
+
+switch_0_case_3:
+    jump switch_0_case_4
+
+switch_0_case_4:
+    return
+
+switch_0_end:
+
+`,
+			},
 		}
 
 		for i, tc := range tests {

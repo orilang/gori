@@ -547,7 +547,8 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			return
 		}
 
-		var flowTerminates, inheritFallsThrough bool
+		var flowTerminates, inheritFallsThrough, hasFallsThrough bool
+		var results []bool
 		for k, sc := range swCases {
 			lb := &ir.Label{
 				Name:  sc.casee,
@@ -560,11 +561,16 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 
 			result, fallsThrough := post(sc.body, sc.next)
 			if fallsThrough {
+				hasFallsThrough = true
 				inheritFallsThrough = true
 			} else {
 				if inheritFallsThrough {
 					inheritFallsThrough = false
-					flowTerminates = result
+					if k == 1 {
+						flowTerminates = result
+					} else {
+						flowTerminates = flowTerminates && result
+					}
 				} else {
 					if k == 0 {
 						flowTerminates = result
@@ -573,6 +579,26 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 					}
 				}
 			}
+
+			if !inheritFallsThrough {
+				results = append(results, flowTerminates)
+			}
+		}
+
+		if hasFallsThrough {
+			// This is required in order to avoid dead switch_end label
+			// For that we need to record all results
+			// and go backward to have the final flowTerminates value
+			slices.Reverse(results)
+			var r bool
+			for k, v := range results {
+				if k == 0 {
+					r = v
+				} else {
+					r = r && v
+				}
+			}
+			flowTerminates = r
 		}
 
 		data.flowTerminates = hasDefault && flowTerminates
