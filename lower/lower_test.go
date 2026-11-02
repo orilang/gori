@@ -2716,8 +2716,6 @@ if_end_2:
 
 if_end_1:
     jump for_body_0
-
-for_end_0:
     return false
 
 `,
@@ -2787,6 +2785,149 @@ if_end_3:
 
 for_end_0:
     return false
+
+`,
+			},
+			{
+				data: `package main
+func x(a int) (b int) {
+  for {
+    switch a {
+      case int(1):
+        b = a
+      case int(2):
+        fallthrough
+      case int(3):
+        continue
+      case int(5):
+        return a
+      case 8:
+        break
+    }
+  }
+  return int(1)
+}`,
+				expected: `func x(a:int) -> (b:int)
+entry:
+    jump for_body_0
+
+for_body_0:
+    jump switch_1_check_1
+
+switch_1_check_1:
+    t1 = const_int 1
+    t0 = eq_bool a, t1
+    branch t0, switch_1_case_1, switch_1_check_2
+
+switch_1_check_2:
+    t2 = const_int 2
+    t0 = eq_bool a, t2
+    branch t0, switch_1_case_2, switch_1_check_3
+
+switch_1_check_3:
+    t3 = const_int 3
+    t0 = eq_bool a, t3
+    branch t0, switch_1_case_3, switch_1_check_4
+
+switch_1_check_4:
+    t4 = const_int 5
+    t0 = eq_bool a, t4
+    branch t0, switch_1_case_4, switch_1_check_5
+
+switch_1_check_5:
+    t0 = eq_bool a, 8
+    branch t0, switch_1_case_5, switch_1_end
+
+switch_1_case_1:
+    b = a
+    jump switch_1_end
+
+switch_1_case_2:
+    jump switch_1_case_3
+
+switch_1_case_3:
+    jump for_body_0
+
+switch_1_case_4:
+    return a
+
+switch_1_case_5:
+    jump for_end_0
+
+switch_1_end:
+    jump for_body_0
+
+for_end_0:
+    t5 = const_int 1
+    return t5
+
+`,
+			},
+			{
+				data: `package main
+
+func f(x int) int {
+  switch x {
+  case int(0):
+    fallthrough
+
+  case int(1):
+    fallthrough
+
+  case int(2):
+    return int(2)
+
+  default:
+    return int(0)
+  }
+}`,
+				expected: `func f(x:int) -> int
+entry:
+
+switch_0_check_1:
+    t1 = const_int 0
+    t0 = eq_bool x, t1
+    branch t0, switch_0_case_1, switch_0_check_2
+
+switch_0_check_2:
+    t2 = const_int 1
+    t0 = eq_bool x, t2
+    branch t0, switch_0_case_2, switch_0_check_3
+
+switch_0_check_3:
+    t3 = const_int 2
+    t0 = eq_bool x, t3
+    branch t0, switch_0_case_3, switch_0_default
+
+switch_0_case_1:
+    jump switch_0_case_2
+
+switch_0_case_2:
+    jump switch_0_case_3
+
+switch_0_case_3:
+    t4 = const_int 2
+    return t4
+
+switch_0_default:
+    t5 = const_int 0
+    return t5
+
+`,
+			},
+			{
+				data: `package main
+func f() {
+  for {
+    return
+  }
+}`,
+				expected: `func f()
+entry:
+    jump for_body_0
+
+for_body_0:
+    return
 
 `,
 			},

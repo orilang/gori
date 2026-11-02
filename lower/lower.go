@@ -244,9 +244,15 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		jump := &ir.Jump{Name: "if_end", Index: labelIndex}
 		end := &ir.Label{Name: "if_end", Index: labelIndex}
 
-		var thenr infos
+		var (
+			breaks bool
+			thenr  infos
+		)
 		for _, v := range stmt.Then {
 			thenr = l.lower(v, config)
+			if thenr.breaks {
+				breaks = true
+			}
 		}
 
 		if !thenr.flowTerminates {
@@ -258,6 +264,9 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			l.instructions = append(l.instructions, &ir.Label{Name: "if_else", Index: labelIndex})
 			for _, v := range stmt.Else {
 				elser = l.lower(v, config)
+				if elser.breaks {
+					breaks = true
+				}
 			}
 
 			if !elser.flowTerminates {
@@ -265,6 +274,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			}
 		}
 
+		data.breaks = breaks
 		data.flowTerminates = thenr.flowTerminates && elser.flowTerminates
 		if !data.flowTerminates {
 			l.instructions = append(l.instructions, end)
@@ -520,13 +530,16 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			}
 		}
 
-		post := func(body []semantic.Stmt, next next) (flowTerminates bool, fallsThrough bool) {
+		post := func(body []semantic.Stmt, next next) (flowTerminates, fallsThrough, breaks bool) {
 			for _, st := range body {
 				if isFallingThroughStmt([]semantic.Stmt{st}) {
 					fallsThrough = true
 				} else {
 					result := l.lowerStmt(st, config)
 					flowTerminates = result.flowTerminates
+					if result.breaks {
+						breaks = true
+					}
 				}
 			}
 
@@ -547,9 +560,9 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			return
 		}
 
-		var flowTerminates, inheritFallsThrough, hasFallsThrough bool
-		var results []bool
-		for k, sc := range swCases {
+		var breaks bool
+		flowTerminates := true
+		for _, sc := range swCases {
 			lb := &ir.Label{
 				Name:  sc.casee,
 				Index: sc.index,
@@ -559,48 +572,17 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			}
 			l.instructions = append(l.instructions, lb)
 
-			result, fallsThrough := post(sc.body, sc.next)
-			if fallsThrough {
-				hasFallsThrough = true
-				inheritFallsThrough = true
-			} else {
-				if inheritFallsThrough {
-					inheritFallsThrough = false
-					if k == 1 {
-						flowTerminates = result
-					} else {
-						flowTerminates = flowTerminates && result
-					}
-				} else {
-					if k == 0 {
-						flowTerminates = result
-					} else {
-						flowTerminates = flowTerminates && result
-					}
-				}
+			result, fallsThrough, hasBreakStmt := post(sc.body, sc.next)
+			if hasBreakStmt {
+				breaks = true
 			}
 
-			if !inheritFallsThrough {
-				results = append(results, flowTerminates)
+			if !fallsThrough {
+				flowTerminates = flowTerminates && result
 			}
 		}
 
-		if hasFallsThrough {
-			// This is required in order to avoid dead switch_end label
-			// For that we need to record all results
-			// and go backward to have the final flowTerminates value
-			slices.Reverse(results)
-			var r bool
-			for k, v := range results {
-				if k == 0 {
-					r = v
-				} else {
-					r = r && v
-				}
-			}
-			flowTerminates = r
-		}
-
+		data.breaks = breaks
 		data.flowTerminates = hasDefault && flowTerminates
 		if !data.flowTerminates {
 			l.instructions = append(l.instructions, &ir.Label{
@@ -637,7 +619,10 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			config.continues = jumpBody
 			l.instructions = append(l.instructions, jumpBody, lbody)
 
-			var result infos
+			var (
+				result infos
+				breaks bool
+			)
 			for _, body := range stmt.Body.Stmts {
 				switch body.(type) {
 				case *semantic.SwitchStmt:
@@ -645,11 +630,26 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 				}
 
 				result = l.lowerStmt(body, config)
+				if result.breaks {
+					breaks = true
+				}
 			}
 
 			if !result.flowTerminates {
 				l.instructions = append(l.instructions, jumpBody)
 			}
+
+			// This MUST be kept ONLY for infinite loop
+			// because when it terminates, no unreachable code must go after it.
+			// condition loop and 3 clauses loop MUST NOT do this because the condition can be false
+			// One exception is when break statement is found, we need
+			// to reach for_end label
+			data.flowTerminates = !breaks
+
+			if breaks {
+				l.instructions = append(l.instructions, lend)
+			}
+			return
 		}
 
 		// conditionned
@@ -679,6 +679,8 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			if !result.flowTerminates {
 				l.instructions = append(l.instructions, jumpCond)
 			}
+			l.instructions = append(l.instructions, lend)
+			return
 		}
 
 		// 3 clauses
@@ -712,13 +714,14 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			if !result.flowTerminates {
 				l.instructions = append(l.instructions, jumpPost)
 			}
+			l.instructions = append(l.instructions, lend)
+			return
 		}
-
-		l.instructions = append(l.instructions, lend)
 
 	case *semantic.BreakStmt:
 		l.instructions = append(l.instructions, config.breaks)
 		data.flowTerminates = true
+		data.breaks = true
 		return
 
 	case *semantic.ContinueStmt:

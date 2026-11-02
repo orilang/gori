@@ -41,6 +41,7 @@ type dumper struct {
 type infos struct {
 	values         []ir.Value
 	flowTerminates bool
+	breaks         bool
 }
 
 type forStmtKind int
