@@ -9829,4 +9829,56 @@ func f() {
 		assert.Equal(t, false, isValidStructDefaultType(nil))
 		assert.Equal(t, false, isValidStructDefaultType(&MapType{}))
 	})
+
+	t.Run("x39", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func f(a int, b int) bool {
+  for {
+    if a == int(5) {
+      continue
+    } else if a > int(6) {
+      continue
+    }
+  }
+  return false
+}`,
+			},
+			{
+				err: true,
+				data: `package main
+func f(a int, b int) bool {
+  for {
+    if a == int(5) {
+      continue
+    } else {
+      continue
+    }
+  }
+  return false
+}`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			_, diagnostics := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(diagnostics), 0, i)
+			} else {
+				assert.Equal(t, 0, len(diagnostics), i)
+			}
+		}
+	})
 }

@@ -148,6 +148,7 @@ type Checker struct {
 	inSwitchCase              bool
 	inComptimeFunc            bool
 	breakFound                bool
+	infiniteForStmt           bool
 	breakInputVarsInitialized []string
 	loopDepth                 int
 	program                   Program
@@ -192,6 +193,10 @@ const (
 
 	// Every reachable path returns from the function
 	flowReturns
+
+	// Used in infinite for statement and within if statement
+	// when both then and else continues
+	flowBothIfContinuesInfFor
 )
 
 type stmtInfo struct {
@@ -199,6 +204,7 @@ type stmtInfo struct {
 	returnedInputVarsInitialized []string
 	switchCaseHasFallThrough     bool
 	blockStmt                    []Stmt
+	continues                    bool
 }
 
 // Config holds file or directory to use for tokenization

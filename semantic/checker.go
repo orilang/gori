@@ -1312,7 +1312,7 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 	)
 	flow := flowFallsThrough
 	for i, stmt := range block.Stmts {
-		if flow == flowReturns {
+		if flow == flowReturns || flow == flowBothIfContinuesInfFor {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unreachable code at %d:%d-%d", stmt.Start().Line, stmt.Start().Column, stmt.End().Column)})
 			return
 		}
@@ -1339,10 +1339,18 @@ func (c *Checker) checkBlockStmt(block *ast.BlockStmt, returnInputVarsInitialize
 		} else {
 			cStmt = c.checkStmt(stmt, cStmt.returnedInputVarsInitialized)
 		}
+
 		returnInputVarsInitialized = slices.Clone(cStmt.returnedInputVarsInitialized)
 		bStmt = append(bStmt, cStmt.blockStmt...)
-		if flow == flowFallsThrough && cStmt.returnFlowResult == flowReturns {
-			flow = flowReturns
+		st.continues = cStmt.continues
+
+		if flow == flowFallsThrough {
+			switch cStmt.returnFlowResult {
+			case flowBothIfContinuesInfFor:
+				flow = flowBothIfContinuesInfFor
+			case flowReturns:
+				flow = flowReturns
+			}
 		}
 	}
 
@@ -1424,7 +1432,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		st.blockStmt = append(st.blockStmt, &brk)
 
 	case *ast.ContinueStmt:
-		c.checkContinueStmt(t)
+		st.continues = c.checkContinueStmt(t)
 		cte := ContinueStmt(token.KWContinue)
 		st.blockStmt = append(st.blockStmt, &cte)
 
@@ -2386,6 +2394,13 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 		initializedIfThen = true
 		thenStmt = c.checkBlockStmt(stmt.Then, returnInputVarsInitialized)
 		hir.Then = thenStmt.blockStmt
+
+		// This is important to have when we are in an infinite for loop statement
+		// with an else if statement. So we need to report back when
+		// we found a continue statement
+		if c.infiniteForStmt {
+			st.continues = thenStmt.continues
+		}
 	}
 
 	if stmt.Else != nil {
@@ -2401,6 +2416,11 @@ func (c *Checker) checkIfStmt(stmt *ast.IfStmt, returnInputVarsInitialized []str
 	st.blockStmt = append(st.blockStmt, &hir)
 
 	if initializedIfThen && initializedIfElse {
+		if c.infiniteForStmt && thenStmt.continues && elseStmt.continues {
+			st.returnFlowResult = flowBothIfContinuesInfFor
+			return
+		}
+
 		if thenStmt.returnFlowResult == flowFallsThrough && elseStmt.returnFlowResult == flowFallsThrough {
 			var x, y []string
 			for _, v := range thenStmt.returnedInputVarsInitialized {
@@ -2484,11 +2504,13 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 	c.loopDepth++
 	oldscope := c.scope
 	oldBreakFound := c.breakFound
+	oldInfiniteForStmt := c.infiniteForStmt
 	oldBreakInputVarsInitialized := slices.Clone(c.breakInputVarsInitialized)
 	defer func() {
 		c.loopDepth = oldLoopDepth
 		c.scope = oldscope
 		c.breakFound = oldBreakFound
+		c.infiniteForStmt = oldInfiniteForStmt
 		c.breakInputVarsInitialized = oldBreakInputVarsInitialized
 	}()
 
@@ -2532,6 +2554,7 @@ func (c *Checker) checkForStmt(stmt *ast.ForStmt, returnInputVarsInitialized []s
 			return
 		}
 
+		c.infiniteForStmt = stmt.Condition == nil
 		bodyStmt = c.checkBlockStmt(stmt.Body, afterInit)
 		if stmt.Condition == nil {
 			forStmt.Body = BlockStmt{Stmts: bodyStmt.blockStmt}
@@ -3234,10 +3257,11 @@ func (c *Checker) checkBreakStmt(stmt *ast.BreakStmt, returnInputVarsInitialized
 }
 
 // checkContinueStmt produces an error when not into for loop statement
-func (c *Checker) checkContinueStmt(stmt *ast.ContinueStmt) {
+func (c *Checker) checkContinueStmt(stmt *ast.ContinueStmt) bool {
 	if c.loopDepth == 0 {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("continue is forbidden outside of a loop at %d:%d", stmt.Start().Line, stmt.End().Line)})
 	}
+	return true
 }
 
 // checkSwitchStmtSumType validates switch statement block
