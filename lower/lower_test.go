@@ -2689,7 +2689,6 @@ func f(a int, b int) bool {
       continue
     }
   }
-  return false
 }`,
 				expected: `func f(a:int, b:int) -> bool
 entry:
@@ -2716,7 +2715,6 @@ if_end_2:
 
 if_end_1:
     jump for_body_0
-    return false
 
 `,
 			},
