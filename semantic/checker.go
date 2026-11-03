@@ -914,12 +914,12 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 			}
 			ce.Args = append(ce.Args, argExpr)
 		}
-		if len(fn.FuncType.Results) == 0 {
-			return nil, nil
-		}
 		ce.Callee = calleeExpr
 		ce.CalleeType = calleeType
 		ce.ReturnedValueCount = len(fn.FuncType.Results)
+		if len(fn.FuncType.Results) == 0 {
+			return nil, &ce
+		}
 		if len(fn.FuncType.Results) > 1 {
 			return calleeType, &ce
 		}
@@ -1409,7 +1409,7 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 		}
 
 	case *ast.ExprStmt:
-		c.checkExprStmt(t)
+		st.blockStmt = append(st.blockStmt, c.checkExprStmt(t))
 
 	case *ast.IfStmt:
 		return c.checkIfStmt(t, returnInputVarsInitialized)
@@ -2262,34 +2262,36 @@ func (c *Checker) lookupMethodType(named *NamedType, name string) (*FuncMethod, 
 // checkExprStmt validates expression statement.
 // It must only validate function/method calls NOT conversion expression like int(x).
 // An error is emitted if any
-func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) {
+func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) Stmt {
 	call, ok := stmt.Expr.(*ast.CallExpr)
 	if !ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("call expression statement must be a function call, got %#v at %d:%d", call, stmt.Start().Line, stmt.End().Column)})
-		return
+		return nil
 	}
 
 	cType, expr := c.checkExprInCurrentMode(stmt.Expr, exprConfig{})
 	if IsInvalid(cType) {
-		return
+		return nil
 	}
 
 	if _, ok := cType.(*NamedType); ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("named type without assignment is forbidden at %d:%d", stmt.Start().Line, stmt.End().Line)})
-		return
+		return nil
 	}
 
 	if ce, ok := expr.(*CallExpr); ok {
 		if fm, ok := ce.CalleeType.(*FuncMethod); ok && len(fm.FuncType.Results) > 0 {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("calling function or method with non empty returned values without assignment is forbidden, expected 0, got %d at %d:%d-%d", len(fm.FuncType.Results), stmt.Start().Line, stmt.Start().Column, stmt.End().Column)})
-			return
+			return nil
 		}
 	}
 
 	if _, ok := expr.(*ConversionExpr); ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("conversion expression without assignment is forbidden at %d:%d-%d", stmt.Start().Line, stmt.Start().Column, stmt.End().Column)})
-		return
+		return nil
 	}
+
+	return &ExprStmt{Expr: expr}
 }
 
 // checkSelectorExpr validates selector expression and return its type.

@@ -21,6 +21,7 @@ func (*CallExpr) exprNode()       {}
 func (*SelectorExpr) exprNode()   {}
 
 func (*DeclStmt) stmtNode()        {}
+func (*ExprStmt) stmtNode()        {}
 func (*ReturnStmt) stmtNode()      {}
 func (*AssigmentStmt) stmtNode()   {}
 func (*BlockStmt) stmtNode()       {}

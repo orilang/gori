@@ -2188,4 +2188,73 @@ func f(run bool) (result int) {
 		require.Equal(t, "i", id1.Symbol.Name)
 		require.Equal(t, token.PPlus, post.Operator)
 	})
+
+	t.Run("x28", func(t *testing.T) {
+		data := `package main
+
+func foo() {}
+
+func x() {
+  for {
+    foo()
+  }
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "foo", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+		require.Nil(t, fn1.Body)
+
+		fn2, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "x", fn2.Name)
+		require.NotNil(t, fn2.Symbol)
+		require.Equal(t, SymFunc, fn2.Symbol.Kind)
+		require.Equal(t, 0, len(fn2.Params))
+		require.Equal(t, 0, len(fn2.Results))
+		require.NotNil(t, fn2.Body)
+		require.Equal(t, 1, len(fn2.Body.Stmts))
+
+		for1, ok := fn2.Body.Stmts[0].(*ForStmt)
+		require.Equal(t, true, ok)
+		require.Nil(t, for1.Init)
+		require.Nil(t, for1.Condition)
+		require.Equal(t, 1, len(for1.Body.Stmts))
+
+		expr1, ok := for1.Body.Stmts[0].(*ExprStmt)
+		require.Equal(t, true, ok)
+		ce1, ok := expr1.Expr.(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(ce1.Args))
+		require.Equal(t, true, ce1.FromFunc)
+		require.Equal(t, 0, ce1.ReturnedValueCount)
+
+		ident, ok := ce1.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "foo", ident.Symbol.Name)
+
+		fm, ok := ident.Type.(*FuncMethod)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(fm.FuncType.Params))
+		require.Equal(t, 0, len(fm.FuncType.Results))
+	})
 }
