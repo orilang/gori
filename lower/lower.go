@@ -729,6 +729,9 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		data.flowTerminates = true
 		return
 
+	case *semantic.ExprStmt:
+		_ = l.lowerExpr(stmt.Expr)
+
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %T", stmt)})
 	}

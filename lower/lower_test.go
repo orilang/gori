@@ -2637,6 +2637,28 @@ for_end_0:
 			{
 				data: `package main
 
+func foo() {}
+
+func x() {
+  for {
+    foo()
+  }
+}`,
+				expected: `func foo()
+
+func x()
+entry:
+    jump for_body_0
+
+for_body_0:
+    t0 = call foo()
+    jump for_body_0
+
+`,
+			},
+			{
+				data: `package main
+
 func f(a int, b int) bool {
   for {
     if a == int(5) {
