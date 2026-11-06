@@ -223,6 +223,11 @@ type SliceExpr struct {
 	High  Expr
 }
 
+type IndexExpr struct {
+	X     Expr
+	Index Expr
+}
+
 type ForStmt struct {
 	Init      Stmt
 	Condition Expr

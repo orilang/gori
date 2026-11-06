@@ -935,14 +935,15 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 		return c.checkExprInCurrentMode(t.Inner, config)
 
 	case *ast.IndexExpr:
-		baseType, _ := c.checkExprInCurrentMode(t.X, exprConfig{})
+		baseType, baseExpr := c.checkExprInCurrentMode(t.X, exprConfig{})
 		underlying := unwrapNamed(baseType)
-		index, _ := c.checkExprInCurrentMode(t.Index, exprConfig{})
+		indexType, indexExpr := c.checkExprInCurrentMode(t.Index, exprConfig{})
+		idxExpr := &IndexExpr{X: baseExpr, Index: indexExpr}
 
 		switch decl := underlying.(type) {
 		case *SliceType:
-			if !IsIdentical(index, TInt) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %q at %d:%d-%d", stringifyType(index), t.Index.Start().Line, t.Index.Start().Column, t.Index.End().Column)})
+			if !IsIdentical(indexType, TInt) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %q at %d:%d-%d", stringifyType(indexType), t.Index.Start().Line, t.Index.Start().Column, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 
@@ -952,11 +953,11 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 					return TInvalid, nil
 				}
 			}
-			return decl.Elem, nil
+			return decl.Elem, idxExpr
 
 		case *ArrayType:
-			if !IsIdentical(index, TInt) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %q at %d:%d-%d", stringifyType(index), t.Index.Start().Line, t.Index.Start().Column, t.Index.End().Column)})
+			if !IsIdentical(indexType, TInt) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid index expression of type %q at %d:%d-%d", stringifyType(indexType), t.Index.Start().Line, t.Index.Start().Column, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 
@@ -972,27 +973,27 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 				}
 			}
 
-			return decl.Elem, nil
+			return decl.Elem, idxExpr
 
 		case *MapType:
-			if !IsIdentical(decl.Key, index) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map index expression of type %q at %d:%d-%d", stringifyType(index), t.Index.Start().Line, t.Index.Start().Column, t.Index.End().Column)})
+			if !IsIdentical(decl.Key, indexType) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid map index expression of type %q at %d:%d-%d", stringifyType(indexType), t.Index.Start().Line, t.Index.Start().Column, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 			if config.isWriteIndexingAssigment {
 				return decl.Value, nil
 			}
-			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, nil
+			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, idxExpr
 
 		case *HashMapType:
-			if !IsIdentical(decl.Key, index) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid hashmap index expression of type %q at %d:%d-%d", stringifyType(index), t.Index.Start().Line, t.Index.Start().Column, t.Index.End().Column)})
+			if !IsIdentical(decl.Key, indexType) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid hashmap index expression of type %q at %d:%d-%d", stringifyType(indexType), t.Index.Start().Line, t.Index.Start().Column, t.Index.End().Column)})
 				return TInvalid, nil
 			}
 			if config.isWriteIndexingAssigment {
 				return decl.Value, nil
 			}
-			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, nil
+			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, idxExpr
 
 		default:
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %#v at %d:%d-%d", t.X, t.X.Start().Line, t.X.Start().Column, t.X.End().Column)})

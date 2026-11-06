@@ -2305,5 +2305,99 @@ func f() {
 		require.Equal(t, true, ok)
 		require.Equal(t, vd1.Symbol.Type, sle.Type)
 		require.Equal(t, 2, len(sle.Elements))
+
+		as1, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(as1.Symbol))
+		require.Equal(t, 1, len(as1.Right))
+		require.Equal(t, token.Define, as1.Operator)
+
+		require.Equal(t, "x", as1.Symbol[0].Name)
+		require.Equal(t, TString, as1.Symbol[0].Type)
+
+		idx1, ok := as1.Right[0].(*IndexExpr)
+		require.Equal(t, true, ok)
+
+		id1, ok := idx1.X.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, vd1.Symbol.Type, id1.Type)
+		require.Equal(t, "s", id1.Value)
+
+		idxx1, ok := idx1.Index.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, idxx1.Type)
+		require.Equal(t, "0", idxx1.Value)
+	})
+
+	t.Run("x30", func(t *testing.T) {
+		data := `package main
+
+func f() {
+  var s [2]string = [2]string{"test","toto"}
+  x := s[0]
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 2, len(fn1.Body.Stmts))
+
+		ds1, ok := fn1.Body.Stmts[0].(*DeclStmt)
+		require.Equal(t, true, ok)
+
+		vd1, ok := ds1.Decl.(*VarDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "s", vd1.Name)
+
+		arr1, ok := vd1.Symbol.Type.(*ArrayType)
+		require.Equal(t, true, ok)
+		require.Equal(t, int64(2), arr1.Len)
+
+		sle, ok := vd1.Init.(*SliceLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, vd1.Symbol.Type, sle.Type)
+		require.Equal(t, 2, len(sle.Elements))
+
+		as1, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(as1.Symbol))
+		require.Equal(t, 1, len(as1.Right))
+		require.Equal(t, token.Define, as1.Operator)
+
+		require.Equal(t, "x", as1.Symbol[0].Name)
+		require.Equal(t, TString, as1.Symbol[0].Type)
+
+		idx1, ok := as1.Right[0].(*IndexExpr)
+		require.Equal(t, true, ok)
+
+		id1, ok := idx1.X.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, vd1.Symbol.Type, id1.Type)
+		require.Equal(t, "s", id1.Value)
+
+		idxx1, ok := idx1.Index.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, idxx1.Type)
+		require.Equal(t, "0", idxx1.Value)
 	})
 }

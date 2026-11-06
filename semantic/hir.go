@@ -21,6 +21,7 @@ func (*CallExpr) exprNode()       {}
 func (*SelectorExpr) exprNode()   {}
 func (*SliceLitExpr) exprNode()   {}
 func (*SliceExpr) exprNode()      {}
+func (*IndexExpr) exprNode()      {}
 
 func (*DeclStmt) stmtNode()        {}
 func (*ExprStmt) stmtNode()        {}
