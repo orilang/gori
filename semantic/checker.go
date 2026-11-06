@@ -788,7 +788,13 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 		return TString, &StringLitExpr{Type: TString, Value: t.Name.Value}
 
 	case *ast.SliceLitExpr:
-		return c.resolveType(t.Type), nil
+		var elm []Expr
+		typ := c.resolveType(t.Type)
+		for _, v := range t.Elements {
+			_, ve := c.checkExprInCurrentMode(v, config)
+			elm = append(elm, ve)
+		}
+		return typ, &SliceLitExpr{Type: typ, Elements: elm}
 
 	case *ast.IdentExpr:
 		var sym *Symbol

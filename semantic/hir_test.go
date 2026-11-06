@@ -2257,4 +2257,53 @@ func x() {
 		require.Equal(t, 0, len(fm.FuncType.Params))
 		require.Equal(t, 0, len(fm.FuncType.Results))
 	})
+
+	t.Run("x29", func(t *testing.T) {
+		data := `package main
+
+func f() {
+  var s []string = []string{"test","toto"}
+  x := s[0]
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 2, len(fn1.Body.Stmts))
+
+		ds1, ok := fn1.Body.Stmts[0].(*DeclStmt)
+		require.Equal(t, true, ok)
+
+		vd1, ok := ds1.Decl.(*VarDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "s", vd1.Name)
+
+		_, ok = vd1.Symbol.Type.(*SliceType)
+		require.Equal(t, true, ok)
+
+		sle, ok := vd1.Init.(*SliceLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, vd1.Symbol.Type, sle.Type)
+		require.Equal(t, 2, len(sle.Elements))
+	})
 }

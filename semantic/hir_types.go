@@ -211,6 +211,18 @@ type SelectorExpr struct {
 	Selector string
 }
 
+type SliceLitExpr struct {
+	Type     Type
+	Elements []Expr
+}
+
+type SliceExpr struct {
+	X     Expr
+	Low   Expr
+	Colon token.Kind
+	High  Expr
+}
+
 type ForStmt struct {
 	Init      Stmt
 	Condition Expr
