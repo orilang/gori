@@ -131,6 +131,7 @@ type ReturnStmt struct {
 type AssigmentStmt struct {
 	Symbol   []ResolvedSymbol
 	Operator token.Kind
+	Left     []Expr
 	Right    []Expr
 }
 
@@ -226,6 +227,16 @@ type SliceExpr struct {
 type IndexExpr struct {
 	X     Expr
 	Index Expr
+}
+
+type MakeExpr struct {
+	Type Type
+	Args []Expr
+}
+
+type MultiValueExpr struct {
+	Values []Expr
+	kind   multiValueTypeKind
 }
 
 type ForStmt struct {

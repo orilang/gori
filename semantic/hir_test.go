@@ -2400,4 +2400,200 @@ func f() {
 		require.Equal(t, TInt, idxx1.Type)
 		require.Equal(t, "0", idxx1.Value)
 	})
+
+	t.Run("x31", func(t *testing.T) {
+		data := `package main
+
+func f() {
+  m := make(map[string]string, uint(1))
+	m["a"] = "b"
+  x, ok := m["a"]
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 3, len(fn1.Body.Stmts))
+
+		as1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+
+		require.Equal(t, 1, len(as1.Symbol))
+		require.Equal(t, 1, len(as1.Right))
+		require.Equal(t, token.Define, as1.Operator)
+
+		m1, ok := as1.Symbol[0].Type.(*MapType)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, m1.Key)
+		require.Equal(t, TString, m1.Value)
+
+		require.Equal(t, "m", as1.Symbol[0].Name)
+
+		r1, ok := as1.Right[0].(*MakeExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, m1, r1.Type)
+		require.Equal(t, 1, len(r1.Args))
+
+		ce, ok := r1.Args[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TUInt, ce.To)
+		lit, ok := ce.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, lit.Type)
+		require.Equal(t, "1", lit.Value)
+
+		as2, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+
+		require.Equal(t, 1, len(as2.Symbol))
+		require.Equal(t, 1, len(as2.Right))
+		require.Equal(t, token.Assign, as2.Operator)
+
+		require.Equal(t, "m", as2.Symbol[0].Name)
+		require.Equal(t, as1.Symbol[0].Type, as2.Symbol[0].Type)
+
+		id1, ok := as2.Symbol[0].Type.(*MapType)
+		require.Equal(t, true, ok)
+
+		require.Equal(t, TString, id1.Key)
+		require.Equal(t, TString, id1.Value)
+
+		require.Equal(t, 1, len(as2.Left))
+		idx1, ok := as2.Left[0].(*IndexExpr)
+		require.Equal(t, true, ok)
+
+		idxx2, ok := idx1.Index.(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, idxx2.Type)
+		require.Equal(t, `"a"`, idxx2.Value)
+
+		r2, ok := as2.Right[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, r2.Type)
+		require.Equal(t, `"b"`, r2.Value)
+
+		as3, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		// TODO: from the checker return &MultiValueType
+		// We need to fill MultiValueExpr.Value
+		require.Equal(t, 1, len(as3.Left))
+	})
+
+	t.Run("x32", func(t *testing.T) {
+		data := `package main
+
+func f() {
+  m := make(hashmap[string]string, uint(1))
+	m["a"] = "b"
+  x, ok := m["a"]
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 1, len(pf.Decls))
+
+		fn1, ok := pf.Decls[0].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 3, len(fn1.Body.Stmts))
+
+		as1, ok := fn1.Body.Stmts[0].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+
+		require.Equal(t, 1, len(as1.Symbol))
+		require.Equal(t, 1, len(as1.Right))
+		require.Equal(t, token.Define, as1.Operator)
+
+		m1, ok := as1.Symbol[0].Type.(*HashMapType)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, m1.Key)
+		require.Equal(t, TString, m1.Value)
+
+		require.Equal(t, "m", as1.Symbol[0].Name)
+
+		r1, ok := as1.Right[0].(*MakeExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, m1, r1.Type)
+		require.Equal(t, 1, len(r1.Args))
+
+		ce, ok := r1.Args[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TUInt, ce.To)
+		lit, ok := ce.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, lit.Type)
+		require.Equal(t, "1", lit.Value)
+
+		as2, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+
+		require.Equal(t, 1, len(as2.Symbol))
+		require.Equal(t, 1, len(as2.Right))
+		require.Equal(t, token.Assign, as2.Operator)
+
+		require.Equal(t, "m", as2.Symbol[0].Name)
+		require.Equal(t, as1.Symbol[0].Type, as2.Symbol[0].Type)
+
+		id1, ok := as2.Symbol[0].Type.(*HashMapType)
+		require.Equal(t, true, ok)
+
+		require.Equal(t, TString, id1.Key)
+		require.Equal(t, TString, id1.Value)
+
+		require.Equal(t, 1, len(as2.Left))
+		idx1, ok := as2.Left[0].(*IndexExpr)
+		require.Equal(t, true, ok)
+
+		idxx2, ok := idx1.Index.(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, idxx2.Type)
+		require.Equal(t, `"a"`, idxx2.Value)
+
+		r2, ok := as2.Right[0].(*StringLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, r2.Type)
+		require.Equal(t, `"b"`, r2.Value)
+
+		as3, ok := fn1.Body.Stmts[1].(*AssigmentStmt)
+		require.Equal(t, true, ok)
+		// TODO: from the checker return &MultiValueType
+		// We need to fill MultiValueExpr.Value
+		require.Equal(t, 1, len(as3.Left))
+	})
 }

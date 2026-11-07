@@ -981,9 +981,9 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 				return TInvalid, nil
 			}
 			if config.isWriteIndexingAssigment {
-				return decl.Value, nil
+				return decl.Value, idxExpr
 			}
-			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, idxExpr
+			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, &MultiValueExpr{kind: multiValueMapX}
 
 		case *HashMapType:
 			if !IsIdentical(decl.Key, indexType) {
@@ -991,9 +991,9 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 				return TInvalid, nil
 			}
 			if config.isWriteIndexingAssigment {
-				return decl.Value, nil
+				return decl.Value, idxExpr
 			}
-			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, idxExpr
+			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, &MultiValueExpr{kind: multiValueMapX}
 
 		default:
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %#v at %d:%d-%d", t.X, t.X.Start().Line, t.X.Start().Column, t.X.End().Column)})
@@ -1005,15 +1005,18 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 
 	case *ast.MakeExpr:
 		typ := c.resolveType(t.Type)
+		makeExpr := &MakeExpr{Type: typ}
+
 		if len(t.Args) == 1 {
-			capacity, _ := c.checkExprInCurrentMode(t.Args[0], exprConfig{})
-			if !IsIdentical(TUInt, capacity) {
-				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid capacity type, expected %q, got %q at %d:%d-%d", stringifyType(TUInt), stringifyType(capacity), t.Args[0].Start().Line, t.Args[0].Start().Column, t.Args[0].End().Column)})
+			capacityType, capacityExpr := c.checkExprInCurrentMode(t.Args[0], exprConfig{})
+			if !IsIdentical(TUInt, capacityType) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid capacity type, expected %q, got %q at %d:%d-%d", stringifyType(TUInt), stringifyType(capacityType), t.Args[0].Start().Line, t.Args[0].Start().Column, t.Args[0].End().Column)})
 				return TInvalid, nil
 			}
+			makeExpr.Args = append(makeExpr.Args, capacityExpr)
 		}
 
-		return typ, nil
+		return typ, makeExpr
 
 	case *ast.StructExpr:
 		var sym *Symbol
@@ -1620,7 +1623,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 							return nil, nil
 						}
 
-						targetType, _ := c.checkAssignableExpr(left, exprConfig{isWriteIndexingAssigment: true})
+						targetType, targetExpr := c.checkAssignableExpr(left, exprConfig{isWriteIndexingAssigment: true})
 						if !IsAssignableTo(targetType, valueType) {
 							c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to variable of type %s at %d:%d-%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.Start().Column, right.End().Column)})
 							return nil, nil
@@ -1633,6 +1636,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 								}
 							}
 						}
+						stmt.Left = append(stmt.Left, targetExpr)
 					}
 					stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, isValidCall, isMultiValueCall))
 				}
@@ -1699,7 +1703,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 						return nil, nil
 					}
 
-					targetType, _ := c.checkAssignableExpr(left, exprConfig{isWriteIndexingAssigment: true})
+					targetType, targetExpr := c.checkAssignableExpr(left, exprConfig{isWriteIndexingAssigment: true})
 					if IsInvalid(targetType) {
 						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid variable type %s at %d:%d-%d", stringifyType(targetType), left.Start().Line, left.Start().Column, left.End().Column)})
 						return nil, nil
@@ -1717,6 +1721,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 							}
 						}
 					}
+					stmt.Left = append(stmt.Left, targetExpr)
 				}
 				stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, false, false))
 			}
@@ -1750,7 +1755,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 					return nil, nil
 				}
 
-				targetType, _ := c.checkAssignableExpr(decl.Left[index], exprConfig{isWriteIndexingAssigment: true})
+				targetType, targetExpr := c.checkAssignableExpr(decl.Left[index], exprConfig{isWriteIndexingAssigment: true})
 				if !IsAssignableTo(targetType, valueType) {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %s to variable of type %s at %d:%d-%d", stringifyType(valueType), stringifyType(targetType), right.Start().Line, right.Start().Column, right.End().Column)})
 					return nil, nil
@@ -1763,6 +1768,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 						}
 					}
 				}
+				stmt.Left = append(stmt.Left, targetExpr)
 			}
 			stmt.Symbol = append(stmt.Symbol, resolvedSymbol(sym, false, false))
 		}
