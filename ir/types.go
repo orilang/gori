@@ -90,3 +90,8 @@ type Unary struct {
 	Operator string
 	Value    string
 }
+
+type IncDec struct {
+	Value    string
+	Operator string
+}

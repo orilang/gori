@@ -1606,7 +1606,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 						return nil, nil
 					}
 
-					if isBlank(name) {
+					if IsBlank(name) {
 						sym = &Symbol{
 							Kind: SymVar,
 							Type: valueType,
@@ -1671,8 +1671,8 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 				// depending on the value of the boolean and how to enforce the boolean check
 				nameFirst, foundFirst := exprName(decl.Left[0])
 				nameLast, foundLast := exprName(decl.Left[len(multiValue.Values)-1])
-				isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && k == 0 && foundFirst && isBlank(nameFirst)
-				isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && foundLast && isBlank(nameLast)
+				isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && k == 0 && foundFirst && IsBlank(nameFirst)
+				isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && foundLast && IsBlank(nameLast)
 
 				if isBlankValueAssigmentMap && isBlankBoolAssigmentMap {
 					c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("both blank identifiers assignment is forbidden for map/hashmap read index at %d:%d-%d", decl.Left[0].Start().Line, decl.Left[0].Start().Column, decl.Left[0].End().Column)})
@@ -1685,7 +1685,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 				}
 
 				valueType := multiValue.Values[k]
-				if isBlank(name) {
+				if IsBlank(name) {
 					sym = &Symbol{
 						Kind:       SymVar,
 						Type:       valueType,
@@ -1737,7 +1737,7 @@ func (c *Checker) checkSimpleAssignStmt(decl *ast.AssignStmt, returnInputVarsIni
 				return nil, nil
 			}
 
-			if isBlank(name) {
+			if IsBlank(name) {
 				sym = &Symbol{
 					Kind:       SymVar,
 					Type:       valueType,
@@ -1861,8 +1861,8 @@ func (c *Checker) checkDefineAssignStmt(decl *ast.AssignStmt) Stmt {
 					// BUT we still need to figure out how to enforce the value of x
 					// depending on the value of the boolean and how to enforce the boolean check
 					nameLast, foundLast := exprName(decl.Left[len(multiValue.Values)-1])
-					isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && index == 0 && isBlank(x.Name.Value)
-					isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && foundLast && isBlank(nameLast)
+					isBlankValueAssigmentMap := multiValue.kind == multiValueMapX && index == 0 && IsBlank(x.Name.Value)
+					isBlankBoolAssigmentMap := multiValue.kind == multiValueMapX && foundLast && IsBlank(nameLast)
 
 					if isBlankValueAssigmentMap && isBlankBoolAssigmentMap {
 						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("both blank identifiers assignment is forbidden for map/hashmap read index at %d:%d-%d", decl.Left[0].Start().Line, decl.Left[0].Start().Column, decl.Left[0].End().Column)})
@@ -2721,7 +2721,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 				}
 			}
 		} else if stmt.Key != nil {
-			if isBlank(stmt.Key.Name.Value) {
+			if IsBlank(stmt.Key.Name.Value) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d", stmt.Key.Start().Line, stmt.Key.Start().Column)})
 				return
 			}
@@ -2761,7 +2761,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 
 	case token.Define:
 		if stmt.Key != nil && stmt.Value != nil {
-			if isBlank(stmt.Key.Name.Value) && isBlank(stmt.Value.Name.Value) {
+			if IsBlank(stmt.Key.Name.Value) && IsBlank(stmt.Value.Name.Value) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range key and value cannot be both blank identifiers at %d:%d-%d", stmt.Key.Start().Line, stmt.Value.Start().Column, stmt.Value.End().Column)})
 				return
 			}
@@ -2789,7 +2789,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 			rstmt.Key = keyExpr
 			rstmt.Value = valueExpr
 		} else if stmt.Key != nil {
-			if isBlank(stmt.Key.Name.Value) {
+			if IsBlank(stmt.Key.Name.Value) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("blank identifier for this range key is forbidden at %d:%d-%d", stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Key.End().Column)})
 				return
 			}
@@ -4012,8 +4012,8 @@ func isBlankOrEmpty(s string) bool {
 	return false
 }
 
-// isBlank return true when provided parameter is "_"
-func isBlank(s string) bool {
+// IsBlank return true when provided parameter is "_"
+func IsBlank(s string) bool {
 	return s == "_"
 }
 

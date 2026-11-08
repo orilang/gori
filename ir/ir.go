@@ -11,3 +11,4 @@ func (*Jump) instrNode()      {}
 func (*Assigment) instrNode() {}
 func (*Extract) instrNode()   {}
 func (*Unary) instrNode()     {}
+func (*IncDec) instrNode()    {}

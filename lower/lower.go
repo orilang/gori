@@ -732,6 +732,97 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 	case *semantic.ExprStmt:
 		_ = l.lowerExpr(stmt.Expr)
 
+	case *semantic.IncDecStmt:
+		x := l.lowerExpr(stmt.X)
+		l.instructions = append(l.instructions, &ir.IncDec{
+			Value:    singleValue(x.values),
+			Operator: token.AssignOpString(stmt.Operator),
+		})
+
+	case *semantic.RangeStmt:
+		labelIndex := l.labelIndex
+		l.labelIndex++
+
+		var config inputConfig
+		lcond := &ir.Label{Name: "range_cond", Index: labelIndex}
+		lbody := &ir.Label{Name: "range_body", Index: labelIndex}
+		lpost := &ir.Label{Name: "range_post", Index: labelIndex}
+		lend := &ir.Label{Name: "range_end", Index: labelIndex}
+
+		jumpCond := &ir.Jump{Name: "range_cond", Index: labelIndex}
+		jumpBody := &ir.Jump{Name: "range_body", Index: labelIndex}
+		jumpPost := &ir.Jump{Name: "range_post", Index: labelIndex}
+		jumpBreaks := &ir.Jump{Name: "range_end", Index: labelIndex}
+
+		config.isForSwitch = false
+		config.continues = jumpCond
+		config.breaks = jumpBreaks
+
+		cond := l.lowerExpr(stmt.X)
+		loopIndex := fmt.Sprintf("t%d", l.tIndex)
+		l.tIndex++
+
+		switch cond.rangeKind {
+		case rangeInterger:
+			l.instructions = append(l.instructions, &ir.Assigment{
+				Result:   loopIndex,
+				Operator: "= const_int",
+				Value:    "0",
+			})
+
+		default:
+			l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, data.rangeKind)})
+			return
+		}
+
+		l.instructions = append(l.instructions, jumpCond, lcond)
+
+		tbinary := fmt.Sprintf("t%d", l.tIndex)
+		l.tIndex++
+		l.instructions = append(l.instructions, &ir.Binary{
+			Result: tbinary,
+			Op:     token.BinaryOpString(token.Lt) + "_" + semantic.TInt.String(),
+			Left:   loopIndex,
+			Right:  singleValue(cond.values),
+		})
+
+		br := &ir.Branch{Condition: singleValue(cond.values)}
+		br.List = append(br.List, ir.BranchSub{Name: "range_body", Index: labelIndex})
+		br.List = append(br.List, ir.BranchSub{Name: "range_end", Index: labelIndex})
+		l.instructions = append(l.instructions, br)
+
+		l.instructions = append(l.instructions, lpost)
+		switch cond.rangeKind {
+		case rangeInterger:
+			l.instructions = append(l.instructions, &ir.IncDec{
+				Value:    loopIndex,
+				Operator: token.AssignOpString(token.PPlus),
+			})
+
+		default:
+			// kept here as a safe guard
+			l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, data.rangeKind)})
+			return
+		}
+
+		l.instructions = append(l.instructions, jumpBody, lbody)
+
+		var result infos
+		for _, body := range stmt.Body.Stmts {
+			switch body.(type) {
+			case *semantic.SwitchStmt:
+				config.isForSwitch = true
+			}
+
+			result = l.lowerStmt(body, config)
+		}
+
+		if !result.flowTerminates {
+			l.instructions = append(l.instructions, jumpPost)
+		}
+
+		l.instructions = append(l.instructions, lend)
+
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported statement %T", stmt)})
 	}
@@ -744,6 +835,7 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 	switch expr := t.(type) {
 	case *semantic.IntLitExpr:
 		data.values = append(data.values, ir.Value(expr.Value))
+		data.rangeKind = rangeInterger
 		return
 
 	case *semantic.FloatLitExpr:
@@ -789,6 +881,7 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 
 		l.tIndex++
 		data.values = append(data.values, ir.Value(t))
+		data.rangeKind = value.rangeKind
 		return
 
 	case *semantic.CallExpr:
@@ -821,6 +914,9 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		l.tIndex++
 		data.values = append(data.values, ir.Value(t))
 		return
+
+	case *semantic.SliceExpr:
+		data.rangeKind = rangeSlice
 
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %T", expr)})

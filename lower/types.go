@@ -38,10 +38,22 @@ type dumper struct {
 	w *bytes.Buffer
 }
 
+type rangeStmtKind int
+
+const (
+	rangeInvalid = iota
+	rangeInterger
+	rangeArray
+	rangeSlice
+	rangeMap
+	rangeHashMap
+)
+
 type infos struct {
 	values         []ir.Value
 	flowTerminates bool
 	breaks         bool
+	rangeKind      rangeStmtKind
 }
 
 type forStmtKind int

@@ -3755,4 +3755,203 @@ for_end_0:
 			assert.Equal(t, tc.expected, dump(lir), i)
 		}
 	})
+
+	t.Run("x6", func(t *testing.T) {
+		tests := []struct {
+			data     string
+			expected string
+		}{
+			{
+				data: `package main
+func x(z int){
+  a := int(10)
+  for range int(5) {
+    a++
+  }
+}`,
+				expected: `func x(z:int)
+entry:
+    t0 = const_int 10
+    a = t0
+    t1 = const_int 5
+    t2 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t3 = lt_int t2, t1
+    branch t1, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_body_0
+
+range_body_0:
+    a++
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func x(z int){
+  a := int(10)
+  for range int(5) {
+    a++
+    break
+  }
+  a++
+}`,
+				expected: `func x(z:int)
+entry:
+    t0 = const_int 10
+    a = t0
+    t1 = const_int 5
+    t2 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t3 = lt_int t2, t1
+    branch t1, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_body_0
+
+range_body_0:
+    a++
+    jump range_end_0
+
+range_end_0:
+    a++
+
+`,
+			},
+			{
+				data: `package main
+
+func x(z int){
+  a := int(10)
+  for range int(5) {
+    a++
+    return
+  }
+}`,
+				expected: `func x(z:int)
+entry:
+    t0 = const_int 10
+    a = t0
+    t1 = const_int 5
+    t2 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t3 = lt_int t2, t1
+    branch t1, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_body_0
+
+range_body_0:
+    a++
+    return
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func x(){
+  a := int(10)
+  for k,v := range int(5) {
+    a++
+  }
+}`,
+				expected: `
+
+`,
+			},
+			{
+				data: `package main
+func x(){
+  a := int(10)
+  for _,v := range int(5) {
+    a = v
+    break
+  }
+  a++
+}`,
+				expected: `
+
+`,
+			},
+			{
+				data: `package main
+func x(){
+  a := int(0)
+  for k,_ := range int(5) {
+    if k == int(0) {
+      a = int(5)
+    } else {
+      a += int(5)
+    }
+  }
+}`,
+				expected: `
+
+`,
+			},
+			{
+				data: `package main
+func x(){
+  a := int(0)
+  for k,_ := range int(5) {
+    if k == int(0) {
+      a = int(5)
+    } else {
+      continue
+    }
+  }
+}`,
+				expected: `
+
+`,
+			},
+			{
+				data: `package main
+func x(z int){
+  for z = range int(5) {}
+}`,
+				expected: `
+
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := semantic.NewChecker()
+
+			spr, diagnostics := check.Check(pr)
+			require.Equal(t, false, diagnostics.HasErrors())
+			var l *Lower
+			if i == 0 {
+				l = NewLower(true)
+			} else {
+				l = NewLower(false)
+			}
+			lir, ldiagnostics := l.Lower(spr)
+			require.Equal(t, false, ldiagnostics.HasErrors())
+
+			assert.Equal(t, tc.expected, dump(lir), i)
+		}
+	})
 }
