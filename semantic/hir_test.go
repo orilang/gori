@@ -1948,7 +1948,7 @@ func f() (result int) {
 		data := `package main
 func f() (result int) {
   result = int(1)
-  for k,v := range int(5) {
+  for k := range int(5) {
     result = int(2)
   }
   return
@@ -2000,17 +2000,12 @@ func f() (result int) {
 		fr1, ok := fn1.Body.Stmts[1].(*RangeStmt)
 		require.Equal(t, true, ok)
 		require.NotNil(t, fr1.Key)
-		require.NotNil(t, fr1.Value)
+		require.Nil(t, fr1.Value)
 
 		key, ok := fr1.Key.(*IdentExpr)
 		require.Equal(t, true, ok)
 		require.Equal(t, TInt, key.Type)
 		require.Equal(t, "k", key.Value)
-
-		value, ok := fr1.Value.(*IdentExpr)
-		require.Equal(t, true, ok)
-		require.Equal(t, TInt, value.Type)
-		require.Equal(t, "v", value.Value)
 
 		require.Equal(t, token.Define, fr1.Op)
 		require.Equal(t, token.KWRange, fr1.Range)

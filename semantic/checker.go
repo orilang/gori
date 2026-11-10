@@ -2663,6 +2663,11 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	switch stmt.Op.Kind {
 	case token.Assign:
 		if stmt.Key != nil && stmt.Value != nil {
+			if IsInteger(iteratorType) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use both key/value with integer iterator type, use only key at %d:%d-%d", stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Value.End().Column)})
+				return
+			}
+
 			name, found := exprName(stmt.Key)
 			if !found {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign values to %q at %d:%d-%d", name, stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Key.End().Column)})
@@ -2761,6 +2766,11 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 
 	case token.Define:
 		if stmt.Key != nil && stmt.Value != nil {
+			if IsInteger(iteratorType) {
+				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use both key/value with integer iterator type, use only key at %d:%d-%d", stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Value.End().Column)})
+				return
+			}
+
 			if IsBlank(stmt.Key.Name.Value) && IsBlank(stmt.Value.Name.Value) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("range key and value cannot be both blank identifiers at %d:%d-%d", stmt.Key.Start().Line, stmt.Value.Start().Column, stmt.Value.End().Column)})
 				return

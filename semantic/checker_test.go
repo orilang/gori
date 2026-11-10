@@ -2361,39 +2361,39 @@ func x(z int){
 			},
 			{
 				data: `package main
-func x(){
-	for k,v := range int(5) {}
+func x(arr []int){
+	for k,v := range arr {}
 }
 `,
 			},
 			{
 				data: `package main
-func x(){
-	for _,v := range int(5) {}
+func x(arr []int){
+	for _,v := range arr {}
 }
 `,
 			},
 			{
 				data: `package main
-func x(){
-	for k,_ := range int(5) {}
+func x(arr []int){
+	for k,_ := range arr {}
 }
 `,
 			},
 			{
 				data: `package main
-func x(){
+func x(arr []int){
 	var k int = 0
 	var v int = 0
-	for kk,vv := range int(5) {}
+	for kk,vv := range arr {}
 }
 `,
 			},
 			{
 				err: true,
 				data: `package main
-func x(){
-	for _,_ := range int(5) {}
+func x(arr []int){
+	for _,_ := range arr {}
 }
 `,
 			},
@@ -2453,8 +2453,8 @@ func x(z string){
 			{
 				err: true,
 				data: `package main
-func x(z string){
-	for _,z = range int(5) {
+func x(z string,arr []int){
+	for _,z = range arr {
 		z = i
 	}
 }
@@ -2463,18 +2463,18 @@ func x(z string){
 			{
 				err: true,
 				data: `package main
-func x(){
+func x(arr []int){
 	var kk int = int(0)
 	var vv int32 = int32(0)
-	for kk,vv = range int(5) {}
+	for kk,vv = range arr {}
 }
 `,
 			},
 			{
 				err: true,
 				data: `package main
-func x(z int){
-	for z,z := range int(5) {
+func x(z int,arr []int){
+	for z,z := range arr {
 		z = i
 	}
 }
@@ -2829,8 +2829,8 @@ func x(zz hashmap[string]int){
 			},
 			{
 				data: `package main
-func f() int8 {
-	for k,v := range int8(5) {
+func f(arr []int8) int8 {
+	for k,v := range arr {
 		return v
 	}
 
@@ -5623,8 +5623,8 @@ func f(z int) int {
 			{
 				err: true,
 				data: `package main
-func f() int {
-	for k,v := range int(5) {}
+func f(arr []int) int {
+	for k,v := range arr {}
 	return
 }
 `,
@@ -5632,9 +5632,9 @@ func f() int {
 			{
 				err: true,
 				data: `package main
-func f() int {
+func f(arr []int) int {
   var z int = int(1)
-	for k,v := range int(5) {
+	for k,v := range arr {
 	  if k == z {
 		  return z
 		}
@@ -5645,9 +5645,9 @@ func f() int {
 			{
 				err: true,
 				data: `package main
-func f() int {
+func f(arr []int) int {
   var z int = int(1)
-	for k,v := range int(5) {
+	for k,v := range arr {
 	  if v == z {
 		  return z
 		}
@@ -5658,9 +5658,9 @@ func f() int {
 			{
 				err: true,
 				data: `package main
-func f() int {
+func f(arr []int) int {
   var z int = int(1)
-	for k,v := range int(5) {
+	for k,v := range arr {
 	  if k == z {
 		  break
 		}
@@ -5670,9 +5670,9 @@ func f() int {
 			},
 			{
 				data: `package main
-func f() int {
+func f(arr []int) int {
   var z int = int(1)
-	for k,v := range int(5) {
+	for k,v := range arr {
 	  if v == z {
 		  break
 		}
@@ -5685,7 +5685,7 @@ func f() int {
 				err: true,
 				data: `package main
 func f(first bool) (result int) {
-	for k,v := range int(5) {
+	for k := range int(5) {
 		if first {
 			result = int(1)
 			break
@@ -5703,7 +5703,7 @@ func f(first bool) (result int) {
 				data: `package main
 func f(first bool) (result int) {
 	result = int(1)
-	for k,v := range int(5) {
+	for k := range int(5) {
 		if first {
 			result = int(1)
 			break
@@ -5721,7 +5721,7 @@ func f(first bool) (result int) {
 				err: true,
 				data: `package main
 func f(first bool) (result int) {
-	for k,v := range int(5) {
+	for k := range int(5) {
 		if first {
 			break
 		}
@@ -5736,8 +5736,8 @@ func f(first bool) (result int) {
 			},
 			{
 				data: `package main
-func f() int {
-	for k,v := range int(0) {
+func f(arr []int) int {
+	for k,v := range arr {
 		if k == v {
 			break
 		}
@@ -5766,9 +5766,9 @@ func f(first bool) (result int) {
 			},
 			{
 				data: `package main
-func f(first bool) (result int) {
+func f(first bool, arr []int) (result int) {
 	result = int(1)
-	for k,v := range int(5) {
+	for k,v := range arr {
 		if first {
 			continue
 		}
@@ -5780,10 +5780,10 @@ func f(first bool) (result int) {
 			},
 			{
 				data: `package main
-func f(first bool) (a int, b int) {
+func f(first bool,arr []int) (a int, b int) {
 	a = int(0)
 	b = int(0)
-	for k,v := range int(5) {
+	for k,v := range arr {
 		if first {
 			a = int(1)
 			b = int(1)
@@ -5802,8 +5802,8 @@ func f(first bool) (a int, b int) {
 			{
 				err: true,
 				data: `package main
-func f(first bool) (a int, b int) {
-	for k,v := range int(5) {
+func f(first bool,arr []int) (a int, b int) {
+	for k,v := range arr {
 		if first {
 			a = int(1)
 			b = int(1)
@@ -5867,8 +5867,8 @@ func f() (result int) {
 			},
 			{
 				data: `package main
-func f() (a int, b int) {
-	for a, b = range int(5) {
+func f(arr []int) (a int, b int) {
+	for a, b = range arr {
 		return
 	}
 
@@ -5967,6 +5967,9 @@ func f() int {
 			if tc.err {
 				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
+				if len(diagnostics) > 0 {
+					fmt.Println("DATA", i, tc.data)
+				}
 				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}
@@ -9860,6 +9863,54 @@ func f(a int, b int) bool {
       continue
     }
   }
+  return false
+}`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := NewChecker()
+
+			_, diagnostics := check.Check(pr)
+			if tc.err {
+				assert.Greater(t, len(diagnostics), 0, i)
+			} else {
+				assert.Equal(t, 0, len(diagnostics), i)
+			}
+		}
+	})
+
+	t.Run("x40", func(t *testing.T) {
+		tests := []struct {
+			data string
+			err  bool
+		}{
+			{
+				err: true,
+				data: `package main
+func f(a int, b int) bool {
+  for a, b = range int(5) {}
+  return false
+}`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() bool {
+  for a, _ := range int(5) {}
+  return false
+}`,
+			},
+			{
+				err: true,
+				data: `package main
+func f() bool {
+  for _, v := range int(5) {}
   return false
 }`,
 			},
