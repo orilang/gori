@@ -95,3 +95,14 @@ type IncDec struct {
 	Value    string
 	Operator string
 }
+
+type Index struct {
+	Result string
+	Name   string
+	Value  string
+}
+
+type Len struct {
+	Result string
+	Value  string
+}

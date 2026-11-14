@@ -3756,6 +3756,10 @@ for_end_0:
 		}
 	})
 
+	t.Run("dummy_single_value", func(t *testing.T) {
+		require.Equal(t, "", singleValue([]ir.Value{}))
+	})
+
 	t.Run("x6", func(t *testing.T) {
 		tests := []struct {
 			data     string
@@ -3774,16 +3778,17 @@ entry:
     t0 = const_int 10
     a = t0
     t1 = const_int 5
-    t2 = const_int 0
+    t2 = t1
+    t3 = const_int 0
     jump range_cond_0
 
 range_cond_0:
-    t3 = lt_int t2, t1
-    branch t1, range_body_0, range_end_0
+    t4 = lt_int t3, t2
+    branch t4, range_body_0, range_end_0
 
 range_post_0:
-    t2++
-    jump range_body_0
+    t3++
+    jump range_cond_0
 
 range_body_0:
     a++
@@ -3809,16 +3814,17 @@ entry:
     t0 = const_int 10
     a = t0
     t1 = const_int 5
-    t2 = const_int 0
+    t2 = t1
+    t3 = const_int 0
     jump range_cond_0
 
 range_cond_0:
-    t3 = lt_int t2, t1
-    branch t1, range_body_0, range_end_0
+    t4 = lt_int t3, t2
+    branch t4, range_body_0, range_end_0
 
 range_post_0:
-    t2++
-    jump range_body_0
+    t3++
+    jump range_cond_0
 
 range_body_0:
     a++
@@ -3844,16 +3850,17 @@ entry:
     t0 = const_int 10
     a = t0
     t1 = const_int 5
-    t2 = const_int 0
+    t2 = t1
+    t3 = const_int 0
     jump range_cond_0
 
 range_cond_0:
-    t3 = lt_int t2, t1
-    branch t1, range_body_0, range_end_0
+    t4 = lt_int t3, t2
+    branch t4, range_body_0, range_end_0
 
 range_post_0:
-    t2++
-    jump range_body_0
+    t3++
+    jump range_cond_0
 
 range_body_0:
     a++
@@ -3865,35 +3872,119 @@ range_end_0:
 			},
 			{
 				data: `package main
+
 func x(){
   a := int(10)
-  for k,v := range int(5) {
+  z := int(10)
+  for range z {
     a++
+    return
   }
 }`,
-				expected: `
+				expected: `func x()
+entry:
+    t0 = const_int 10
+    a = t0
+    t1 = const_int 10
+    z = t1
+    t2 = z
+    t3 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t4 = lt_int t3, t2
+    branch t4, range_body_0, range_end_0
+
+range_post_0:
+    t3++
+    jump range_cond_0
+
+range_body_0:
+    a++
+    return
+
+range_end_0:
 
 `,
 			},
 			{
 				data: `package main
-func x(){
+func println(s string){}
+
+func x(arr []string){
+  for k,v := range arr {
+    println(v)
+  }
+}`,
+				expected: `func println(s:string)
+
+func x(arr:[]string)
+entry:
+    t0 = arr
+    t1 = const_int 0
+    t2 = len t0
+    jump range_cond_0
+
+range_cond_0:
+    t3 = lt_int t1, t2
+    branch t3, range_body_0, range_end_0
+
+range_post_0:
+    t1++
+    jump range_cond_0
+
+range_body_0:
+    k = t1
+    v = index t0, t1
+    t4 = call println(v)
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+func x(arr [5]int){
   a := int(10)
-  for _,v := range int(5) {
+  for _,v := range arr {
     a = v
     break
   }
   a++
 }`,
-				expected: `
+				expected: `func x(arr:[5]int)
+entry:
+    t0 = const_int 10
+    a = t0
+    t1 = arr
+    t2 = const_int 0
+    t3 = len t1
+    jump range_cond_0
+
+range_cond_0:
+    t4 = lt_int t2, t3
+    branch t4, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    v = index t1, t2
+    a = v
+    jump range_end_0
+
+range_end_0:
+    a++
 
 `,
 			},
 			{
 				data: `package main
-func x(){
-  a := int(0)
-  for k,_ := range int(5) {
+func x(arr []int){
+  a := int(1)
+  for k,_ := range arr {
     if k == int(0) {
       a = int(5)
     } else {
@@ -3901,15 +3992,54 @@ func x(){
     }
   }
 }`,
-				expected: `
+				expected: `func x(arr:[]int)
+entry:
+    t0 = const_int 1
+    a = t0
+    t1 = arr
+    t2 = const_int 0
+    t3 = len t1
+    jump range_cond_0
+
+range_cond_0:
+    t4 = lt_int t2, t3
+    branch t4, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    k = t2
+    t5 = const_int 0
+    t6 = eq_bool k, t5
+    branch t6, if_then_1, if_else_1
+
+if_then_1:
+    t7 = const_int 5
+    a = t7
+    jump if_end_1
+
+if_else_1:
+    t8 = const_int 5
+    a += t8
+    jump if_end_1
+
+if_end_1:
+    jump range_post_0
+
+range_end_0:
 
 `,
 			},
 			{
 				data: `package main
-func x(){
+func println(s string){}
+
+func x(arr []string){
   a := int(0)
-  for k,_ := range int(5) {
+  for k,v := range arr {
+    println(v)
     if k == int(0) {
       a = int(5)
     } else {
@@ -3917,16 +4047,562 @@ func x(){
     }
   }
 }`,
-				expected: `
+				expected: `func println(s:string)
+
+func x(arr:[]string)
+entry:
+    t0 = const_int 0
+    a = t0
+    t1 = arr
+    t2 = const_int 0
+    t3 = len t1
+    jump range_cond_0
+
+range_cond_0:
+    t4 = lt_int t2, t3
+    branch t4, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    k = t2
+    v = index t1, t2
+    t5 = call println(v)
+    t6 = const_int 0
+    t7 = eq_bool k, t6
+    branch t7, if_then_1, if_else_1
+
+if_then_1:
+    t8 = const_int 5
+    a = t8
+    jump if_end_1
+
+if_else_1:
+    jump range_post_0
+
+if_end_1:
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+type Name string
+func println(s Name){}
+
+func x(arr []Name){
+  a := int(0)
+  for k,v := range arr {
+    println(v)
+    if k == int(0) {
+      a = int(5)
+    } else {
+      continue
+    }
+  }
+}`,
+				expected: `func println(s:Name)
+
+func x(arr:[]Name)
+entry:
+    t0 = const_int 0
+    a = t0
+    t1 = arr
+    t2 = const_int 0
+    t3 = len t1
+    jump range_cond_0
+
+range_cond_0:
+    t4 = lt_int t2, t3
+    branch t4, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    k = t2
+    v = index t1, t2
+    t5 = call println(v)
+    t6 = const_int 0
+    t7 = eq_bool k, t6
+    branch t7, if_then_1, if_else_1
+
+if_then_1:
+    t8 = const_int 5
+    a = t8
+    jump if_end_1
+
+if_else_1:
+    jump range_post_0
+
+if_end_1:
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func println(s string){}
+
+func x(arr [2]string){
+  a := int(0)
+  for k,v := range arr {
+    println(v)
+    if k == int(0) {
+      a = int(5)
+    } else {
+      continue
+    }
+  }
+}`,
+				expected: `func println(s:string)
+
+func x(arr:[2]string)
+entry:
+    t0 = const_int 0
+    a = t0
+    t1 = arr
+    t2 = const_int 0
+    t3 = len t1
+    jump range_cond_0
+
+range_cond_0:
+    t4 = lt_int t2, t3
+    branch t4, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    k = t2
+    v = index t1, t2
+    t5 = call println(v)
+    t6 = const_int 0
+    t7 = eq_bool k, t6
+    branch t7, if_then_1, if_else_1
+
+if_then_1:
+    t8 = const_int 5
+    a = t8
+    jump if_end_1
+
+if_else_1:
+    jump range_post_0
+
+if_end_1:
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func numbers() []int {
+  return []int{1, 2, 3}
+}
+
+func f() {
+  for _, v := range numbers() {
+  }
+}`,
+				expected: `func numbers() -> []int
+entry:
+    return [1,2,3]
+
+func f()
+entry:
+    t0 = call numbers()
+    t1 = t0
+    t2 = const_int 0
+    t3 = len t1
+    jump range_cond_0
+
+range_cond_0:
+    t4 = lt_int t2, t3
+    branch t4, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    v = index t1, t2
+    jump range_post_0
+
+range_end_0:
 
 `,
 			},
 			{
 				data: `package main
 func x(z int){
-  for z = range int(5) {}
+  for i := range int(5) {
+    z = i
+  }
 }`,
-				expected: `
+				expected: `func x(z:int)
+entry:
+    t0 = const_int 5
+    t1 = t0
+    t2 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t3 = lt_int t2, t1
+    branch t3, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    i = t2
+    z = i
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func println(i int){}
+
+func x(z int){
+  for z = range int(5) {
+    switch z {
+      case 1:
+        println(z)
+    }
+  }
+}`,
+				expected: `func println(i:int)
+
+func x(z:int)
+entry:
+    t0 = const_int 5
+    t1 = t0
+    t2 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t3 = lt_int t2, t1
+    branch t3, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    z = t2
+    jump switch_1_check_1
+
+switch_1_check_1:
+    t4 = eq_bool z, 1
+    branch t4, switch_1_case_1, switch_1_end
+
+switch_1_case_1:
+    t5 = call println(z)
+    jump switch_1_end
+
+switch_1_end:
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func xx() int {
+  return int(5)
+}
+
+func println(i int){}
+
+func x(z int){
+  for z = range xx() {
+    switch z {
+      case 1:
+        println(z)
+    }
+  }
+}`,
+				expected: `func xx() -> int
+entry:
+    t0 = const_int 5
+    return t0
+
+func println(i:int)
+
+func x(z:int)
+entry:
+    t0 = call xx()
+    t1 = t0
+    t2 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t3 = lt_int t2, t1
+    branch t3, range_body_0, range_end_0
+
+range_post_0:
+    t2++
+    jump range_cond_0
+
+range_body_0:
+    z = t2
+    jump switch_1_check_1
+
+switch_1_check_1:
+    t4 = eq_bool z, 1
+    branch t4, switch_1_case_1, switch_1_end
+
+switch_1_case_1:
+    t5 = call println(z)
+    jump switch_1_end
+
+switch_1_end:
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func f(n int) {
+  for k := range n {
+    n = int(0)
+  }
+}`,
+				expected: `func f(n:int)
+entry:
+    t0 = n
+    t1 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t2 = lt_int t1, t0
+    branch t2, range_body_0, range_end_0
+
+range_post_0:
+    t1++
+    jump range_cond_0
+
+range_body_0:
+    k = t1
+    t3 = const_int 0
+    n = t3
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func f(n int) {
+  for k := range n + int(2) {
+    n = int(0)
+  }
+}`,
+				expected: `func f(n:int)
+entry:
+    t0 = const_int 2
+    t1 = add_int n, t0
+    t2 = t1
+    t3 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t4 = lt_int t3, t2
+    branch t4, range_body_0, range_end_0
+
+range_post_0:
+    t3++
+    jump range_cond_0
+
+range_body_0:
+    k = t3
+    t5 = const_int 0
+    n = t5
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func f(n int) {
+  for k := range n {
+    for l := range n + int(5) {
+      n = int(0)
+    }
+    n = int(1)
+  }
+}`,
+				expected: `func f(n:int)
+entry:
+    t0 = n
+    t1 = const_int 0
+    jump range_cond_0
+
+range_cond_0:
+    t2 = lt_int t1, t0
+    branch t2, range_body_0, range_end_0
+
+range_post_0:
+    t1++
+    jump range_cond_0
+
+range_body_0:
+    k = t1
+    t3 = const_int 5
+    t4 = add_int n, t3
+    t5 = t4
+    t6 = const_int 0
+    jump range_cond_1
+
+range_cond_1:
+    t7 = lt_int t6, t5
+    branch t7, range_body_1, range_end_1
+
+range_post_1:
+    t6++
+    jump range_cond_1
+
+range_body_1:
+    l = t6
+    t8 = const_int 0
+    n = t8
+    jump range_post_1
+
+range_end_1:
+    t9 = const_int 1
+    n = t9
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func f(n uint) {
+  for k := range n {
+    n = uint(0)
+  }
+}`,
+				expected: `func f(n:uint)
+entry:
+    t0 = n
+    t1 = const_uint 0
+    jump range_cond_0
+
+range_cond_0:
+    t2 = lt_uint t1, t0
+    branch t2, range_body_0, range_end_0
+
+range_post_0:
+    t1++
+    jump range_cond_0
+
+range_body_0:
+    k = t1
+    t3 = const_uint 0
+    n = t3
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+type Counter int
+
+func println(k Counter){}
+
+func f(n Counter) {
+  for k := range n {
+    println(k)
+  }
+}`,
+				expected: `func println(k:Counter)
+
+func f(n:Counter)
+entry:
+    t0 = n
+    t1 = const_Counter 0
+    jump range_cond_0
+
+range_cond_0:
+    t2 = lt_Counter t1, t0
+    branch t2, range_body_0, range_end_0
+
+range_post_0:
+    t1++
+    jump range_cond_0
+
+range_body_0:
+    k = t1
+    t3 = call println(k)
+    jump range_post_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+type Counter []int
+
+func f(n Counter) {
+  for k := range n {
+  }
+}`,
+				expected: `func f(n:Counter)
+entry:
+    t0 = n
+    t1 = const_int 0
+    t2 = len t0
+    jump range_cond_0
+
+range_cond_0:
+    t3 = lt_int t1, t2
+    branch t3, range_body_0, range_end_0
+
+range_post_0:
+    t1++
+    jump range_cond_0
+
+range_body_0:
+    k = t1
+    jump range_post_0
+
+range_end_0:
 
 `,
 			},
@@ -3953,5 +4629,11 @@ func x(z int){
 
 			assert.Equal(t, tc.expected, dump(lir), i)
 		}
+	})
+
+	t.Run("dummy_expr_kind", func(t *testing.T) {
+		var l *Lower
+		kind, _, _ := l.exprTypeKind(&semantic.UntypedNilType{})
+		require.Equal(t, exprKindInvalid, kind)
 	})
 }

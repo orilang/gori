@@ -12,3 +12,5 @@ func (*Assigment) instrNode() {}
 func (*Extract) instrNode()   {}
 func (*Unary) instrNode()     {}
 func (*IncDec) instrNode()    {}
+func (*Index) instrNode()     {}
+func (*Len) instrNode()       {}

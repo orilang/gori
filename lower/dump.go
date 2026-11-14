@@ -101,6 +101,12 @@ func (d *dumper) node(indent int, n any) {
 	case *ir.IncDec:
 		d.line(indent, fmt.Sprintf("%s%s", t.Value, t.Operator))
 
+	case *ir.Index:
+		d.line(indent, fmt.Sprintf("%s = index %s, %s", t.Result, t.Name, t.Value))
+
+	case *ir.Len:
+		d.line(indent, fmt.Sprintf("%s = len %s", t.Result, t.Value))
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil intermediate representation)")

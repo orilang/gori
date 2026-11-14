@@ -4,6 +4,7 @@ import (
 	"bytes"
 
 	"github.com/orilang/gori/ir"
+	"github.com/orilang/gori/semantic"
 )
 
 type Lower struct {
@@ -38,22 +39,28 @@ type dumper struct {
 	w *bytes.Buffer
 }
 
-type rangeStmtKind int
+type exprKind int
 
 const (
-	rangeInvalid = iota
-	rangeInterger
-	rangeArray
-	rangeSlice
-	rangeMap
-	rangeHashMap
+	exprKindInvalid exprKind = iota
+	exprKindInterger
+	exprKindArray
+	exprKindSlice
+	exprKindMap
+	exprKindHashMap
+	exprKindFuncMethod
+	exprKindNamedType
 )
 
 type infos struct {
 	values         []ir.Value
 	flowTerminates bool
+	isBlank        bool
 	breaks         bool
-	rangeKind      rangeStmtKind
+	exprKind       exprKind
+	exprType       semantic.Type
+	// Used only when exprKind == exprKindNamedType
+	exprUnderlyingKind exprKind
 }
 
 type forStmtKind int
@@ -70,9 +77,6 @@ type inputConfig struct {
 	// continues must be filled in for loop
 	// with continue statement
 	continues *ir.Jump
-
-	// post must be used when continue statement found
-	posts *ir.Jump
 
 	// breaks must be filled in for loop
 	// with break statement

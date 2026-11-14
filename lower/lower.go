@@ -5,6 +5,7 @@ package lower
 import (
 	"fmt"
 	"slices"
+	"strings"
 
 	"github.com/orilang/gori/ir"
 	"github.com/orilang/gori/semantic"
@@ -750,62 +751,145 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		lend := &ir.Label{Name: "range_end", Index: labelIndex}
 
 		jumpCond := &ir.Jump{Name: "range_cond", Index: labelIndex}
-		jumpBody := &ir.Jump{Name: "range_body", Index: labelIndex}
 		jumpPost := &ir.Jump{Name: "range_post", Index: labelIndex}
 		jumpBreaks := &ir.Jump{Name: "range_end", Index: labelIndex}
 
 		config.isForSwitch = false
-		config.continues = jumpCond
+		config.continues = jumpPost
 		config.breaks = jumpBreaks
 
 		cond := l.lowerExpr(stmt.X)
+		condx := fmt.Sprintf("t%d", l.tIndex)
+		l.tIndex++
+		l.instructions = append(l.instructions, &ir.Assigment{
+			Result:   condx,
+			Operator: "=",
+			Value:    singleValue(cond.values),
+		})
+
+		typ := "int"
+		if cond.exprKind == exprKindInterger || (cond.exprKind == exprKindNamedType && cond.exprUnderlyingKind == exprKindInterger) {
+			typ = cond.exprType.String()
+		}
 		loopIndex := fmt.Sprintf("t%d", l.tIndex)
 		l.tIndex++
+		l.instructions = append(l.instructions, &ir.Const{
+			Result: loopIndex,
+			Type:   typ,
+			Value:  "0",
+		})
 
-		switch cond.rangeKind {
-		case rangeInterger:
-			l.instructions = append(l.instructions, &ir.Assigment{
-				Result:   loopIndex,
-				Operator: "= const_int",
-				Value:    "0",
+		var right string
+		switch cond.exprKind {
+		case exprKindInterger:
+			right = condx
+
+		case exprKindSlice, exprKindArray:
+			t := fmt.Sprintf("t%d", l.tIndex)
+			l.tIndex++
+			l.instructions = append(l.instructions, &ir.Len{
+				Result: t,
+				Value:  condx,
 			})
+			right = t
+
+		case exprKindNamedType:
+			switch cond.exprUnderlyingKind {
+			case exprKindInterger:
+				right = condx
+
+			case exprKindSlice, exprKindArray:
+				t := fmt.Sprintf("t%d", l.tIndex)
+				l.tIndex++
+				l.instructions = append(l.instructions, &ir.Len{
+					Result: t,
+					Value:  condx,
+				})
+				right = t
+
+			default:
+				l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
+				return
+			}
 
 		default:
-			l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, data.rangeKind)})
+			l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
 			return
 		}
 
 		l.instructions = append(l.instructions, jumpCond, lcond)
-
 		tbinary := fmt.Sprintf("t%d", l.tIndex)
 		l.tIndex++
 		l.instructions = append(l.instructions, &ir.Binary{
 			Result: tbinary,
-			Op:     token.BinaryOpString(token.Lt) + "_" + semantic.TInt.String(),
+			Op:     token.BinaryOpString(token.Lt) + "_" + typ,
 			Left:   loopIndex,
-			Right:  singleValue(cond.values),
+			Right:  right,
 		})
 
-		br := &ir.Branch{Condition: singleValue(cond.values)}
+		br := &ir.Branch{Condition: tbinary}
 		br.List = append(br.List, ir.BranchSub{Name: "range_body", Index: labelIndex})
 		br.List = append(br.List, ir.BranchSub{Name: "range_end", Index: labelIndex})
 		l.instructions = append(l.instructions, br)
 
 		l.instructions = append(l.instructions, lpost)
-		switch cond.rangeKind {
-		case rangeInterger:
-			l.instructions = append(l.instructions, &ir.IncDec{
-				Value:    loopIndex,
-				Operator: token.AssignOpString(token.PPlus),
-			})
+		l.instructions = append(l.instructions, &ir.IncDec{
+			Value:    loopIndex,
+			Operator: token.AssignOpString(token.PPlus),
+		})
+		l.instructions = append(l.instructions, jumpCond, lbody)
 
-		default:
-			// kept here as a safe guard
-			l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, data.rangeKind)})
-			return
+		if stmt.Key != nil {
+			key := l.lowerExpr(stmt.Key)
+			if !key.isBlank {
+				l.instructions = append(l.instructions, &ir.Assigment{
+					Result:   singleValue(key.values),
+					Operator: "=",
+					Value:    loopIndex,
+				})
+			}
 		}
 
-		l.instructions = append(l.instructions, jumpBody, lbody)
+		if stmt.Value != nil {
+			switch cond.exprKind {
+			case exprKindInterger:
+
+			case exprKindSlice, exprKindArray:
+				value := l.lowerExpr(stmt.Value)
+				if !value.isBlank {
+					l.instructions = append(l.instructions, &ir.Index{
+						Result: singleValue(value.values),
+						Name:   condx,
+						Value:  loopIndex,
+					})
+				}
+
+			case exprKindNamedType:
+				switch cond.exprUnderlyingKind {
+				case exprKindInterger:
+
+				case exprKindSlice, exprKindArray:
+					value := l.lowerExpr(stmt.Value)
+					if !value.isBlank {
+						l.instructions = append(l.instructions, &ir.Index{
+							Result: singleValue(value.values),
+							Name:   condx,
+							Value:  loopIndex,
+						})
+					}
+
+				default:
+					// kept here as a safe guard
+					l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
+					return
+				}
+
+			default:
+				// kept here as a safe guard
+				l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
+				return
+			}
+		}
 
 		var result infos
 		for _, body := range stmt.Body.Stmts {
@@ -835,23 +919,43 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 	switch expr := t.(type) {
 	case *semantic.IntLitExpr:
 		data.values = append(data.values, ir.Value(expr.Value))
-		data.rangeKind = rangeInterger
+		kind, typ, ukind := l.exprTypeKind(expr.Type)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
 	case *semantic.FloatLitExpr:
 		data.values = append(data.values, ir.Value(expr.Value))
+		kind, typ, ukind := l.exprTypeKind(expr.Type)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
 	case *semantic.BoolLitExpr:
 		data.values = append(data.values, ir.Value(expr.Value))
+		kind, typ, ukind := l.exprTypeKind(expr.Type)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
 	case *semantic.StringLitExpr:
 		data.values = append(data.values, ir.Value(expr.Value))
+		kind, typ, ukind := l.exprTypeKind(expr.Type)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
 	case *semantic.IdentExpr:
+		data.isBlank = semantic.IsBlank(expr.Value)
 		data.values = append(data.values, ir.Value(expr.Value))
+		kind, typ, ukind := l.exprTypeKind(expr.Type)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
 	case *semantic.BinaryExpr:
@@ -868,6 +972,10 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 
 		l.tIndex++
 		data.values = append(data.values, ir.Value(t))
+		kind, typ, ukind := l.exprTypeKind(expr.Type)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
 	case *semantic.ConversionExpr:
@@ -881,7 +989,10 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 
 		l.tIndex++
 		data.values = append(data.values, ir.Value(t))
-		data.rangeKind = value.rangeKind
+		kind, typ, ukind := l.exprTypeKind(expr.To)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
 	case *semantic.CallExpr:
@@ -901,6 +1012,10 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 
 		l.tIndex++
 		data.values = append(data.values, ir.Value(t))
+		kind, typ, ukind := l.exprTypeKind(expr.CalleeType)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
 	case *semantic.UnaryExpr:
@@ -913,16 +1028,65 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		})
 		l.tIndex++
 		data.values = append(data.values, ir.Value(t))
+		kind, typ, ukind := l.exprTypeKind(expr.Type)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
 		return
 
-	case *semantic.SliceExpr:
-		data.rangeKind = rangeSlice
+	case *semantic.SliceLitExpr:
+		var s []string
+		for _, el := range expr.Elements {
+			d := l.lowerExpr(el)
+			s = append(s, singleValue(d.values))
+		}
+		r := "[" + strings.Join(s, ",") + "]"
+		data.values = append(data.values, ir.Value(r))
+		kind, typ, ukind := l.exprTypeKind(expr.Type)
+		data.exprKind = kind
+		data.exprType = typ
+		data.exprUnderlyingKind = ukind
+		return
 
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %T", expr)})
 	}
 
 	return
+}
+
+// exprTypeKind returns expression kind based on its type
+func (l *Lower) exprTypeKind(expr semantic.Type) (exprKind, semantic.Type, exprKind) {
+	switch t := expr.(type) {
+	case *semantic.BuiltinType:
+		if semantic.IsInteger(t) {
+			return exprKindInterger, t, exprKindInvalid
+		}
+
+	case *semantic.SliceType:
+		return exprKindSlice, t, exprKindInvalid
+
+	case *semantic.ArrayType:
+		return exprKindArray, t, exprKindInvalid
+
+	case *semantic.MapType:
+		return exprKindMap, t, exprKindInvalid
+
+	case *semantic.HashMapType:
+		return exprKindHashMap, t, exprKindInvalid
+
+	case *semantic.FuncMethod:
+		if len(t.FuncType.Results) == 1 {
+			return l.exprTypeKind(t.FuncType.Results[0].Type)
+		}
+		return exprKindFuncMethod, t, exprKindInvalid
+
+	case *semantic.NamedType:
+		ukind, _, _ := l.exprTypeKind(semantic.UnwrapNamed(t.UnderlyingType))
+		return exprKindNamedType, t, ukind
+	}
+
+	return exprKindInvalid, nil, exprKindInvalid
 }
 
 // isFallingThroughStmt returns true if statement is fallthrough
