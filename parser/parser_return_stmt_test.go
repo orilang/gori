@@ -241,6 +241,68 @@ func f() User {
 		assert.Equal(0, len(parser.Errors))
 	})
 
+	t.Run("function_x7", func(t *testing.T) {
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		assert.Nil(err)
+		data := `package main
+type User struct {}
+
+func f() []int {
+  return []int{1, 2, 3}
+}
+`
+		parser := New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		result := `File
+ Package: "package" @1:1 (kind=8)
+ Name: "main" @1:9 (kind=3)
+ Decls
+  StructDecl:
+   Type: "type" @2:1 (kind=26)
+   Name: "User" @2:6 (kind=3)
+   Struct: "struct" @2:11 (kind=27)
+   Public: true
+   LBrace: "{" @2:18 (kind=41)
+   RBrace: "}" @2:19 (kind=42)
+  FuncDecl
+   Function: "func" @4:1 (kind=10)
+   Name: "f" @4:6 (kind=3)
+   Params
+    (none)
+   Results
+     Param
+      Type
+       SliceType:
+        LBracket: "[" @4:10 (kind=43)
+        RBracket: "]" @4:11 (kind=44)
+        NamedType
+         Ident: "int" @4:12 (kind=12)
+   Body
+    BlockStmt
+     LBrace: "{" @4:16 (kind=41)
+     Stmts
+      ReturnStmt
+       Values
+        SliceType:
+         LBracket: "[" @5:10 (kind=43)
+         RBracket: "]" @5:11 (kind=44)
+         NamedType
+          Ident: "int" @5:12 (kind=12)
+         LBrace: "{" @5:15 (kind=41)
+          Elements
+           IntLitExpr
+            Value: "1" @5:16 (kind=4)
+           IntLitExpr
+            Value: "2" @5:19 (kind=4)
+           IntLitExpr
+            Value: "3" @5:22 (kind=4)
+          RBrace: "}" @5:23 (kind=42)
+     RBrace: "}" @6:1 (kind=42)
+`
+		assert.Equal(result, ast.Dump(pr))
+		assert.Equal(0, len(parser.Errors))
+	})
+
 	t.Run("bad_x1", func(t *testing.T) {
 		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
 		assert.Nil(err)

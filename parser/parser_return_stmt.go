@@ -32,6 +32,8 @@ func (p *Parser) parseReturnStmtExpr() ast.Stmt {
 
 		if p.lookupStructExpr() {
 			args = append(args, p.parseStructExpr())
+		} else if p.kind() == token.LBracket {
+			args = append(args, p.parseSliceElements())
 		} else {
 			args = append(args, p.parseExpr(LOWEST))
 		}
