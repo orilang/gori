@@ -2663,7 +2663,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	switch stmt.Op.Kind {
 	case token.Assign:
 		if stmt.Key != nil && stmt.Value != nil {
-			if IsInteger(iteratorType) {
+			if IsInteger(unwrapNamed(iteratorType)) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use both key/value with integer iterator type, use only key at %d:%d-%d", stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Value.End().Column)})
 				return
 			}
@@ -2766,7 +2766,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 
 	case token.Define:
 		if stmt.Key != nil && stmt.Value != nil {
-			if IsInteger(iteratorType) {
+			if IsInteger(unwrapNamed(iteratorType)) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use both key/value with integer iterator type, use only key at %d:%d-%d", stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Value.End().Column)})
 				return
 			}
