@@ -235,7 +235,7 @@ func (c *Checker) declareMethodSymbol(receiver *NamedType, fm *FuncMethod) {
 		return
 	}
 
-	underlying := unwrapNamed(receiver)
+	underlying := UnwrapNamed(receiver)
 	if st, ok := underlying.(*StructType); ok {
 		for _, f := range st.Fields {
 			if f.Name == fm.Name {
@@ -551,7 +551,7 @@ func (c *Checker) resolveStructTypeDefaultValues() {
 			sym := c.pkgScope.LookupLocal(name)
 			if sym != nil && sym.Kind == SymType {
 				if nt, nok := sym.Type.(*NamedType); nok {
-					if st, stok := unwrapNamed(nt).(*StructType); stok {
+					if st, stok := UnwrapNamed(nt).(*StructType); stok {
 						for _, field := range sd.Fields {
 							if field.Eq != nil && field.Default != nil {
 								if styp, sok := lookupStructField(st, field.Name.Value); sok {
@@ -642,7 +642,7 @@ func (c *Checker) resolveMethodSignatures() {
 			continue
 		}
 
-		if _, ok := unwrapNamed(namedRcv).(*InterfaceType); ok {
+		if _, ok := UnwrapNamed(namedRcv).(*InterfaceType); ok {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("receiver cannot be an interface type at %d:%d", decl.Name.Line, decl.Name.Column)})
 			continue
 		}
@@ -756,8 +756,8 @@ func (c *Checker) checkConstDecl(decl *ast.ConstDecl) {
 
 	// We currently forbid map assigment because it's a mutable object.
 	// To do that we need to clone this object which is not supported
-	_, isMap := unwrapNamed(targetType).(*MapType)
-	_, isHashMap := unwrapNamed(targetType).(*HashMapType)
+	_, isMap := UnwrapNamed(targetType).(*MapType)
+	_, isHashMap := UnwrapNamed(targetType).(*HashMapType)
 	if isMap || isHashMap {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigning map/hashmap to const is forbidden at %d:%d-%d", decl.Init.Start().Line, decl.Init.Start().Column, decl.Init.End().Column)})
 		return
@@ -936,7 +936,7 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 
 	case *ast.IndexExpr:
 		baseType, baseExpr := c.checkExprInCurrentMode(t.X, exprConfig{})
-		underlying := unwrapNamed(baseType)
+		underlying := UnwrapNamed(baseType)
 		indexType, indexExpr := c.checkExprInCurrentMode(t.Index, exprConfig{})
 		idxExpr := &IndexExpr{X: baseExpr, Index: indexExpr}
 
@@ -1042,7 +1042,7 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 			return TInvalid, nil
 		}
 
-		st, ok := unwrapNamed(nt).(*StructType)
+		st, ok := UnwrapNamed(nt).(*StructType)
 		if !ok {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q is not a struct, got %q at %d:%d-%d", t.Name.Value, stringifyType(st), t.Start().Line, t.Start().Column, t.End().Column)})
 			return TInvalid, nil
@@ -1213,22 +1213,22 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 		return
 	}
 
-	if _, ok := unwrapNamed(namedRcv).(*SliceType); ok {
+	if _, ok := UnwrapNamed(namedRcv).(*SliceType); ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("slice type receiver is forbidden at %d:%d-%d", fn.Receiver.LParen.Line, fn.Receiver.LParen.Column, fn.Receiver.RParen.Column)})
 		return
 	}
 
-	if _, ok := unwrapNamed(namedRcv).(*ArrayType); ok {
+	if _, ok := UnwrapNamed(namedRcv).(*ArrayType); ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("array type receiver is forbidden at %d:%d-%d", fn.Receiver.LParen.Line, fn.Receiver.LParen.Column, fn.Receiver.RParen.Column)})
 		return
 	}
 
-	if _, ok := unwrapNamed(namedRcv).(*MapType); ok {
+	if _, ok := UnwrapNamed(namedRcv).(*MapType); ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("map type receiver is forbidden at %d:%d-%d", fn.Receiver.LParen.Line, fn.Receiver.LParen.Column, fn.Receiver.RParen.Column)})
 		return
 	}
 
-	if _, ok := unwrapNamed(namedRcv).(*HashMapType); ok {
+	if _, ok := UnwrapNamed(namedRcv).(*HashMapType); ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("hashmap type receiver is forbidden at %d:%d-%d", fn.Receiver.LParen.Line, fn.Receiver.LParen.Column, fn.Receiver.RParen.Column)})
 		return
 	}
@@ -1473,8 +1473,8 @@ func (c *Checker) checkScopeConstDecl(decl *ast.ConstDecl) Decl {
 
 	// We currently forbid map assigment because it's a mutable object.
 	// To do that we need to clone this object which is not supported
-	_, isMap := unwrapNamed(targetType).(*MapType)
-	_, isHashMap := unwrapNamed(targetType).(*HashMapType)
+	_, isMap := UnwrapNamed(targetType).(*MapType)
+	_, isHashMap := UnwrapNamed(targetType).(*HashMapType)
 	if isMap || isHashMap {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("assigning map/hashmap to const is forbidden at %d:%d-%d", decl.Init.Start().Line, decl.Init.Start().Column, decl.Init.End().Column)})
 		return nil
@@ -2203,7 +2203,7 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 		return
 	}
 
-	if _, ok := unwrapNamed(implementer).(*InterfaceType); ok {
+	if _, ok := UnwrapNamed(implementer).(*InterfaceType); ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q cannot implement another interface at %d:%d-%d", decl.TypeName.Value, decl.Start().Line, decl.Start().Column, decl.End().Column)})
 		return
 	}
@@ -2219,7 +2219,7 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 		return
 	}
 
-	iface, ok := unwrapNamed(ifaceNamed).(*InterfaceType)
+	iface, ok := UnwrapNamed(ifaceNamed).(*InterfaceType)
 	if !ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("type %q is not an interface at %d:%d-%d", ifaceNamed.Name, decl.Interface.Start().Line, decl.Interface.Start().Column, decl.Interface.End().Column)})
 		return
@@ -2316,7 +2316,7 @@ func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
 		return TInvalid
 	}
 
-	underlying := unwrapNamed(baseType)
+	underlying := UnwrapNamed(baseType)
 	switch t := underlying.(type) {
 	case *StructType:
 		if named, ok := baseType.(*NamedType); ok {
@@ -2346,8 +2346,8 @@ func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
 	}
 }
 
-// unwrapNamed returns underlying type if it's a named type otherwise the initial type
-func unwrapNamed(t Type) Type {
+// UnwrapNamed returns underlying type if it's a named type otherwise the initial type
+func UnwrapNamed(t Type) Type {
 	for {
 		named, ok := t.(*NamedType)
 		if !ok {
@@ -2663,7 +2663,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 	switch stmt.Op.Kind {
 	case token.Assign:
 		if stmt.Key != nil && stmt.Value != nil {
-			if IsInteger(unwrapNamed(iteratorType)) {
+			if IsInteger(UnwrapNamed(iteratorType)) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use both key/value with integer iterator type, use only key at %d:%d-%d", stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Value.End().Column)})
 				return
 			}
@@ -2766,7 +2766,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 
 	case token.Define:
 		if stmt.Key != nil && stmt.Value != nil {
-			if IsInteger(unwrapNamed(iteratorType)) {
+			if IsInteger(UnwrapNamed(iteratorType)) {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot use both key/value with integer iterator type, use only key at %d:%d-%d", stmt.Key.Start().Line, stmt.Key.Start().Column, stmt.Value.End().Column)})
 				return
 			}
@@ -2833,7 +2833,7 @@ func (c *Checker) checkRangeStmt(stmt *ast.RangeStmt, returnInputVarsInitialized
 
 // rangeVars returns underlying type var
 func rangeVars(t Type) (Type, Type, bool) {
-	un := unwrapNamed(t)
+	un := UnwrapNamed(t)
 	switch x := un.(type) {
 	case *ArrayType:
 		return TInt, x.Elem, true
@@ -2945,7 +2945,7 @@ func (c *Checker) checkSwitchStmt(stmt *ast.SwitchStmt, returnInputVarsInitializ
 			return
 		}
 
-		underlying := unwrapNamed(tagType)
+		underlying := UnwrapNamed(tagType)
 		switch underlying.(type) {
 		case *SumType:
 			return c.checkSwitchStmtSumType(tagType, stmt, returnInputVarsInitialized)
@@ -3291,7 +3291,7 @@ func (c *Checker) checkContinueStmt(stmt *ast.ContinueStmt) bool {
 
 // checkSwitchStmtSumType validates switch statement block
 func (c *Checker) checkSwitchStmtSumType(tagType Type, stmt *ast.SwitchStmt, returnInputVarsInitialized []string) (st stmtInfo) {
-	underlying := unwrapNamed(tagType)
+	underlying := UnwrapNamed(tagType)
 	sm := underlying.(*SumType)
 
 	var (
@@ -3488,7 +3488,7 @@ func (c *Checker) checkSwitchSumBody(body []ast.Stmt, bindings []*Symbol, return
 
 // checkSwitchStmtEnumType validates switch statement block
 func (c *Checker) checkSwitchStmtEnumType(tagType Type, stmt *ast.SwitchStmt, returnInputVarsInitialized []string) (st stmtInfo) {
-	underlying := unwrapNamed(tagType)
+	underlying := UnwrapNamed(tagType)
 	en := underlying.(*EnumType)
 
 	var (
@@ -3719,7 +3719,7 @@ func (c *Checker) isValidComptimeType(t Type) bool {
 		return false
 	}
 
-	u := unwrapNamed(t)
+	u := UnwrapNamed(t)
 	switch u.(type) {
 	case *MapType, *HashMapType, *SliceType, *StructType, *SumType, *EnumType, *InterfaceType:
 		return false
@@ -4042,7 +4042,7 @@ func isValidStructDefaultType(t Type) bool {
 		return false
 	}
 
-	u := unwrapNamed(t)
+	u := UnwrapNamed(t)
 	switch u.(type) {
 	case *FuncMethod, *MapType, *HashMapType:
 		return false
