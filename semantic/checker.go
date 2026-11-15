@@ -983,7 +983,8 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 			if config.isWriteIndexingAssigment {
 				return decl.Value, idxExpr
 			}
-			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, &MultiValueExpr{kind: multiValueMapX}
+			typ := &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}
+			return typ, &MultiValueExpr{Type: typ, Values: []Expr{idxExpr}}
 
 		case *HashMapType:
 			if !IsIdentical(decl.Key, indexType) {
@@ -993,7 +994,8 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 			if config.isWriteIndexingAssigment {
 				return decl.Value, idxExpr
 			}
-			return &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}, &MultiValueExpr{kind: multiValueMapX}
+			typ := &MultiValueType{Values: []Type{decl.Value, TBool}, kind: multiValueMapX}
+			return typ, &MultiValueExpr{Type: typ, Values: []Expr{idxExpr}}
 
 		default:
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %#v at %d:%d-%d", t.X, t.X.Start().Line, t.X.Start().Column, t.X.End().Column)})

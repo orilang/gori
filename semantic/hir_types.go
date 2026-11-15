@@ -235,8 +235,8 @@ type MakeExpr struct {
 }
 
 type MultiValueExpr struct {
+	Type   Type
 	Values []Expr
-	kind   multiValueTypeKind
 }
 
 type ForStmt struct {
