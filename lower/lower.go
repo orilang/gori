@@ -531,6 +531,20 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			}
 		}
 
+		// When switch breaks, it MUST exit to switch_xx_end
+		// This is very important espacially in a for loop
+		// as it must NOT exit the loop but only the switch.
+		// This is a C convention and almost programing languages follows
+		// this pattern.
+		oldBreaks := config.breaks
+		config.breaks = &ir.Jump{
+			Name:     fmt.Sprintf("switch_%d_end", labelIndex),
+			NoSuffix: true,
+		}
+		defer func() {
+			config.breaks = oldBreaks
+		}()
+
 		post := func(body []semantic.Stmt, next next) (flowTerminates, fallsThrough, breaks bool) {
 			for _, st := range body {
 				if isFallingThroughStmt([]semantic.Stmt{st}) {

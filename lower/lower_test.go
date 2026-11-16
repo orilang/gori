@@ -2872,7 +2872,7 @@ switch_1_case_4:
     return a
 
 switch_1_case_5:
-    jump for_end_0
+    jump switch_1_end
 
 switch_1_end:
     jump for_body_0
@@ -3466,7 +3466,7 @@ switch_1_case_4:
     return a
 
 switch_1_case_5:
-    jump for_end_0
+    jump switch_1_end
 
 switch_1_end:
     jump for_post_0
@@ -3564,7 +3564,7 @@ switch_1_case_4:
     return a
 
 switch_1_case_5:
-    jump for_end_0
+    jump switch_1_end
 
 switch_1_end:
     jump switch_2_check_1
@@ -3607,7 +3607,7 @@ switch_2_case_4:
     return a
 
 switch_2_case_5:
-    jump for_end_0
+    jump switch_2_end
 
 switch_2_end:
     jump for_post_0
@@ -4692,6 +4692,52 @@ range_cond_0:
 range_body_0:
     k = iter_key t1
     v = iter_value t1
+    jump range_cond_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func println(v int) {}
+func f(m map[string]int) {
+  for k, v := range m {
+    switch v {
+      case int(0):
+        break
+    }
+    println(v)
+  }
+}`,
+				expected: `func println(v:int)
+
+func f(m:map[string]int)
+entry:
+    t0 = m
+    t1 = map_iter t0
+    jump range_cond_0
+
+range_cond_0:
+    t2 = iter_next t1
+    branch t2, range_body_0, range_end_0
+
+range_body_0:
+    k = iter_key t1
+    v = iter_value t1
+    jump switch_1_check_1
+
+switch_1_check_1:
+    t4 = const_int 0
+    t3 = eq_bool v, t4
+    branch t3, switch_1_case_1, switch_1_end
+
+switch_1_case_1:
+    jump switch_1_end
+
+switch_1_end:
+    t5 = call println(v)
     jump range_cond_0
 
 range_end_0:
