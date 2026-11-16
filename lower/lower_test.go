@@ -4606,6 +4606,98 @@ range_end_0:
 
 `,
 			},
+			{
+				data: `package main
+
+func println(k string, v int){}
+func f(m hashmap[string]int) {
+  for k, v := range m {
+    println(k, v)
+  }
+}`,
+				expected: `func println(k:string, v:int)
+
+func f(m:hashmap[string]int)
+entry:
+    t0 = m
+    t1 = map_iter t0
+    jump range_cond_0
+
+range_cond_0:
+    t2 = iter_next t1
+    branch t2, range_body_0, range_end_0
+
+range_body_0:
+    k = iter_key t1
+    v = iter_value t1
+    t3 = call println(k, v)
+    jump range_cond_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func println(k string, v int){}
+func f(m map[string]int) {
+  for k, v := range m {
+    println(k, v)
+  }
+}`,
+				expected: `func println(k:string, v:int)
+
+func f(m:map[string]int)
+entry:
+    t0 = m
+    t1 = map_iter t0
+    jump range_cond_0
+
+range_cond_0:
+    t2 = iter_next t1
+    branch t2, range_body_0, range_end_0
+
+range_body_0:
+    k = iter_key t1
+    v = iter_value t1
+    t3 = call println(k, v)
+    jump range_cond_0
+
+range_end_0:
+
+`,
+			},
+			{
+				data: `package main
+
+func println(k string, v int){}
+func f(m map[string]int) {
+  for k, v := range m {
+    continue
+  }
+}`,
+				expected: `func println(k:string, v:int)
+
+func f(m:map[string]int)
+entry:
+    t0 = m
+    t1 = map_iter t0
+    jump range_cond_0
+
+range_cond_0:
+    t2 = iter_next t1
+    branch t2, range_body_0, range_end_0
+
+range_body_0:
+    k = iter_key t1
+    v = iter_value t1
+    jump range_cond_0
+
+range_end_0:
+
+`,
+			},
 		}
 
 		for i, tc := range tests {

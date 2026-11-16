@@ -14,3 +14,7 @@ func (*Unary) instrNode()     {}
 func (*IncDec) instrNode()    {}
 func (*Index) instrNode()     {}
 func (*Len) instrNode()       {}
+func (*MapIter) instrNode()   {}
+func (*IterNext) instrNode()  {}
+func (*IterKey) instrNode()   {}
+func (*IterValue) instrNode() {}

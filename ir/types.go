@@ -106,3 +106,23 @@ type Len struct {
 	Result string
 	Value  string
 }
+
+type MapIter struct {
+	Result string
+	Value  string
+}
+
+type IterNext struct {
+	Result string
+	Value  string
+}
+
+type IterKey struct {
+	Result string
+	Value  string
+}
+
+type IterValue struct {
+	Result string
+	Value  string
+}

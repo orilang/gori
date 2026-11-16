@@ -755,7 +755,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		jumpBreaks := &ir.Jump{Name: "range_end", Index: labelIndex}
 
 		config.isForSwitch = false
-		config.continues = jumpPost
+		config.continues = jumpCond
 		config.breaks = jumpBreaks
 
 		cond := l.lowerExpr(stmt.X)
@@ -767,34 +767,63 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 			Value:    singleValue(cond.values),
 		})
 
-		typ := "int"
-		if cond.exprKind == exprKindInterger || (cond.exprKind == exprKindNamedType && cond.exprUnderlyingKind == exprKindInterger) {
-			typ = cond.exprType.String()
-		}
-		loopIndex := fmt.Sprintf("t%d", l.tIndex)
-		l.tIndex++
-		l.instructions = append(l.instructions, &ir.Const{
-			Result: loopIndex,
-			Type:   typ,
-			Value:  "0",
-		})
-
-		var right string
-		switch cond.exprKind {
-		case exprKindInterger:
-			right = condx
-
-		case exprKindSlice, exprKindArray:
-			t := fmt.Sprintf("t%d", l.tIndex)
+		isMapExprKind := cond.exprKind == exprKindMap || cond.exprKind == exprKindHashMap || cond.exprUnderlyingKind == exprKindMap || cond.exprUnderlyingKind == exprKindHashMap
+		if isMapExprKind {
+			iter := fmt.Sprintf("t%d", l.tIndex)
 			l.tIndex++
-			l.instructions = append(l.instructions, &ir.Len{
-				Result: t,
+			l.instructions = append(l.instructions, &ir.MapIter{
+				Result: iter,
 				Value:  condx,
 			})
-			right = t
 
-		case exprKindNamedType:
-			switch cond.exprUnderlyingKind {
+			l.instructions = append(l.instructions, jumpCond, lcond)
+			next := fmt.Sprintf("t%d", l.tIndex)
+			l.tIndex++
+			l.instructions = append(l.instructions, &ir.IterNext{
+				Result: next,
+				Value:  iter,
+			})
+
+			br := &ir.Branch{Condition: next}
+			br.List = append(br.List, ir.BranchSub{Name: "range_body", Index: labelIndex})
+			br.List = append(br.List, ir.BranchSub{Name: "range_end", Index: labelIndex})
+			l.instructions = append(l.instructions, br, lbody)
+
+			if stmt.Key != nil {
+				key := l.lowerExpr(stmt.Key)
+				if !key.isBlank {
+					l.instructions = append(l.instructions, &ir.IterKey{
+						Result: singleValue(key.values),
+						Value:  iter,
+					})
+				}
+			}
+
+			if stmt.Value != nil {
+				value := l.lowerExpr(stmt.Value)
+				if !value.isBlank {
+					l.instructions = append(l.instructions, &ir.IterValue{
+						Result: singleValue(value.values),
+						Value:  iter,
+					})
+				}
+			}
+		} else {
+			config.continues = jumpPost
+			typ := "int"
+			if cond.exprKind == exprKindInterger || (cond.exprKind == exprKindNamedType && cond.exprUnderlyingKind == exprKindInterger) {
+				typ = cond.exprType.String()
+			}
+			loopIndex := fmt.Sprintf("t%d", l.tIndex)
+			l.tIndex++
+			l.instructions = append(l.instructions, &ir.Const{
+				Result: loopIndex,
+				Type:   typ,
+				Value:  "0",
+			})
+
+			var right string
+			switch cond.exprKind {
 			case exprKindInterger:
 				right = condx
 
@@ -807,65 +836,65 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 				})
 				right = t
 
+			case exprKindNamedType:
+				switch cond.exprUnderlyingKind {
+				case exprKindInterger:
+					right = condx
+
+				case exprKindSlice, exprKindArray:
+					t := fmt.Sprintf("t%d", l.tIndex)
+					l.tIndex++
+					l.instructions = append(l.instructions, &ir.Len{
+						Result: t,
+						Value:  condx,
+					})
+					right = t
+
+				default:
+					l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
+					return
+				}
+
 			default:
 				l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
 				return
 			}
 
-		default:
-			l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
-			return
-		}
+			l.instructions = append(l.instructions, jumpCond, lcond)
+			tbinary := fmt.Sprintf("t%d", l.tIndex)
+			l.tIndex++
+			l.instructions = append(l.instructions, &ir.Binary{
+				Result: tbinary,
+				Op:     token.BinaryOpString(token.Lt) + "_" + typ,
+				Left:   loopIndex,
+				Right:  right,
+			})
 
-		l.instructions = append(l.instructions, jumpCond, lcond)
-		tbinary := fmt.Sprintf("t%d", l.tIndex)
-		l.tIndex++
-		l.instructions = append(l.instructions, &ir.Binary{
-			Result: tbinary,
-			Op:     token.BinaryOpString(token.Lt) + "_" + typ,
-			Left:   loopIndex,
-			Right:  right,
-		})
+			br := &ir.Branch{Condition: tbinary}
+			br.List = append(br.List, ir.BranchSub{Name: "range_body", Index: labelIndex})
+			br.List = append(br.List, ir.BranchSub{Name: "range_end", Index: labelIndex})
+			l.instructions = append(l.instructions, br)
 
-		br := &ir.Branch{Condition: tbinary}
-		br.List = append(br.List, ir.BranchSub{Name: "range_body", Index: labelIndex})
-		br.List = append(br.List, ir.BranchSub{Name: "range_end", Index: labelIndex})
-		l.instructions = append(l.instructions, br)
+			l.instructions = append(l.instructions, lpost)
+			l.instructions = append(l.instructions, &ir.IncDec{
+				Value:    loopIndex,
+				Operator: token.AssignOpString(token.PPlus),
+			})
+			l.instructions = append(l.instructions, jumpCond, lbody)
 
-		l.instructions = append(l.instructions, lpost)
-		l.instructions = append(l.instructions, &ir.IncDec{
-			Value:    loopIndex,
-			Operator: token.AssignOpString(token.PPlus),
-		})
-		l.instructions = append(l.instructions, jumpCond, lbody)
-
-		if stmt.Key != nil {
-			key := l.lowerExpr(stmt.Key)
-			if !key.isBlank {
-				l.instructions = append(l.instructions, &ir.Assigment{
-					Result:   singleValue(key.values),
-					Operator: "=",
-					Value:    loopIndex,
-				})
-			}
-		}
-
-		if stmt.Value != nil {
-			switch cond.exprKind {
-			case exprKindInterger:
-
-			case exprKindSlice, exprKindArray:
-				value := l.lowerExpr(stmt.Value)
-				if !value.isBlank {
-					l.instructions = append(l.instructions, &ir.Index{
-						Result: singleValue(value.values),
-						Name:   condx,
-						Value:  loopIndex,
+			if stmt.Key != nil {
+				key := l.lowerExpr(stmt.Key)
+				if !key.isBlank {
+					l.instructions = append(l.instructions, &ir.Assigment{
+						Result:   singleValue(key.values),
+						Operator: "=",
+						Value:    loopIndex,
 					})
 				}
+			}
 
-			case exprKindNamedType:
-				switch cond.exprUnderlyingKind {
+			if stmt.Value != nil {
+				switch cond.exprKind {
 				case exprKindInterger:
 
 				case exprKindSlice, exprKindArray:
@@ -878,16 +907,31 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 						})
 					}
 
+				case exprKindNamedType:
+					switch cond.exprUnderlyingKind {
+					case exprKindInterger:
+
+					case exprKindSlice, exprKindArray:
+						value := l.lowerExpr(stmt.Value)
+						if !value.isBlank {
+							l.instructions = append(l.instructions, &ir.Index{
+								Result: singleValue(value.values),
+								Name:   condx,
+								Value:  loopIndex,
+							})
+						}
+
+					default:
+						// kept here as a safe guard
+						l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
+						return
+					}
+
 				default:
 					// kept here as a safe guard
 					l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
 					return
 				}
-
-			default:
-				// kept here as a safe guard
-				l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported or invalid range statement %T kind %d", stmt, cond.exprKind)})
-				return
 			}
 		}
 
@@ -902,7 +946,11 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		}
 
 		if !result.flowTerminates {
-			l.instructions = append(l.instructions, jumpPost)
+			if isMapExprKind {
+				l.instructions = append(l.instructions, jumpCond)
+			} else {
+				l.instructions = append(l.instructions, jumpPost)
+			}
 		}
 
 		l.instructions = append(l.instructions, lend)

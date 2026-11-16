@@ -107,6 +107,18 @@ func (d *dumper) node(indent int, n any) {
 	case *ir.Len:
 		d.line(indent, fmt.Sprintf("%s = len %s", t.Result, t.Value))
 
+	case *ir.MapIter:
+		d.line(indent, fmt.Sprintf("%s = map_iter %s", t.Result, t.Value))
+
+	case *ir.IterNext:
+		d.line(indent, fmt.Sprintf("%s = iter_next %s", t.Result, t.Value))
+
+	case *ir.IterKey:
+		d.line(indent, fmt.Sprintf("%s = iter_key %s", t.Result, t.Value))
+
+	case *ir.IterValue:
+		d.line(indent, fmt.Sprintf("%s = iter_value %s", t.Result, t.Value))
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil intermediate representation)")
