@@ -710,7 +710,9 @@ func (c *Checker) resolveMethodSignatures() {
 // checkImplementsDecls validates all "implements" declaration for interface
 func (c *Checker) checkImplementsDecls() {
 	for _, impl := range c.implDecls {
-		c.checkImplementsDecl(impl)
+		if x := c.checkImplementsDecl(impl); x != nil {
+			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
+		}
 	}
 }
 
@@ -2298,44 +2300,44 @@ func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) Decl {
 
 // checkImplementsDecl validates "implements" declaration for interface.
 // An error is emitted if any
-func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
+func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) Decl {
 	sym := c.pkgScope.Lookup(decl.TypeName.Value)
 	if sym == nil || sym.Kind != SymType {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("type %q is undefined at %d:%d-%d", decl.TypeName.Value, decl.Start().Line, decl.Start().Column, decl.End().Column)})
-		return
+		return nil
 	}
 
 	implementer, ok := sym.Type.(*NamedType)
 	if !ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q is not a named type at %d:%d-%d", decl.TypeName.Value, decl.Start().Line, decl.Start().Column, decl.End().Column)})
-		return
+		return nil
 	}
 
 	if _, ok := UnwrapNamed(implementer).(*InterfaceType); ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q cannot implement another interface at %d:%d-%d", decl.TypeName.Value, decl.Start().Line, decl.Start().Column, decl.End().Column)})
-		return
+		return nil
 	}
 
 	ifaceType := c.resolveType(decl.Interface)
 	if IsInvalid(ifaceType) {
-		return
+		return nil
 	}
 
 	ifaceNamed, ok := ifaceType.(*NamedType)
 	if !ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("implements target must be a named interface at %d:%d-%d", decl.Interface.Start().Line, decl.Interface.Start().Column, decl.Interface.End().Column)})
-		return
+		return nil
 	}
 
 	iface, ok := UnwrapNamed(ifaceNamed).(*InterfaceType)
 	if !ok {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("type %q is not an interface at %d:%d-%d", ifaceNamed.Name, decl.Interface.Start().Line, decl.Interface.Start().Column, decl.Interface.End().Column)})
-		return
+		return nil
 	}
 
 	if !c.implementsInterface(implementer, iface) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("%q interface implementation is invalid at %d:%d-%d", decl.TypeName.Value, decl.Interface.Start().Line, decl.Interface.Start().Column, decl.Interface.End().Column)})
-		return
+		return nil
 	}
 
 	c.implInfos = append(c.implInfos, ImplInfo{
@@ -2345,6 +2347,8 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) {
 		Interface:     ifaceNamed,
 		Decl:          decl,
 	})
+
+	return &ImplementsDecl{Implements: decl.TypeName.Value, Symbol: resolvedSymbol(sym, false, false), Interface: ifaceType}
 }
 
 // implementsInterface loops over interface methods to verify if all methods

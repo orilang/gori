@@ -3130,4 +3130,107 @@ func f(u test) string {
 		require.Equal(t, nt1.UnderlyingType, nt2.UnderlyingType)
 		require.Equal(t, id1.Type, sel1.Type)
 	})
+
+	t.Run("x39", func(t *testing.T) {
+		data := `package main
+type A interface {
+	X() (i int)
+}
+
+type XA struct{x int}
+XA implements A
+
+func (x XA) X() int {
+	return int(0)
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 4, len(pf.Decls))
+
+		it1, ok := pf.Decls[0].(*InterfaceDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "A", it1.Name)
+		require.Equal(t, 1, len(it1.Methods))
+
+		require.Equal(t, "X", it1.Methods[0].Name)
+		require.Equal(t, 0, len(it1.Methods[0].Params))
+		require.Equal(t, 1, len(it1.Methods[0].Results))
+		require.Equal(t, "i", it1.Methods[0].Results[0].Name)
+		require.Equal(t, TInt, it1.Methods[0].Results[0].Type)
+
+		str1, ok := pf.Decls[1].(*StructDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "XA", str1.Name)
+		require.Equal(t, 1, len(str1.Fields))
+
+		require.Equal(t, "x", str1.Fields[0].Name)
+		require.Equal(t, TInt, str1.Fields[0].Type)
+
+		imp1, ok := pf.Decls[2].(*ImplementsDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "XA", imp1.Implements)
+
+		nt1, ok := imp1.Interface.(*NamedType)
+		require.Equal(t, true, ok)
+		require.Equal(t, "A", nt1.Name)
+
+		ityp1, ok := nt1.UnderlyingType.(*InterfaceType)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(ityp1.Methods))
+		require.Equal(t, "X", ityp1.Methods[0].Name)
+		require.NotNil(t, ityp1.Methods[0].FuncType)
+		require.Equal(t, 0, len(ityp1.Methods[0].FuncType.Params))
+		require.Equal(t, 1, len(ityp1.Methods[0].FuncType.Results))
+		require.Equal(t, "i", ityp1.Methods[0].FuncType.Results[0].Name)
+		require.Equal(t, TInt, ityp1.Methods[0].FuncType.Results[0].Type)
+
+		fn1, ok := pf.Decls[3].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "X", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 1, len(fn1.Results))
+		require.Equal(t, "", fn1.Results[0].Name)
+		require.Equal(t, TInt, fn1.Results[0].Type)
+
+		require.NotNil(t, fn1.Receiver)
+		require.Equal(t, "x", fn1.Receiver.Name)
+
+		nt2, ok := fn1.Receiver.Type.(*NamedType)
+		require.Equal(t, true, ok)
+		require.Equal(t, "XA", nt2.Name)
+
+		rcv1, ok := nt2.UnderlyingType.(*StructType)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rcv1.Fields))
+
+		require.Equal(t, "x", str1.Fields[0].Name)
+		require.Equal(t, TInt, str1.Fields[0].Type)
+
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		rt1, ok := fn1.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rt1.Values))
+		ce1, ok := rt1.Values[0].(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ce1.To)
+		lit, ok := ce1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, lit.Type)
+		require.Equal(t, "0", lit.Value)
+	})
 }
