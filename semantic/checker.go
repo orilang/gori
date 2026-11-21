@@ -337,9 +337,21 @@ func (c *Checker) resolveTypeDecls() {
 			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
 		case *ast.InterfaceDecl:
+			methods := c.resolveInterfaceMethods(d.Methods)
 			t := sym.Type.(*NamedType)
 			it := t.UnderlyingType.(*InterfaceType)
-			it.Methods = c.resolveInterfaceMethods(d.Methods)
+			it.Methods = methods
+
+			x := &InterfaceDecl{Name: name, Symbol: resolvedSymbol(sym, false, false)}
+			for _, m := range methods {
+				im := InterfaceMethod{Name: m.Name}
+				if m.FuncType != nil {
+					im.Params = m.FuncType.Params
+					im.Results = m.FuncType.Results
+				}
+				x.Methods = append(x.Methods, im)
+			}
+			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
 		case *ast.EnumDecl:
 			variants := c.resolveEnumVariants(d.Variants)
@@ -896,12 +908,12 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 						}
 						ce.Args = append(ce.Args, argExpr)
 					}
-					if len(method.FuncType.Results) == 0 {
-						return nil, nil
-					}
 					ce.Callee = &selx
 					ce.CalleeType = method
 					ce.ReturnedValueCount = len(method.FuncType.Results)
+					if len(method.FuncType.Results) == 0 {
+						return nil, &ce
+					}
 					if len(method.FuncType.Results) > 1 {
 						return method, &ce
 					}
@@ -1039,7 +1051,7 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 		}
 
 	case *ast.SelectorExpr:
-		return c.checkSelectorExpr(t), nil
+		return c.checkSelectorExpr(t)
 
 	case *ast.MakeExpr:
 		typ := c.resolveType(t.Type)
@@ -1443,7 +1455,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 			}
 
 		case *ast.InterfaceDecl:
-			c.checkInterfaceDecl(decl)
+			if x := c.checkInterfaceDecl(decl); x != nil {
+				st.blockStmt = append(st.blockStmt, &DeclStmt{x})
+			}
 
 		default:
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported declaration %#v at %d:%d-%d", decl, decl.Start().Line, decl.Start().Column, decl.End().Column)})
@@ -1578,12 +1592,12 @@ func (c *Checker) checkAssignableExpr(expr ast.Expr, config exprConfig) (Type, E
 		return c.checkExprInCurrentMode(t, config)
 
 	case *ast.SelectorExpr:
-		slx := c.checkSelectorExpr(t)
-		if _, ok := slx.(*FuncMethod); ok {
+		typ, selx := c.checkSelectorExpr(t)
+		if _, ok := typ.(*FuncMethod); ok {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("methods are not assignable at %d:%d-%d", expr.Start().Line, expr.Start().Column, expr.End().Column)})
 			return TInvalid, nil
 		}
-		return slx, nil
+		return typ, selx
 
 	default:
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unsupported expression %#v at %d:%d-%d", expr, expr.Start().Line, expr.Start().Column, expr.End().Column)})
@@ -2250,8 +2264,9 @@ func (c *Checker) checkSumDecl(decl *ast.SumDecl) Decl {
 
 // checkInterfaceDecl validates interface declaration statement.
 // An error is emitted if any
-func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
-	if !c.declareNoShadow(c.scope, &Symbol{
+func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) Decl {
+	methods := c.resolveInterfaceMethods(decl.Methods)
+	sym := &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -2259,12 +2274,26 @@ func (c *Checker) checkInterfaceDecl(decl *ast.InterfaceDecl) {
 			Decl: decl,
 			UnderlyingType: &InterfaceType{
 				Decl:    decl,
-				Methods: c.resolveInterfaceMethods(decl.Methods),
+				Methods: methods,
 			},
 		},
-	}, "type") {
-		return
 	}
+
+	if !c.declareNoShadow(c.scope, sym, "type") {
+		return nil
+	}
+
+	id := &InterfaceDecl{Name: decl.Name.Value, Symbol: resolvedSymbol(sym, false, false)}
+	for _, m := range methods {
+		im := InterfaceMethod{Name: m.Name}
+		if m.FuncType != nil {
+			im.Params = m.FuncType.Params
+			im.Results = m.FuncType.Results
+		}
+		id.Methods = append(id.Methods, im)
+	}
+
+	return id
 }
 
 // checkImplementsDecl validates "implements" declaration for interface.
@@ -2388,40 +2417,41 @@ func (c *Checker) checkExprStmt(stmt *ast.ExprStmt) Stmt {
 
 // checkSelectorExpr validates selector expression and return its type.
 // An error is emitted if any
-func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
-	baseType, _ := c.checkExprInCurrentMode(expr.X, exprConfig{})
+func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) (Type, Expr) {
+	baseType, baseExpr := c.checkExprInCurrentMode(expr.X, exprConfig{})
 	if IsInvalid(baseType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type %q at %d:%d-%d", stringifyType(baseType), expr.Start().Line, expr.Start().Column, expr.End().Column)})
-		return TInvalid
+		return TInvalid, nil
 	}
 
+	selx := &SelectorExpr{X: baseExpr, Type: baseType, Selector: expr.Selector.Value}
 	underlying := UnwrapNamed(baseType)
 	switch t := underlying.(type) {
 	case *StructType:
 		if named, ok := baseType.(*NamedType); ok {
 			if method, isMethod := c.lookupMethodType(named, expr.Selector.Value); isMethod {
-				return method
+				return method, selx
 			}
 		}
 
 		typ, ok, _ := lookupStructField(t, expr.Selector.Value)
 		if !ok {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q at %d:%d", expr.Selector.Value, expr.Selector.Line, expr.Selector.Column)})
-			return TInvalid
+			return TInvalid, nil
 		}
-		return typ
+		return typ, selx
 
 	case *InterfaceType:
 		typ, ok := lookupInterfaceMethods(t, expr.Selector.Value)
 		if !ok {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown method %q at %d:%d", expr.Selector.Value, expr.Selector.Line, expr.Selector.Column)})
-			return TInvalid
+			return TInvalid, nil
 		}
-		return typ
+		return typ, selx
 
 	default:
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid type %#v at %d:%d-%d", t, expr.Start().Line, expr.Start().Column, expr.End().Column)})
-		return TInvalid
+		return TInvalid, nil
 	}
 }
 

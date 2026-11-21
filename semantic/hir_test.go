@@ -3048,4 +3048,86 @@ func f() {
 		require.Equal(t, "h", en2.Variants[1].Field[1].Name)
 		require.Equal(t, TInt, en2.Variants[1].Field[1].Type)
 	})
+
+	t.Run("x38", func(t *testing.T) {
+		data := `package main
+type test interface {
+	foo() string
+}
+func f(u test) string {
+	return u.foo()
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		it1, ok := pf.Decls[0].(*InterfaceDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", it1.Name)
+		require.Equal(t, 1, len(it1.Methods))
+
+		require.Equal(t, "foo", it1.Methods[0].Name)
+		require.Equal(t, 0, len(it1.Methods[0].Params))
+		require.Equal(t, 1, len(it1.Methods[0].Results))
+		require.Equal(t, "", it1.Methods[0].Results[0].Name)
+		require.Equal(t, TString, it1.Methods[0].Results[0].Type)
+
+		fn1, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 1, len(fn1.Params))
+		require.Equal(t, "u", fn1.Params[0].Name)
+
+		nt1, ok := fn1.Params[0].Type.(*NamedType)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", nt1.Name)
+
+		ityp1, ok := nt1.UnderlyingType.(*InterfaceType)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(ityp1.Methods))
+		require.Equal(t, "foo", ityp1.Methods[0].Name)
+		require.NotNil(t, ityp1.Methods[0].FuncType)
+		require.Equal(t, 0, len(ityp1.Methods[0].FuncType.Params))
+		require.Equal(t, 1, len(ityp1.Methods[0].FuncType.Results))
+		require.Equal(t, "", ityp1.Methods[0].FuncType.Results[0].Name)
+		require.Equal(t, TString, ityp1.Methods[0].FuncType.Results[0].Type)
+
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		rt1, ok := fn1.Body.Stmts[0].(*ReturnStmt)
+		require.Equal(t, true, ok)
+		require.Equal(t, 1, len(rt1.Values))
+		ce1, ok := rt1.Values[0].(*CallExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, 0, len(ce1.Args))
+
+		sel1, ok := ce1.Callee.(*SelectorExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "foo", sel1.Selector)
+
+		id1, ok := sel1.X.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "u", id1.Value)
+
+		nt2, ok := id1.Type.(*NamedType)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", nt2.Name)
+		require.Equal(t, nt1.UnderlyingType, nt2.UnderlyingType)
+		require.Equal(t, id1.Type, sel1.Type)
+	})
 }

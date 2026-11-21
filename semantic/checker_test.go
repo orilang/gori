@@ -1240,7 +1240,9 @@ func f(m hashmap[string]string) string {
 		}
 
 		check := NewChecker()
-		assert.Equal(t, TInvalid, check.checkSelectorExpr(&ast.SelectorExpr{X: &ast.BadExpr{}}))
+		typ, ex := check.checkSelectorExpr(&ast.SelectorExpr{X: &ast.BadExpr{}})
+		assert.Equal(t, TInvalid, typ)
+		assert.Equal(t, nil, ex)
 	})
 
 	t.Run("x10", func(t *testing.T) {

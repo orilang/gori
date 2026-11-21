@@ -213,6 +213,7 @@ type CallExpr struct {
 
 type SelectorExpr struct {
 	X        Expr
+	Type     Type
 	Selector string
 }
 
