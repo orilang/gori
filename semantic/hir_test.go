@@ -2969,4 +2969,83 @@ func f() {
 		require.Equal(t, "Blue", en2.Variants[1])
 		require.Equal(t, "Green", en2.Variants[2])
 	})
+
+	t.Run("x37", func(t *testing.T) {
+		data := `package main
+
+type test sum {
+  Circle(radius float);Rect(w float, h float);None
+}
+
+func f() {
+  type Shape sum {
+	  Circle(radius int)
+	  Rect(w int, h int)
+  }
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		en1, ok := pf.Decls[0].(*SumDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "test", en1.Name)
+		require.Equal(t, 3, len(en1.Variants))
+
+		require.Equal(t, "Circle", en1.Variants[0].Name)
+		require.Equal(t, 1, len(en1.Variants[0].Field))
+		require.Equal(t, "radius", en1.Variants[0].Field[0].Name)
+		require.Equal(t, TFloat, en1.Variants[0].Field[0].Type)
+
+		require.Equal(t, "Rect", en1.Variants[1].Name)
+		require.Equal(t, 2, len(en1.Variants[1].Field))
+		require.Equal(t, "w", en1.Variants[1].Field[0].Name)
+		require.Equal(t, TFloat, en1.Variants[1].Field[0].Type)
+		require.Equal(t, "h", en1.Variants[1].Field[1].Name)
+		require.Equal(t, TFloat, en1.Variants[1].Field[1].Type)
+
+		require.Equal(t, "None", en1.Variants[2].Name)
+		require.Equal(t, 0, len(en1.Variants[2].Field))
+
+		fn1, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		de1, ok := fn1.Body.Stmts[0].(*DeclStmt)
+		require.Equal(t, true, ok)
+		en2, ok := de1.Decl.(*SumDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "Shape", en2.Name)
+		require.Equal(t, 2, len(en2.Variants))
+
+		require.Equal(t, "Circle", en2.Variants[0].Name)
+		require.Equal(t, 1, len(en2.Variants[0].Field))
+		require.Equal(t, "radius", en2.Variants[0].Field[0].Name)
+		require.Equal(t, TInt, en2.Variants[0].Field[0].Type)
+
+		require.Equal(t, "Rect", en2.Variants[1].Name)
+		require.Equal(t, 2, len(en2.Variants[1].Field))
+		require.Equal(t, "w", en2.Variants[1].Field[0].Name)
+		require.Equal(t, TInt, en2.Variants[1].Field[0].Type)
+		require.Equal(t, "h", en2.Variants[1].Field[1].Name)
+		require.Equal(t, TInt, en2.Variants[1].Field[1].Type)
+	})
 }

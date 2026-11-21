@@ -354,9 +354,16 @@ func (c *Checker) resolveTypeDecls() {
 			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
 		case *ast.SumDecl:
+			variants := c.resolveSumVariants(d.Variants)
 			t := sym.Type.(*NamedType)
 			st := t.UnderlyingType.(*SumType)
-			st.Variants = c.resolveSumVariants(d.Variants)
+			st.Variants = variants
+
+			x := &SumDecl{Name: name, Symbol: resolvedSymbol(sym, false, false)}
+			for _, v := range variants {
+				x.Variants = append(x.Variants, v)
+			}
+			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 		}
 	}
 }
@@ -1431,7 +1438,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 			}
 
 		case *ast.SumDecl:
-			c.checkSumDecl(decl)
+			if x := c.checkSumDecl(decl); x != nil {
+				st.blockStmt = append(st.blockStmt, &DeclStmt{x})
+			}
 
 		case *ast.InterfaceDecl:
 			c.checkInterfaceDecl(decl)
@@ -2212,8 +2221,9 @@ func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) Decl {
 
 // checkSumDecl validates struct statement.
 // An error is emitted if any
-func (c *Checker) checkSumDecl(decl *ast.SumDecl) {
-	if !c.declareNoShadow(c.scope, &Symbol{
+func (c *Checker) checkSumDecl(decl *ast.SumDecl) Decl {
+	variants := c.resolveSumVariants(decl.Variants)
+	sym := &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -2221,12 +2231,21 @@ func (c *Checker) checkSumDecl(decl *ast.SumDecl) {
 			Decl: decl,
 			UnderlyingType: &SumType{
 				Decl:     decl,
-				Variants: c.resolveSumVariants(decl.Variants),
+				Variants: variants,
 			},
 		},
-	}, "type") {
-		return
 	}
+
+	if !c.declareNoShadow(c.scope, sym, "type") {
+		return nil
+	}
+
+	sd := &SumDecl{Name: decl.Name.Value, Symbol: resolvedSymbol(sym, false, false)}
+	for _, v := range variants {
+		sd.Variants = append(sd.Variants, v)
+	}
+
+	return sd
 }
 
 // checkInterfaceDecl validates interface declaration statement.
