@@ -342,9 +342,16 @@ func (c *Checker) resolveTypeDecls() {
 			it.Methods = c.resolveInterfaceMethods(d.Methods)
 
 		case *ast.EnumDecl:
+			variants := c.resolveEnumVariants(d.Variants)
 			t := sym.Type.(*NamedType)
 			et := t.UnderlyingType.(*EnumType)
-			et.Variants = c.resolveEnumVariants(d.Variants)
+			et.Variants = variants
+
+			x := &EnumDecl{Name: name, Symbol: resolvedSymbol(sym, false, false)}
+			for _, v := range variants {
+				x.Variants = append(x.Variants, v)
+			}
+			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
 		case *ast.SumDecl:
 			t := sym.Type.(*NamedType)
@@ -1419,7 +1426,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 			}
 
 		case *ast.EnumDecl:
-			c.checkEnumDecl(decl)
+			if x := c.checkEnumDecl(decl); x != nil {
+				st.blockStmt = append(st.blockStmt, &DeclStmt{x})
+			}
 
 		case *ast.SumDecl:
 			c.checkSumDecl(decl)
@@ -2174,8 +2183,9 @@ func (c *Checker) checkStructDecl(decl *ast.StructDecl) Decl {
 
 // checkEnumDecl validates struct statement.
 // An error is emitted if any
-func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) {
-	if !c.declareNoShadow(c.scope, &Symbol{
+func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) Decl {
+	variants := c.resolveEnumVariants(decl.Variants)
+	sym := &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -2183,12 +2193,21 @@ func (c *Checker) checkEnumDecl(decl *ast.EnumDecl) {
 			Decl: decl,
 			UnderlyingType: &EnumType{
 				Decl:     decl,
-				Variants: c.resolveEnumVariants(decl.Variants),
+				Variants: variants,
 			},
 		},
-	}, "type") {
-		return
 	}
+
+	if !c.declareNoShadow(c.scope, sym, "type") {
+		return nil
+	}
+
+	ed := &EnumDecl{Name: decl.Name.Value, Symbol: resolvedSymbol(sym, false, false)}
+	for _, v := range variants {
+		ed.Variants = append(ed.Variants, v)
+	}
+
+	return ed
 }
 
 // checkSumDecl validates struct statement.

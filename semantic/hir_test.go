@@ -2911,4 +2911,62 @@ func f() {
 		require.Equal(t, "UserID", sidnt1.Name)
 		require.Equal(t, TInt, sidnt1.UnderlyingType)
 	})
+
+	t.Run("x36", func(t *testing.T) {
+		data := `package main
+
+type Color enum {
+  Red;Blue;Green;Yellow
+}
+
+func f() {
+  type ColorTest enum {
+    Red;Blue;Green
+  }
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 2, len(pf.Decls))
+
+		en1, ok := pf.Decls[0].(*EnumDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "Color", en1.Name)
+		require.Equal(t, 4, len(en1.Variants))
+		require.Equal(t, "Red", en1.Variants[0])
+		require.Equal(t, "Blue", en1.Variants[1])
+		require.Equal(t, "Green", en1.Variants[2])
+		require.Equal(t, "Yellow", en1.Variants[3])
+
+		fn1, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		de1, ok := fn1.Body.Stmts[0].(*DeclStmt)
+		require.Equal(t, true, ok)
+		en2, ok := de1.Decl.(*EnumDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "ColorTest", en2.Name)
+		require.Equal(t, 3, len(en2.Variants))
+		require.Equal(t, "Red", en2.Variants[0])
+		require.Equal(t, "Blue", en2.Variants[1])
+		require.Equal(t, "Green", en2.Variants[2])
+	})
 }
