@@ -325,9 +325,16 @@ func (c *Checker) resolveTypeDecls() {
 			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
 		case *ast.StructDecl:
+			fields := c.resolveStructFields(d.Fields, false)
 			t := sym.Type.(*NamedType)
 			st := t.UnderlyingType.(*StructType)
-			st.Fields = c.resolveStructFields(d.Fields, false)
+			st.Fields = fields
+
+			x := &StructDecl{Name: name, Symbol: resolvedSymbol(sym, false, false)}
+			for _, f := range fields {
+				x.Fields = append(x.Fields, FieldDecl{Name: f.Name, Type: f.Type})
+			}
+			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
 		case *ast.InterfaceDecl:
 			t := sym.Type.(*NamedType)
@@ -532,22 +539,25 @@ func (c *Checker) resolveStructFields(fields []*ast.FieldDecl, checkFieldsDefaul
 		}
 
 		targetType := c.resolveType(field.Type)
+		st := StructField{
+			Name: field.Name.Value,
+			Type: targetType,
+		}
+
 		if checkFieldsDefaults {
 			if field.Eq != nil && field.Default != nil {
-				c.resolveStructTypeDefaultValue(targetType, field)
+				_, valueExpr := c.resolveStructTypeDefaultValue(targetType, field)
+				st.Default = valueExpr
 			}
 		}
 
 		seen[field.Name.Value] = field
-		out = append(out, StructField{
-			Name: field.Name.Value,
-			Type: targetType,
-		})
+		out = append(out, st)
 	}
 	return out
 }
 
-// resolveStructTypeDefaultValues resolves struct fields with default values
+// resolveStructTypeDefaultValues resolves struct fields with default values at package level scope
 func (c *Checker) resolveStructTypeDefaultValues() {
 	for _, decl := range c.typeDecls {
 		if sd, ok := decl.(*ast.StructDecl); ok {
@@ -558,8 +568,14 @@ func (c *Checker) resolveStructTypeDefaultValues() {
 					if st, stok := UnwrapNamed(nt).(*StructType); stok {
 						for _, field := range sd.Fields {
 							if field.Eq != nil && field.Default != nil {
-								if styp, sok := lookupStructField(st, field.Name.Value); sok {
-									c.resolveStructTypeDefaultValue(styp, field)
+								if styp, sok, index := lookupStructField(st, field.Name.Value); sok {
+									if _, expr := c.resolveStructTypeDefaultValue(styp, field); expr != nil {
+										for _, pgr := range c.program.Files[c.programFileIndex].Decls {
+											if sd, ok := pgr.(*StructDecl); ok && sd.Name == name && sd.Symbol == resolvedSymbol(sym, false, false) {
+												sd.Fields[index].Default = expr
+											}
+										}
+									}
 								}
 							}
 						}
@@ -571,22 +587,24 @@ func (c *Checker) resolveStructTypeDefaultValues() {
 }
 
 // resolveStructTypeDefaultValue resolves struct field with default value
-func (c *Checker) resolveStructTypeDefaultValue(targetType Type, field *ast.FieldDecl) {
+func (c *Checker) resolveStructTypeDefaultValue(targetType Type, field *ast.FieldDecl) (Type, Expr) {
 	if !c.isValidStructDefaultExpr(field.Default) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden assigment to struct default field %q at %d:%d-%d", field.Name.Value, field.Name.Line, field.Default.Start().Column, field.Default.End().Column)})
-		return
+		return nil, nil
 	}
 
-	valueType, _ := c.checkExprInCurrentMode(field.Default, exprConfig{})
+	valueType, valueExpr := c.checkExprInCurrentMode(field.Default, exprConfig{})
 	if !isValidStructDefaultType(valueType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("forbidden assigment type %q to struct default field %q at %d:%d-%d", stringifyType(valueType), field.Name.Value, field.Name.Line, field.Default.Start().Column, field.Default.End().Column)})
-		return
+		return nil, nil
 	}
 
 	if !IsAssignableTo(targetType, valueType) {
 		c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("cannot assign value of type %q to type %q at %d:%d-%d", stringifyType(valueType), stringifyType(targetType), field.Name.Line, field.Default.Start().Column, field.Default.End().Column)})
-		return
+		return nil, nil
 	}
+
+	return valueType, valueExpr
 }
 
 // resolveInterfaceMethods resolves the ast interface declaration to return
@@ -1062,7 +1080,7 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 
 				for _, v := range t.Fields {
 					ftyp, _ := c.checkExprInCurrentMode(v.Value, exprConfig{})
-					styp, _ := lookupStructField(st, v.Key.Value)
+					styp, _, _ := lookupStructField(st, v.Key.Value)
 					if !IsAssignableTo(styp, ftyp) {
 						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("invalid field %q type in struct %q, expected %q, got %q at %d:%d-%d", v.Key.Value, t.Name.Value, stringifyType(styp), stringifyType(ftyp), v.Value.Start().Line, v.Value.Start().Column, v.Value.End().Column)})
 						return TInvalid, nil
@@ -1086,7 +1104,7 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 			}
 
 			ftyp, _ := c.checkExprInCurrentMode(v.Value, exprConfig{})
-			styp, sok := lookupStructField(st, v.Key.Value)
+			styp, sok, _ := lookupStructField(st, v.Key.Value)
 			if !sok {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q in struct %q at %d:%d", v.Key.Value, t.Name.Value, v.Key.Line, v.Key.Column)})
 				return TInvalid, nil
@@ -1396,7 +1414,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 			}
 
 		case *ast.StructDecl:
-			c.checkStructDecl(decl)
+			if x := c.checkStructDecl(decl); x != nil {
+				st.blockStmt = append(st.blockStmt, &DeclStmt{x})
+			}
 
 		case *ast.EnumDecl:
 			c.checkEnumDecl(decl)
@@ -2126,8 +2146,9 @@ func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) Decl {
 
 // checkStructDecl validates struct statement.
 // An error is emitted if any
-func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
-	if !c.declareNoShadow(c.scope, &Symbol{
+func (c *Checker) checkStructDecl(decl *ast.StructDecl) Decl {
+	fields := c.resolveStructFields(decl.Fields, true)
+	sym := &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
@@ -2135,12 +2156,20 @@ func (c *Checker) checkStructDecl(decl *ast.StructDecl) {
 			Decl: decl,
 			UnderlyingType: &StructType{
 				Decl:   decl,
-				Fields: c.resolveStructFields(decl.Fields, true),
+				Fields: fields,
 			},
 		},
-	}, "type") {
-		return
 	}
+	if !c.declareNoShadow(c.scope, sym, "type") {
+		return nil
+	}
+
+	sd := &StructDecl{Name: decl.Name.Value, Symbol: resolvedSymbol(sym, false, false)}
+	for _, f := range fields {
+		sd.Fields = append(sd.Fields, FieldDecl{Name: f.Name, Type: f.Type, Default: f.Default})
+	}
+
+	return sd
 }
 
 // checkEnumDecl validates struct statement.
@@ -2337,7 +2366,7 @@ func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) Type {
 			}
 		}
 
-		typ, ok := lookupStructField(t, expr.Selector.Value)
+		typ, ok, _ := lookupStructField(t, expr.Selector.Value)
 		if !ok {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q at %d:%d", expr.Selector.Value, expr.Selector.Line, expr.Selector.Column)})
 			return TInvalid
@@ -2370,14 +2399,14 @@ func UnwrapNamed(t Type) Type {
 }
 
 // lookupStructField loops into struct field to match provided name.
-// It returns its type and true when found
-func lookupStructField(st *StructType, name string) (Type, bool) {
-	for _, f := range st.Fields {
+// It returns its type, true and field index when found
+func lookupStructField(st *StructType, name string) (Type, bool, int) {
+	for index, f := range st.Fields {
 		if f.Name == name {
-			return f.Type, true
+			return f.Type, true, index
 		}
 	}
-	return nil, false
+	return nil, false, 0
 }
 
 // lookupInterfaceMethods loops into interface methods to match provided name.
@@ -4136,7 +4165,7 @@ func (c *Checker) isStructHasDefaults(decl ast.Decl, expr *ast.StructExpr, typ *
 			}
 
 			exprSeen[v.Key.Value] = true
-			if _, sok := lookupStructField(typ, v.Key.Value); !sok {
+			if _, sok, _ := lookupStructField(typ, v.Key.Value); !sok {
 				c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown field %q in struct %q at %d:%d", v.Key.Value, expr.Name.Value, v.Key.Line, v.Key.Column)})
 				hasError = true
 			}

@@ -53,15 +53,13 @@ type VarDecl struct {
 type StructDecl struct {
 	Name   string
 	Symbol ResolvedSymbol
-	Fields []*FieldDecl
+	Fields []FieldDecl
 }
 
 type FieldDecl struct {
-	Name   string
-	Symbol ResolvedSymbol
-	// Type    Type
-	Eq      *string // nil if no default
-	Default Expr    // nil if no default
+	Name    string
+	Type    Type
+	Default Expr
 }
 
 type InterfaceDecl struct {

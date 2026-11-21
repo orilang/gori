@@ -2806,4 +2806,109 @@ func f(m Scores){
 		require.Equal(t, "v", vvalue1.Value)
 		require.Equal(t, TInt, vvalue1.Type)
 	})
+
+	t.Run("x35", func(t *testing.T) {
+		data := `package main
+
+type UserID int
+
+type UID struct {
+  a UserID = UserID(1)
+	b string
+	c int = int(0)
+}
+
+func f() {
+  type A struct {
+    a UserID = UserID(1)
+  }
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 3, len(pf.Decls))
+
+		typ1, ok := pf.Decls[0].(*DefinedTypeDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "UserID", typ1.Name)
+
+		ttyp1, ok := typ1.Type.(*BuiltinType)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, ttyp1)
+
+		str1, ok := pf.Decls[1].(*StructDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "UID", str1.Name)
+		require.Equal(t, 3, len(str1.Fields))
+
+		require.Equal(t, "a", str1.Fields[0].Name)
+		nt1, ok := str1.Fields[0].Type.(*NamedType)
+		require.Equal(t, true, ok)
+		require.Equal(t, "UserID", nt1.Name)
+		require.Equal(t, TInt, nt1.UnderlyingType)
+		require.NotNil(t, str1.Fields[0].Default)
+		id1, ok := str1.Fields[0].Default.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "UserID", id1.Value)
+		idnt1, ok := id1.Type.(*NamedType)
+		require.Equal(t, true, ok)
+		require.Equal(t, "UserID", idnt1.Name)
+		require.Equal(t, TInt, idnt1.UnderlyingType)
+
+		require.Equal(t, "b", str1.Fields[1].Name)
+		require.Equal(t, TString, str1.Fields[1].Type)
+
+		require.Equal(t, "c", str1.Fields[2].Name)
+		require.Equal(t, TInt, str1.Fields[2].Type)
+		require.NotNil(t, str1.Fields[2].Default)
+		df1, ok := str1.Fields[2].Default.(*ConversionExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, df1.To)
+		int1, ok := df1.Value.(*IntLitExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, int1.Type)
+		require.Equal(t, "0", int1.Value)
+
+		fn1, ok := pf.Decls[2].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 0, len(fn1.Params))
+		require.Equal(t, 0, len(fn1.Results))
+		require.NotNil(t, fn1.Body)
+		require.Equal(t, 1, len(fn1.Body.Stmts))
+
+		de1, ok := fn1.Body.Stmts[0].(*DeclStmt)
+		require.Equal(t, true, ok)
+		str2, ok := de1.Decl.(*StructDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "A", str2.Name)
+		require.Equal(t, 1, len(str2.Fields))
+
+		require.Equal(t, "a", str2.Fields[0].Name)
+		snt1, ok := str2.Fields[0].Type.(*NamedType)
+		require.Equal(t, true, ok)
+		require.Equal(t, "UserID", snt1.Name)
+		require.Equal(t, TInt, snt1.UnderlyingType)
+		require.NotNil(t, str2.Fields[0].Default)
+		sid1, ok := str2.Fields[0].Default.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "UserID", sid1.Value)
+		sidnt1, ok := id1.Type.(*NamedType)
+		require.Equal(t, true, ok)
+		require.Equal(t, "UserID", sidnt1.Name)
+		require.Equal(t, TInt, sidnt1.UnderlyingType)
+	})
 }
