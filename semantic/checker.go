@@ -318,7 +318,11 @@ func (c *Checker) resolveTypeDecls() {
 		switch d := decl.(type) {
 		case *ast.DefinedTypeDecl:
 			t := sym.Type.(*NamedType)
-			t.UnderlyingType = c.resolveType(d.Type)
+			typ := c.resolveType(d.Type)
+			t.UnderlyingType = typ
+
+			x := &DefinedTypeDecl{Name: name, Symbol: resolvedSymbol(sym, false, false), Type: typ}
+			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
 		case *ast.StructDecl:
 			t := sym.Type.(*NamedType)
@@ -1387,7 +1391,9 @@ func (c *Checker) checkStmt(stmt ast.Stmt, returnInputVarsInitialized []string) 
 			st.blockStmt = append(st.blockStmt, &DeclStmt{c.checkScopeVarDecl(decl)})
 
 		case *ast.DefinedTypeDecl:
-			c.checkDefinedTypeDecl(decl)
+			if x := c.checkDefinedTypeDecl(decl); x != nil {
+				st.blockStmt = append(st.blockStmt, &DeclStmt{x})
+			}
 
 		case *ast.StructDecl:
 			c.checkStructDecl(decl)
@@ -2100,18 +2106,22 @@ func (c *Checker) checkIncDecStmt(decl *ast.IncDecStmt) *IncDecStmt {
 
 // checkDefinedTypeDecl validates type declaration statement.
 // An error is emitted if any
-func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) {
-	if !c.declareNoShadow(c.scope, &Symbol{
+func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) Decl {
+	typ := c.resolveType(decl.Type)
+	sym := &Symbol{
 		Name: decl.Name.Value,
 		Kind: SymType,
 		Type: &NamedType{
 			Name:           decl.Name.Value,
 			Decl:           decl,
-			UnderlyingType: c.resolveType(decl.Type),
+			UnderlyingType: typ,
 		},
-	}, "type") {
-		return
 	}
+	if !c.declareNoShadow(c.scope, sym, "type") {
+		return nil
+	}
+
+	return &DefinedTypeDecl{Name: decl.Name.Value, Symbol: resolvedSymbol(sym, false, false), Type: typ}
 }
 
 // checkStructDecl validates struct statement.

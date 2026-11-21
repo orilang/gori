@@ -120,6 +120,12 @@ type DeclStmt struct {
 	Decl Decl
 }
 
+type DefinedTypeDecl struct {
+	Name   string
+	Symbol ResolvedSymbol
+	Type   Type
+}
+
 type ExprStmt struct {
 	Expr Expr
 }

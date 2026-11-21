@@ -2689,4 +2689,121 @@ func f(m hashmap[string]int){
 		require.Equal(t, "v", vvalue1.Value)
 		require.Equal(t, TInt, vvalue1.Type)
 	})
+
+	t.Run("x34", func(t *testing.T) {
+		data := `package main
+
+type Scores hashmap[string]int
+func println(k string, v int){}
+func f(m Scores){
+  for k, v := range m {
+    println(k, v)
+  }
+}
+`
+
+		lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+		require.NoError(t, err)
+		parser := parser.New(lex.FetchTokensFromString(data))
+		pr := parser.ParseFile()
+		require.Equal(t, 0, len(parser.Errors))
+		check := NewChecker()
+
+		program, diagnostics := check.Check(pr)
+		require.Equal(t, 0, len(diagnostics))
+		require.Equal(t, 1, len(program.Files))
+
+		pf := program.Files[0]
+		require.Equal(t, 3, len(pf.Decls))
+
+		typ1, ok := pf.Decls[0].(*DefinedTypeDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "Scores", typ1.Name)
+
+		ttyp1, ok := typ1.Type.(*HashMapType)
+		require.Equal(t, true, ok)
+		tkey1, ok := ttyp1.Key.(*BuiltinType)
+		require.Equal(t, true, ok)
+		require.Equal(t, TString, tkey1)
+
+		tvalue1, ok := ttyp1.Value.(*BuiltinType)
+		require.Equal(t, true, ok)
+		require.Equal(t, TInt, tvalue1)
+
+		fn1, ok := pf.Decls[1].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "println", fn1.Name)
+		require.NotNil(t, fn1.Symbol)
+		require.Equal(t, SymFunc, fn1.Symbol.Kind)
+		require.Equal(t, 2, len(fn1.Params))
+		require.Equal(t, "k", fn1.Params[0].Name)
+		require.Equal(t, TString, fn1.Params[0].Type)
+		require.Equal(t, "v", fn1.Params[1].Name)
+		require.Equal(t, TInt, fn1.Params[1].Type)
+		require.Equal(t, 0, len(fn1.Results))
+		require.Nil(t, fn1.Body)
+
+		fn2, ok := pf.Decls[2].(*FuncDecl)
+		require.Equal(t, true, ok)
+		require.Equal(t, "f", fn2.Name)
+		require.NotNil(t, fn2.Symbol)
+		require.Equal(t, SymFunc, fn2.Symbol.Kind)
+		require.Equal(t, 1, len(fn2.Params))
+		require.Equal(t, "m", fn2.Params[0].Name)
+		require.Equal(t, 0, len(fn2.Results))
+		require.NotNil(t, fn2.Body)
+		require.Equal(t, 1, len(fn2.Body.Stmts))
+
+		rg1, ok := fn2.Body.Stmts[0].(*RangeStmt)
+		require.Equal(t, true, ok)
+
+		id1, ok := rg1.X.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "m", id1.Value)
+
+		nt1, ok := id1.Type.(*NamedType)
+		require.Equal(t, true, ok)
+
+		_, ok = nt1.UnderlyingType.(*HashMapType)
+		require.Equal(t, true, ok)
+
+		key1, ok := rg1.Key.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "k", key1.Value)
+		require.Equal(t, TString, key1.Type)
+
+		value1, ok := rg1.Value.(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "v", value1.Value)
+		require.Equal(t, TInt, value1.Type)
+
+		require.Equal(t, 1, len(rg1.Body.Stmts))
+		es1, ok := rg1.Body.Stmts[0].(*ExprStmt)
+		require.Equal(t, true, ok)
+
+		ce1, ok := es1.Expr.(*CallExpr)
+		require.Equal(t, true, ok)
+
+		cide1, ok := ce1.Callee.(*IdentExpr)
+		require.Equal(t, true, ok)
+
+		require.Equal(t, "println", cide1.Value)
+		_, ok = cide1.Type.(*FuncMethod)
+		require.Equal(t, true, ok)
+
+		_, ok = ce1.CalleeType.(*FuncMethod)
+		require.Equal(t, true, ok)
+
+		require.Equal(t, 2, len(ce1.Args))
+
+		kkey1, ok := ce1.Args[0].(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "k", kkey1.Value)
+		require.Equal(t, TString, kkey1.Type)
+
+		vvalue1, ok := ce1.Args[1].(*IdentExpr)
+		require.Equal(t, true, ok)
+		require.Equal(t, "v", vvalue1.Value)
+		require.Equal(t, TInt, vvalue1.Type)
+	})
 }

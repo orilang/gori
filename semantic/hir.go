@@ -1,13 +1,14 @@
 package semantic
 
-func (*ConstDecl) declNode()      {}
-func (*VarDecl) declNode()        {}
-func (*FuncDecl) declNode()       {}
-func (*StructDecl) declNode()     {}
-func (*InterfaceDecl) declNode()  {}
-func (*EnumDecl) declNode()       {}
-func (*SumDecl) declNode()        {}
-func (*ImplementsDecl) declNode() {}
+func (*ConstDecl) declNode()       {}
+func (*VarDecl) declNode()         {}
+func (*FuncDecl) declNode()        {}
+func (*StructDecl) declNode()      {}
+func (*InterfaceDecl) declNode()   {}
+func (*EnumDecl) declNode()        {}
+func (*SumDecl) declNode()         {}
+func (*ImplementsDecl) declNode()  {}
+func (*DefinedTypeDecl) declNode() {}
 
 func (*ConversionExpr) exprNode() {}
 func (*IdentExpr) exprNode()      {}
