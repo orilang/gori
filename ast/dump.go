@@ -360,7 +360,7 @@ func (d *dumper) node(indent int, n any) {
 				if f.Eq != nil {
 					d.kv(indent+2, "Eq", *f.Eq)
 					d.expr(indent+2, f.Default)
-					d.kvr(indent+3, "RawType", f.RawTypeDefault)
+					d.kvr(indent+3, "RawType", f.DefaultRawType)
 				}
 			}
 		}

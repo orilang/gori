@@ -301,7 +301,7 @@ type FieldDecl struct {
 	RawType        string
 	Eq             *token.Token // nil if no default
 	Default        Expr         // nil if no default
-	RawTypeDefault string
+	DefaultRawType string
 }
 
 type NamedType struct {

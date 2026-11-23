@@ -98,7 +98,7 @@ func (p *Parser) parseStructTypeField() *ast.FieldDecl {
 			fd.Default = p.parseExpr(LOWEST)
 		}
 
-		fd.RawTypeDefault = ast.RawType(fd.Default)
+		fd.DefaultRawType = ast.RawType(fd.Default)
 	}
 	return fd
 }
