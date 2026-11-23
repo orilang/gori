@@ -57,9 +57,11 @@ type StructDecl struct {
 }
 
 type FieldDecl struct {
-	Name    string
-	Type    Type
-	Default Expr
+	Name           string
+	Type           Type
+	RawType        string
+	Default        Expr
+	DefaultRawType string
 }
 
 type InterfaceDecl struct {
@@ -80,6 +82,7 @@ type ImplementsDecl struct {
 	Implements string
 	Symbol     ResolvedSymbol
 	Interface  Type
+	RawType    string
 }
 
 type EnumDecl struct {
@@ -119,9 +122,10 @@ type DeclStmt struct {
 }
 
 type DefinedTypeDecl struct {
-	Name   string
-	Symbol ResolvedSymbol
-	Type   Type
+	Name    string
+	Symbol  ResolvedSymbol
+	Type    Type
+	RawType string
 }
 
 type ExprStmt struct {

@@ -3169,6 +3169,7 @@ func (x XA) X() int {
 		require.Equal(t, 1, len(it1.Methods[0].Results))
 		require.Equal(t, "i", it1.Methods[0].Results[0].Name)
 		require.Equal(t, TInt, it1.Methods[0].Results[0].Type)
+		require.NotEmpty(t, it1.Methods[0].Results[0].RawType)
 
 		str1, ok := pf.Decls[1].(*StructDecl)
 		require.Equal(t, true, ok)
@@ -3177,10 +3178,12 @@ func (x XA) X() int {
 
 		require.Equal(t, "x", str1.Fields[0].Name)
 		require.Equal(t, TInt, str1.Fields[0].Type)
+		require.NotEmpty(t, str1.Fields[0].RawType)
 
 		imp1, ok := pf.Decls[2].(*ImplementsDecl)
 		require.Equal(t, true, ok)
 		require.Equal(t, "XA", imp1.Implements)
+		require.NotEmpty(t, imp1.RawType)
 
 		nt1, ok := imp1.Interface.(*NamedType)
 		require.Equal(t, true, ok)

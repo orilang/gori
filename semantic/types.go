@@ -71,9 +71,11 @@ type MultiValueType struct {
 }
 
 type StructField struct {
-	Name    string
-	Type    Type
-	Default Expr
+	Name           string
+	Type           Type
+	RawType        string
+	Default        Expr
+	DefaultRawType string
 }
 
 type StructType struct {
@@ -82,8 +84,9 @@ type StructType struct {
 }
 
 type Param struct {
-	Name string
-	Type Type
+	Name    string
+	Type    Type
+	RawType string
 }
 
 type FuncType struct {

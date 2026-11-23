@@ -191,7 +191,10 @@ type test interface{
 
 		for k := range len(source.Methods) {
 			assert.Equal(t, source.Methods[k].Name, destination.Methods[k].Name)
-			assert.Equal(t, source.Methods[k].FuncType.Params, destination.Methods[k].FuncType.Params)
+			for p := range source.Methods[k].FuncType.Params {
+				assert.Equal(t, source.Methods[k].FuncType.Params[p].Name, destination.Methods[k].FuncType.Params[p].Name)
+				assert.Equal(t, source.Methods[k].FuncType.Params[p].Type, destination.Methods[k].FuncType.Params[p].Type)
+			}
 			assert.Equal(t, len(source.Methods[k].FuncType.Results), len(destination.Methods[k].FuncType.Results))
 
 			for r := range len(source.Methods[k].FuncType.Results) {
@@ -5969,9 +5972,6 @@ func f() int {
 			if tc.err {
 				assert.Greater(t, len(diagnostics), 0, i)
 			} else {
-				if len(diagnostics) > 0 {
-					fmt.Println("DATA", i, tc.data)
-				}
 				assert.Equal(t, 0, len(diagnostics), i)
 			}
 		}

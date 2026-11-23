@@ -321,7 +321,7 @@ func (c *Checker) resolveTypeDecls() {
 			typ := c.resolveType(d.Type)
 			t.UnderlyingType = typ
 
-			x := &DefinedTypeDecl{Name: name, Symbol: resolvedSymbol(sym, false, false), Type: typ}
+			x := &DefinedTypeDecl{Name: name, Symbol: resolvedSymbol(sym, false, false), Type: typ, RawType: d.RawType}
 			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
 		case *ast.StructDecl:
@@ -332,7 +332,7 @@ func (c *Checker) resolveTypeDecls() {
 
 			x := &StructDecl{Name: name, Symbol: resolvedSymbol(sym, false, false)}
 			for _, f := range fields {
-				x.Fields = append(x.Fields, FieldDecl{Name: f.Name, Type: f.Type})
+				x.Fields = append(x.Fields, FieldDecl{Name: f.Name, Type: f.Type, RawType: f.RawType, DefaultRawType: f.DefaultRawType})
 			}
 			c.program.Files[c.programFileIndex].Decls = append(c.program.Files[c.programFileIndex].Decls, x)
 
@@ -566,14 +566,16 @@ func (c *Checker) resolveStructFields(fields []*ast.FieldDecl, checkFieldsDefaul
 
 		targetType := c.resolveType(field.Type)
 		st := StructField{
-			Name: field.Name.Value,
-			Type: targetType,
+			Name:    field.Name.Value,
+			Type:    targetType,
+			RawType: field.RawType,
 		}
 
 		if checkFieldsDefaults {
 			if field.Eq != nil && field.Default != nil {
 				_, valueExpr := c.resolveStructTypeDefaultValue(targetType, field)
 				st.Default = valueExpr
+				st.DefaultRawType = field.DefaultRawType
 			}
 		}
 
@@ -599,6 +601,7 @@ func (c *Checker) resolveStructTypeDefaultValues() {
 										for _, pgr := range c.program.Files[c.programFileIndex].Decls {
 											if sd, ok := pgr.(*StructDecl); ok && sd.Name == name && sd.Symbol == resolvedSymbol(sym, false, false) {
 												sd.Fields[index].Default = expr
+												sd.Fields[index].DefaultRawType = field.DefaultRawType
 											}
 										}
 									}
@@ -732,8 +735,9 @@ func (c *Checker) resolveParams(kind string, pr []ast.Param) []Param {
 			seen[p.Name.Value] = &p
 		}
 		out = append(out, Param{
-			Name: p.Name.Value,
-			Type: c.resolveType(p.Type),
+			Name:    p.Name.Value,
+			Type:    c.resolveType(p.Type),
+			RawType: p.RawType,
 		})
 	}
 	return out
@@ -2175,7 +2179,7 @@ func (c *Checker) checkDefinedTypeDecl(decl *ast.DefinedTypeDecl) Decl {
 		return nil
 	}
 
-	return &DefinedTypeDecl{Name: decl.Name.Value, Symbol: resolvedSymbol(sym, false, false), Type: typ}
+	return &DefinedTypeDecl{Name: decl.Name.Value, Symbol: resolvedSymbol(sym, false, false), Type: typ, RawType: decl.RawType}
 }
 
 // checkStructDecl validates struct statement.
@@ -2348,7 +2352,7 @@ func (c *Checker) checkImplementsDecl(decl *ast.ImplementsDecl) Decl {
 		Decl:          decl,
 	})
 
-	return &ImplementsDecl{Implements: decl.TypeName.Value, Symbol: resolvedSymbol(sym, false, false), Interface: ifaceType}
+	return &ImplementsDecl{Implements: decl.TypeName.Value, Symbol: resolvedSymbol(sym, false, false), Interface: ifaceType, RawType: decl.RawType}
 }
 
 // implementsInterface loops over interface methods to verify if all methods
