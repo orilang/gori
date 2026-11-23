@@ -84,6 +84,7 @@ type test struct{
     Type:
      NamedType
       Ident: "int" @4:5 (kind=12)
+     RawType: "int"
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -112,6 +113,7 @@ type test struct{x int}
     Type:
      NamedType
       Ident: "int" @3:20 (kind=12)
+     RawType: "int"
    RBrace: "}" @3:23 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -140,11 +142,13 @@ type test struct{x int;Y string}
     Type:
      NamedType
       Ident: "int" @3:20 (kind=12)
+     RawType: "int"
     Name: "Y" @3:24 (kind=3)
     Public: true
     Type:
      NamedType
       Ident: "string" @3:26 (kind=24)
+     RawType: "string"
    RBrace: "}" @3:32 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -174,6 +178,7 @@ type test struct{x int
     Type:
      NamedType
       Ident: "int" @3:20 (kind=12)
+     RawType: "int"
    RBrace: "}" @4:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -203,6 +208,7 @@ type test struct { x int // comment
     Type:
      NamedType
       Ident: "int" @3:22 (kind=12)
+     RawType: "int"
    RBrace: "}" @4:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -231,9 +237,11 @@ type test struct{x int = 5}
     Type:
      NamedType
       Ident: "int" @3:20 (kind=12)
+     RawType: "int"
     Eq: "=" @3:24 (kind=49)
     IntLitExpr
      Value: "5" @3:26 (kind=4)
+     RawType: "5"
    RBrace: "}" @3:27 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -267,16 +275,20 @@ type test struct{
     Type:
      NamedType
       Ident: "int" @4:5 (kind=12)
+     RawType: "int"
     Eq: "=" @4:9 (kind=49)
     IntLitExpr
      Value: "5" @4:11 (kind=4)
+     RawType: "5"
     Name: "y" @5:3 (kind=3)
     Type:
      NamedType
       Ident: "int" @5:5 (kind=12)
+     RawType: "int"
     Eq: "=" @5:9 (kind=49)
     IntLitExpr
      Value: "5" @5:11 (kind=4)
+     RawType: "5"
     Name: "a" @6:2 (kind=3)
     Type:
      SliceType:
@@ -284,6 +296,7 @@ type test struct{
       RBracket: "]" @6:5 (kind=44)
       NamedType
        Ident: "int" @6:6 (kind=12)
+     RawType: "[]int"
     Name: "b" @7:2 (kind=3)
     Type:
      MapType:
@@ -296,6 +309,7 @@ type test struct{
       ValueType:
        NamedType
         Ident: "string" @7:15 (kind=24)
+     RawType: "map[string]string"
    RBrace: "}" @8:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -326,6 +340,7 @@ type test struct{
     Type:
      NamedType
       Ident: "int" @4:5 (kind=12)
+     RawType: "int"
     Eq: "=" @4:9 (kind=49)
     CallExpr
      Callee
@@ -338,6 +353,7 @@ type test struct{
       IdentExpr
        Name: "b" @4:19 (kind=3)
      RParen: ")" @4:20 (kind=40)
+     RawType: "join(a, b)"
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -370,6 +386,7 @@ func main(){
     Type:
      NamedType
       Ident: "int" @3:20 (kind=12)
+     RawType: "int"
    RBrace: "}" @3:23 (kind=42)
   FuncDecl
    Function: "func" @5:1 (kind=10)
@@ -434,6 +451,7 @@ func main(){
     Type:
      NamedType
       Ident: "int" @3:20 (kind=12)
+     RawType: "int"
    RBrace: "}" @3:23 (kind=42)
   FuncDecl
    Function: "func" @5:1 (kind=10)
@@ -503,6 +521,7 @@ func main(){
     Type:
      NamedType
       Ident: "int" @3:20 (kind=12)
+     RawType: "int"
    RBrace: "}" @3:23 (kind=42)
   FuncDecl
    Function: "func" @5:1 (kind=10)
@@ -555,6 +574,7 @@ func main(){
     Type:
      NamedType
       Ident: "int" @3:20 (kind=12)
+     RawType: "int"
    RBrace: "}" @3:23 (kind=42)
   FuncDecl
    Function: "func" @5:1 (kind=10)
@@ -658,6 +678,7 @@ func f() {
     Type:
      NamedType
       Ident: "string" @4:8 (kind=24)
+     RawType: "string"
    RBrace: "}" @5:1 (kind=42)
   FuncDecl
    Function: "func" @7:1 (kind=10)
@@ -723,6 +744,7 @@ func f(p User) string {
     Type:
      NamedType
       Ident: "string" @3:8 (kind=24)
+     RawType: "string"
     Name: "m" @4:3 (kind=3)
     Type:
      MapType:
@@ -735,6 +757,7 @@ func f(p User) string {
       ValueType:
        NamedType
         Ident: "string" @4:16 (kind=24)
+     RawType: "map[string]string"
     Eq: "=" @4:23 (kind=49)
     MakeExpr:
      Make: "make" @4:25 (kind=3)
@@ -760,6 +783,7 @@ func f(p User) string {
          Value: "10" @4:54 (kind=4)
        RParen: ")" @4:56 (kind=40)
      RParen: ")" @4:57 (kind=40)
+     RawType: "make(map[string]string, uint(10))"
    RBrace: "}" @5:1 (kind=42)
   FuncDecl
    Function: "func" @8:1 (kind=10)
@@ -822,6 +846,7 @@ func f(p User) string {
     Type:
      NamedType
       Ident: "string" @3:8 (kind=24)
+     RawType: "string"
     Name: "s" @4:3 (kind=3)
     Type:
      SliceType:
@@ -829,6 +854,7 @@ func f(p User) string {
       RBracket: "]" @4:6 (kind=44)
       NamedType
        Ident: "string" @4:7 (kind=24)
+     RawType: "[]string"
     Eq: "=" @4:14 (kind=49)
     SliceType:
      LBracket: "[" @4:16 (kind=43)
@@ -840,6 +866,7 @@ func f(p User) string {
        StringLitExpr
         Value: "a" @4:25 (kind=6)
       RBrace: "}" @4:28 (kind=42)
+     RawType: "[]string{\"a\"}"
    RBrace: "}" @5:1 (kind=42)
   FuncDecl
    Function: "func" @7:1 (kind=10)
@@ -903,6 +930,7 @@ func f() string {
     Type:
      NamedType
       Ident: "string" @3:8 (kind=24)
+     RawType: "string"
     Name: "s" @4:3 (kind=3)
     Type:
      SliceType:
@@ -910,6 +938,7 @@ func f() string {
       RBracket: "]" @4:6 (kind=44)
       NamedType
        Ident: "string" @4:7 (kind=24)
+     RawType: "[]string"
     Eq: "=" @4:14 (kind=49)
     SliceType:
      LBracket: "[" @4:16 (kind=43)
@@ -921,6 +950,7 @@ func f() string {
        StringLitExpr
         Value: "a" @4:25 (kind=6)
       RBrace: "}" @4:28 (kind=42)
+     RawType: "[]string{\"a\"}"
    RBrace: "}" @5:1 (kind=42)
   FuncDecl
    Function: "func" @7:1 (kind=10)

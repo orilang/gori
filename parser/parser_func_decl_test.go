@@ -688,6 +688,7 @@ func x(){
         Type:
          NamedType
           Ident: "int" @5:6 (kind=12)
+         RawType: "int"
         Name: "m" @6:3 (kind=3)
         Type:
          MapType:
@@ -700,6 +701,7 @@ func x(){
           ValueType:
            NamedType
             Ident: "string" @6:16 (kind=24)
+         RawType: "map[string]string"
        RBrace: "}" @7:2 (kind=42)
      RBrace: "}" @8:1 (kind=42)
 `

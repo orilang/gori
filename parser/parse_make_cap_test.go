@@ -1,7 +1,6 @@
 package parser
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/orilang/gori/ast"
@@ -332,6 +331,7 @@ func f() UserID {
       RBracket: "]" @2:14 (kind=44)
       NamedType
        Ident: "string" @2:15 (kind=24)
+    RawType: "[]string"
   FuncDecl
    Function: "func" @3:1 (kind=10)
    Name: "f" @3:6 (kind=3)
@@ -483,7 +483,6 @@ func main() {
          RParen: ")" @4:39 (kind=40)
      RBrace: "}" @5:1 (kind=42)
 `
-		fmt.Println(ast.Dump(pr))
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
 	})

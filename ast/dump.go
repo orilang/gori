@@ -356,9 +356,11 @@ func (d *dumper) node(indent int, n any) {
 				}
 				d.line(indent+2, "Type:")
 				d.typ(indent+3, f.Type)
+				d.kvr(indent+3, "RawType", f.RawType)
 				if f.Eq != nil {
 					d.kv(indent+2, "Eq", *f.Eq)
 					d.expr(indent+2, f.Default)
+					d.kvr(indent+3, "RawType", f.RawTypeDefault)
 				}
 			}
 		}
@@ -391,6 +393,7 @@ func (d *dumper) node(indent int, n any) {
 						d.kv(indent+3, "Ident", p.Name)
 						d.line(indent+3, "Type")
 						d.typ(indent+4, p.Type)
+						d.kvr(indent+3, "RawType", p.RawType)
 					}
 				}
 
@@ -407,6 +410,7 @@ func (d *dumper) node(indent int, n any) {
 						}
 						d.line(indent+4, "Type")
 						d.typ(indent+5, p.Type)
+						d.kvr(indent+4, "RawType", p.RawType)
 					}
 
 					if f.Results.RParen != (token.Token{}) {
@@ -423,6 +427,7 @@ func (d *dumper) node(indent int, n any) {
 		d.kv(indent+2, "Implements", v.Implements)
 		d.line(indent+2, "Interface")
 		d.node(indent+3, v.Interface)
+		d.kvr(indent+2, "RawType", v.RawType)
 
 	case *EnumDecl:
 		d.line(indent, "EnumDecl:")
@@ -476,6 +481,7 @@ func (d *dumper) node(indent int, n any) {
 		d.kv(indent+2, "Name", v.Name)
 		d.line(indent+2, "Type")
 		d.node(indent+3, v.Type)
+		d.kvr(indent+2, "RawType", v.RawType)
 
 	case *SliceExpr:
 		d.line(indent, "SliceExpr")
@@ -583,6 +589,10 @@ func (d *dumper) line(indent int, s string) {
 
 func (d *dumper) kv(indent int, key string, t token.Token) {
 	d.line(indent, fmt.Sprintf("%s: %s", key, fmtTok(t)))
+}
+
+func (d *dumper) kvr(indent int, key, value string) {
+	d.line(indent, fmt.Sprintf("%s: %q", key, value))
 }
 
 // fmtTok returns token content with line, column etc
@@ -694,4 +704,104 @@ func (d *dumper) expr(indent int, n Expr) {
 		}
 		d.line(indent, fmt.Sprintf("<<unhandled expr %T>>", n))
 	}
+}
+
+func RawType(n any) string {
+	var raw []string
+
+	switch v := n.(type) {
+	case token.Token:
+		raw = append(raw, v.Value)
+
+	case *IdentExpr:
+		raw = append(raw, v.Name.Value)
+
+	case *IntLitExpr:
+		raw = append(raw, v.Name.Value)
+
+	case *FloatLitExpr:
+		raw = append(raw, v.Name.Value)
+
+	case *BoolLitExpr:
+		raw = append(raw, v.Name.Value)
+
+	case *StringLitExpr:
+		raw = append(raw, v.Name.Value)
+
+	case *NamedType:
+		for _, va := range v.Parts {
+			raw = append(raw, RawType(va))
+		}
+
+	case *ParenExpr:
+		raw = append(raw, v.Left.Value)
+		raw = append(raw, RawType(v.Inner))
+		raw = append(raw, v.Right.Value)
+
+	case *BinaryExpr:
+		raw = append(raw, RawType(v.Left))
+		raw = append(raw, RawType(v.Operator))
+		raw = append(raw, RawType(v.Right))
+
+	case *UnaryExpr:
+		raw = append(raw, v.Operator.Value)
+		raw = append(raw, RawType(v.Right))
+
+	case *CallExpr:
+		raw = append(raw, RawType(v.Callee))
+		raw = append(raw, RawType(v.LParen))
+		var ar []string
+		for _, va := range v.Args {
+			ar = append(ar, RawType(va))
+		}
+		raw = append(raw, strings.Join(ar, ", "))
+		raw = append(raw, RawType(v.RParen))
+
+	case *MakeExpr:
+		raw = append(raw, v.MakeKW.Value)
+		raw = append(raw, RawType(v.LParen))
+		raw = append(raw, RawType(v.Type))
+		var ar []string
+		for _, va := range v.Args {
+			ar = append(ar, RawType(va))
+		}
+		if len(v.Args) == 1 {
+			raw = append(raw, ", ", strings.Join(ar, ", "))
+		} else {
+			raw = append(raw, strings.Join(ar, ", "))
+		}
+		raw = append(raw, RawType(v.RParen))
+
+	case *SliceLitExpr:
+		raw = append(raw, RawType(v.Type))
+		raw = append(raw, RawType(v.LBrace))
+		var ar []string
+		for _, va := range v.Elements {
+			ar = append(ar, RawType(va))
+		}
+		raw = append(raw, strings.Join(ar, ", "))
+		raw = append(raw, RawType(v.RBrace))
+
+	case *SliceType:
+		raw = append(raw, RawType(v.LBracket))
+		raw = append(raw, RawType(v.RBracket))
+		raw = append(raw, RawType(v.Elem))
+
+	case *ArrayType:
+		raw = append(raw, RawType(v.LBracket))
+		raw = append(raw, RawType(v.Len))
+		raw = append(raw, RawType(v.RBracket))
+		raw = append(raw, RawType(v.Elem))
+
+	case *MapType:
+		raw = append(raw, RawType(v.KindKW))
+		raw = append(raw, RawType(v.LBracket))
+		raw = append(raw, RawType(v.KeyType))
+		raw = append(raw, RawType(v.RBracket))
+		raw = append(raw, RawType(v.ValueType))
+
+	default:
+		raw = append(raw, fmt.Sprintf("<<unhandled type %T>>", n))
+	}
+	return strings.Join(raw, "")
 }

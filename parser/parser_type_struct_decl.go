@@ -81,6 +81,7 @@ func (p *Parser) parseStructTypeField() *ast.FieldDecl {
 		fd.Type = x
 		_ = p.next()
 	}
+	fd.RawType = ast.RawType(fd.Type)
 
 	if p.kind() == token.Assign {
 		kwa := p.expect(token.Assign, "expected '='")
@@ -96,6 +97,8 @@ func (p *Parser) parseStructTypeField() *ast.FieldDecl {
 		default:
 			fd.Default = p.parseExpr(LOWEST)
 		}
+
+		fd.RawTypeDefault = ast.RawType(fd.Default)
 	}
 	return fd
 }

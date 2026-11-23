@@ -31,6 +31,7 @@ Z implements A.B // A.B
     Interface
      NamedType
       Ident: "Y" @3:14 (kind=3)
+    RawType: "Y"
   ImplementsDecl:
    TypeName: "Z" @4:1 (kind=3)
     Implements: "implements" @4:3 (kind=72)
@@ -39,6 +40,7 @@ Z implements A.B // A.B
       Ident: "A" @4:14 (kind=3)
       Dot: "." @4:15 (kind=48)
       Ident: "B" @4:16 (kind=3)
+    RawType: "A.B"
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -63,6 +65,7 @@ X implements Y;Z implements A.B
     Interface
      NamedType
       Ident: "Y" @3:14 (kind=3)
+    RawType: "Y"
   ImplementsDecl:
    TypeName: "Z" @3:16 (kind=3)
     Implements: "implements" @3:18 (kind=72)
@@ -71,6 +74,7 @@ X implements Y;Z implements A.B
       Ident: "A" @3:29 (kind=3)
       Dot: "." @3:30 (kind=48)
       Ident: "B" @3:31 (kind=3)
+    RawType: "A.B"
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))

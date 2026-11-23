@@ -23,6 +23,7 @@ func (p *Parser) parseImplementsDecl() ast.Decl {
 	}
 
 	id.Interface = p.parseInterfaceTypeEmbbed()
+	id.RawType = ast.RawType(id.Interface)
 	if p.kind() == token.SemiComma {
 		_ = p.expect(token.SemiComma, "expected ';'")
 	}

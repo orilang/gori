@@ -7,6 +7,7 @@ import (
 	"github.com/orilang/gori/lexer"
 	"github.com/orilang/gori/token"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestParser_parse_common(t *testing.T) {
@@ -275,5 +276,29 @@ type test struct{
 		parser := New(lex.FetchTokensFromString(data))
 		parser.position = 6
 		assert.Equal(false, parser.lookupStructExpr())
+	})
+
+	t.Run("raw_type", func(t *testing.T) {
+		tests := []struct {
+			data string
+		}{
+			{
+				data: `package main
+type a struct {b bool = true}
+type b struct {b float = 1.0}
+type c struct {b float = -(1.0 * 2.0)}
+type d struct {b [2]float = [2]float{1.0, 2.0}}
+type e struct {b map[string]string = make(map[string]string, uint(1), uint(2))}
+`,
+			},
+		}
+
+		for _, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := New(lex.FetchTokensFromString(tc.data))
+			_ = parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+		}
 	})
 }

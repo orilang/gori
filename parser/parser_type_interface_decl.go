@@ -104,7 +104,8 @@ func (p *Parser) parseFuncSignature() ast.InterfaceMethod {
 // parseFuncSignatureParam returns function parameter
 func (p *Parser) parseFuncSignatureParam() ast.Param {
 	name := p.expectValidIdent(token.Ident, true, "expected parameter identifier")
-	return ast.Param{Name: name, Type: p.parseFuncSignatureParamType()}
+	typ := p.parseFuncSignatureParamType()
+	return ast.Param{Name: name, Type: typ, RawType: ast.RawType(typ)}
 }
 
 // parseFuncSignatureParamType returns func parameter type
@@ -128,14 +129,16 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 		lp := p.expect(token.LParen, "expected '('")
 		if p.kind() == token.RParen {
 			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected parameter(s) before ')', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
-			result.List = append(result.List, ast.Param{Type: p.parseFuncSignatureParamType()})
+			typ := p.parseFuncSignatureParamType()
+			result.List = append(result.List, ast.Param{Type: typ, RawType: ast.RawType(typ)})
 			return result
 		}
 
 		if p.kind() == token.Comma {
 			p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected expression before ',', got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 
-			result.List = append(result.List, ast.Param{Type: p.parseFuncSignatureParamType()})
+			typ := p.parseFuncSignatureParamType()
+			result.List = append(result.List, ast.Param{Type: typ, RawType: ast.RawType(typ)})
 			return result
 		}
 
@@ -161,7 +164,8 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 		} else {
 			// entering into kind: (type, type)
 			for p.kind() != token.RParen && p.kind() != token.LBrace && p.kind() != token.EOF {
-				result.List = append(result.List, ast.Param{Type: p.parseFuncSignatureParamType()})
+				typ := p.parseFuncSignatureParamType()
+				result.List = append(result.List, ast.Param{Type: typ, RawType: ast.RawType(typ)})
 
 				if p.kind() != token.Comma && p.kind() != token.RParen {
 					p.Errors = append(p.Errors, fmt.Errorf("%d:%d: expected ',' after parameter(s), got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
@@ -188,7 +192,8 @@ func (p *Parser) parseFuncSignatureReturnTypes() ast.ReturnTypes {
 		return result
 	}
 
-	result.List = append(result.List, ast.Param{Type: p.parseFuncSignatureParamType()})
+	typ := p.parseFuncSignatureParamType()
+	result.List = append(result.List, ast.Param{Type: typ, RawType: ast.RawType(typ)})
 	return result
 }
 

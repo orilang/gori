@@ -24,6 +24,7 @@ func (p *Parser) parseDefinedDecl() ast.Decl {
 			Parts: []token.Token{p.next()},
 		}
 	}
+	dt.RawType = ast.RawType(dt.Type)
 
 	if p.kind() == token.SemiComma {
 		_ = p.expect(token.SemiComma, "expected ';'")

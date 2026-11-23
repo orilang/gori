@@ -88,6 +88,7 @@ type test interface{
       Type
        NamedType
         Ident: "error" @4:7 (kind=3)
+      RawType: "error"
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -120,6 +121,7 @@ type test interface{ X() error }
       Type
        NamedType
         Ident: "error" @3:26 (kind=3)
+      RawType: "error"
    RBrace: "}" @3:32 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -152,6 +154,7 @@ type test interface{ X() error;Y(a int) error}
       Type
        NamedType
         Ident: "error" @3:26 (kind=3)
+      RawType: "error"
    Name: "Y" @3:32 (kind=3)
    Params
     Param
@@ -159,11 +162,13 @@ type test interface{ X() error;Y(a int) error}
      Type
       NamedType
        Ident: "int" @3:36 (kind=12)
+     RawType: "int"
    Results
      Param
       Type
        NamedType
         Ident: "error" @3:41 (kind=3)
+      RawType: "error"
    RBrace: "}" @3:46 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -199,6 +204,7 @@ type test interface{
       Type
        NamedType
         Ident: "error" @4:7 (kind=3)
+      RawType: "error"
    Name: "Y" @5:3 (kind=3)
    Params
     Param
@@ -206,11 +212,13 @@ type test interface{
      Type
       NamedType
        Ident: "int" @5:7 (kind=12)
+     RawType: "int"
    Results
      Param
       Type
        NamedType
         Ident: "error" @5:12 (kind=3)
+      RawType: "error"
    RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -246,6 +254,7 @@ type test interface{
       Type
        NamedType
         Ident: "error" @4:7 (kind=3)
+      RawType: "error"
    Name: "Y" @5:3 (kind=3)
    Params
     Param
@@ -253,11 +262,13 @@ type test interface{
      Type
       NamedType
        Ident: "int" @5:7 (kind=12)
+     RawType: "int"
    Results
      Param
       Type
        NamedType
         Ident: "error" @5:12 (kind=3)
+      RawType: "error"
    RBrace: "}" @6:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -294,11 +305,13 @@ type test interface{
       Type
        NamedType
         Ident: "int" @4:9 (kind=12)
+      RawType: "int"
      Param
       Ident: "z" @4:13 (kind=3)
       Type
        NamedType
         Ident: "int" @4:15 (kind=12)
+      RawType: "int"
     RParen: ")" @4:18 (kind=40)
    RBrace: "}" @5:1 (kind=42)
 `
@@ -334,6 +347,7 @@ type test interface{
       Type
        NamedType
         Ident: "error" @4:7 (kind=3)
+      RawType: "error"
    Name: "Y" @4:13 (kind=3)
    Params
     Param
@@ -341,11 +355,13 @@ type test interface{
      Type
       NamedType
        Ident: "int" @4:17 (kind=12)
+     RawType: "int"
    Results
      Param
       Type
        NamedType
         Ident: "error" @4:21 (kind=3)
+      RawType: "error"
    RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -381,10 +397,12 @@ type test interface{
       Type
        NamedType
         Ident: "a" @4:7 (kind=3)
+      RawType: "a"
      Param
       Type
        NamedType
         Ident: "int" @4:10 (kind=12)
+      RawType: "int"
     RParen: ")" @4:13 (kind=40)
    RBrace: "}" @5:1 (kind=42)
 `
@@ -454,6 +472,7 @@ type A interface {
       Type
        NamedType
         Ident: "int" @4:7 (kind=12)
+      RawType: "int"
    Name: "Y" @5:3 (kind=3)
    Params
     Param
@@ -461,6 +480,7 @@ type A interface {
      Type
       NamedType
        Ident: "int" @5:7 (kind=12)
+     RawType: "int"
    Name: "Z" @6:3 (kind=3)
    Params
     Param
@@ -468,11 +488,13 @@ type A interface {
      Type
       NamedType
        Ident: "int" @6:7 (kind=12)
+     RawType: "int"
    Results
      Param
       Type
        NamedType
         Ident: "int" @6:12 (kind=12)
+      RawType: "int"
    RBrace: "}" @7:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))

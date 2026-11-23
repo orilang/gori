@@ -40,8 +40,9 @@ type Receiver struct {
 
 // Params holds func parameter
 type Param struct {
-	Name token.Token
-	Type Type
+	Name    token.Token
+	Type    Type
+	RawType string
 }
 
 type ReturnTypes struct {
@@ -294,11 +295,13 @@ type StructDecl struct {
 }
 
 type FieldDecl struct {
-	Name    token.Token
-	Public  bool
-	Type    Type
-	Eq      *token.Token // nil if no default
-	Default Expr         // nil if no default
+	Name           token.Token
+	Public         bool
+	Type           Type
+	RawType        string
+	Eq             *token.Token // nil if no default
+	Default        Expr         // nil if no default
+	RawTypeDefault string
 }
 
 type NamedType struct {
@@ -327,6 +330,7 @@ type ImplementsDecl struct {
 	TypeName   token.Token
 	Implements token.Token
 	Interface  Type
+	RawType    string
 }
 
 type EnumDecl struct {
@@ -420,4 +424,5 @@ type DefinedTypeDecl struct {
 	TypeDecl token.Token
 	Name     token.Token
 	Type     Type
+	RawType  string
 }

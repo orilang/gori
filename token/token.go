@@ -115,6 +115,7 @@ func IsBinaryType(k Kind) bool {
 	return binaryTypes[k]
 }
 
+// BinaryOpString returns binary operation in string format
 func BinaryOpString(k Kind) string {
 	switch k {
 	default:
@@ -140,6 +141,7 @@ func BinaryOpString(k Kind) string {
 	}
 }
 
+// UnaryOpString returns unary operation in string format
 func UnaryOpString(k Kind) string {
 	switch k {
 	default:
@@ -151,6 +153,7 @@ func UnaryOpString(k Kind) string {
 	}
 }
 
+// AssignOpString returns assign operation in string format
 func AssignOpString(k Kind) string {
 	switch k {
 	default:

@@ -30,6 +30,7 @@ type a int
     Type
      NamedType
       Ident: "int" @3:8 (kind=12)
+    RawType: "int"
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -55,12 +56,14 @@ type b int
     Type
      NamedType
       Ident: "int" @3:8 (kind=12)
+    RawType: "int"
   DefinedTypeDecl:
    TypeDecl: "type" @4:1 (kind=26)
     Name: "b" @4:6 (kind=3)
     Type
      NamedType
       Ident: "int" @4:8 (kind=12)
+    RawType: "int"
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -85,12 +88,14 @@ type a int;type b int
     Type
      NamedType
       Ident: "int" @3:8 (kind=12)
+    RawType: "int"
   DefinedTypeDecl:
    TypeDecl: "type" @3:12 (kind=26)
     Name: "b" @3:17 (kind=3)
     Type
      NamedType
       Ident: "int" @3:19 (kind=12)
+    RawType: "int"
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -126,6 +131,7 @@ func main(){
         Type
          NamedType
           Ident: "int" @4:9 (kind=12)
+        RawType: "int"
      RBrace: "}" @5:1 (kind=42)
 `
 		assert.Equal(result, ast.Dump(pr))
@@ -152,6 +158,7 @@ type ID []string
     Type
      NamedType
       Ident: "string" @2:8 (kind=24)
+    RawType: "string"
   DefinedTypeDecl:
    TypeDecl: "type" @3:1 (kind=26)
     Name: "UsersByID" @3:6 (kind=3)
@@ -166,6 +173,7 @@ type ID []string
       ValueType:
        NamedType
         Ident: "string" @3:24 (kind=24)
+    RawType: "map[int]string"
   DefinedTypeDecl:
    TypeDecl: "type" @4:1 (kind=26)
     Name: "ID" @4:6 (kind=3)
@@ -175,6 +183,7 @@ type ID []string
       RBracket: "]" @4:10 (kind=44)
       NamedType
        Ident: "string" @4:11 (kind=24)
+    RawType: "[]string"
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
@@ -207,10 +216,12 @@ type Person User
     Type:
      NamedType
       Ident: "string" @3:8 (kind=24)
+     RawType: "string"
     Name: "age" @4:3 (kind=3)
     Type:
      NamedType
       Ident: "int" @4:8 (kind=12)
+     RawType: "int"
    RBrace: "}" @5:1 (kind=42)
   DefinedTypeDecl:
    TypeDecl: "type" @7:1 (kind=26)
@@ -218,6 +229,7 @@ type Person User
     Type
      NamedType
       Ident: "User" @7:13 (kind=3)
+    RawType: "User"
 `
 		assert.Equal(result, ast.Dump(pr))
 		assert.Equal(0, len(parser.Errors))
