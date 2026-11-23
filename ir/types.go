@@ -1,6 +1,7 @@
 package ir
 
 type Program struct {
+	Types []Instruction
 	Funcs []*Func
 }
 
@@ -125,4 +126,9 @@ type IterKey struct {
 type IterValue struct {
 	Result string
 	Value  string
+}
+
+type DefinedTypeDecl struct {
+	Name string
+	Type string
 }

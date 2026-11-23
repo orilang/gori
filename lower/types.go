@@ -11,6 +11,7 @@ type Lower struct {
 	// output when set to true outputs the HIR
 	output bool
 
+	types  []ir.Instruction
 	funcs  []*ir.Func
 	errors []Diagnostic
 

@@ -19,10 +19,12 @@ func dump(input any) string {
 func (d *dumper) node(indent int, n any) {
 	switch t := n.(type) {
 	case ir.Program:
-		if len(t.Funcs) > 0 {
-			for _, f := range t.Funcs {
-				d.node(indent, f)
-			}
+		for _, f := range t.Types {
+			d.node(indent, f)
+		}
+
+		for _, f := range t.Funcs {
+			d.node(indent, f)
 		}
 
 	case *ir.Func:
@@ -118,6 +120,9 @@ func (d *dumper) node(indent int, n any) {
 
 	case *ir.IterValue:
 		d.line(indent, fmt.Sprintf("%s = iter_value %s", t.Result, t.Value))
+
+	case *ir.DefinedTypeDecl:
+		d.line(indent, fmt.Sprintf("type %s %s", t.Name, t.Type))
 
 	default:
 		if n == nil {

@@ -26,6 +26,7 @@ func (l *Lower) Lower(p semantic.Program) (ir.Program, Diagnostics) {
 
 	if len(l.errors) == 0 {
 		pgm := ir.Program{}
+		pgm.Types = append(pgm.Types, l.types...)
 		pgm.Funcs = append(pgm.Funcs, l.funcs...)
 
 		if l.output {
@@ -59,6 +60,12 @@ func (l *Lower) decl(decl semantic.Decl) {
 			Result: t.Symbol.Name,
 			Type:   t.Symbol.Type.String(),
 			Value:  singleValue(init.values),
+		})
+
+	case *semantic.DefinedTypeDecl:
+		l.types = append(l.types, &ir.DefinedTypeDecl{
+			Name: t.Name,
+			Type: t.RawType,
 		})
 
 	default:

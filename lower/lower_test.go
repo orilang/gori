@@ -4106,7 +4106,8 @@ func x(arr []Name){
     }
   }
 }`,
-				expected: `func println(s:Name)
+				expected: `type Name string
+func println(s:Name)
 
 func x(arr:[]Name)
 entry:
@@ -4549,7 +4550,8 @@ func f(n Counter) {
     println(k)
   }
 }`,
-				expected: `func println(k:Counter)
+				expected: `type Counter int
+func println(k:Counter)
 
 func f(n:Counter)
 entry:
@@ -4583,7 +4585,8 @@ func f(n Counter) {
   for k := range n {
   }
 }`,
-				expected: `func f(n:Counter)
+				expected: `type Counter []int
+func f(n:Counter)
 entry:
     t0 = n
     t1 = const_int 0
