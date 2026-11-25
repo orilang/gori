@@ -746,7 +746,7 @@ if_else_0:
 	t.Run("dummy_decl_error", func(t *testing.T) {
 		l := NewLower(true)
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("dummy")})
-		l.decl(&semantic.InterfaceDecl{})
+		l.decl(&semantic.InterfaceDecl{}, false)
 		require.Equal(t, true, len(l.errors) > 0)
 	})
 
@@ -4776,5 +4776,84 @@ range_end_0:
 		var l *Lower
 		kind, _, _ := l.exprTypeKind(&semantic.UntypedNilType{})
 		require.Equal(t, exprKindInvalid, kind)
+	})
+
+	t.Run("x7", func(t *testing.T) {
+		tests := []struct {
+			data     string
+			expected string
+		}{
+			{
+				data: `package main
+
+type User struct {
+	name string
+	age  int
+}
+
+func f(u User) string {
+	return u.name
+}`,
+				expected: `type User struct {
+  name string
+  age int
+}
+
+func f(u:User) -> string
+entry:
+    t0 = field_get u, name
+    return t0
+
+`,
+			},
+			{
+				data: `package main
+
+type Name string
+
+type User struct {
+  name Name
+  age  int
+}
+
+func getName(u User) Name {
+  return u.name
+}`,
+				expected: `type Name string
+type User struct {
+  name Name
+  age int
+}
+
+func getName(u:User) -> Name
+entry:
+    t0 = field_get u, name
+    return t0
+
+`,
+			},
+		}
+
+		for i, tc := range tests {
+			lex, err := lexer.NewLexer(lexer.Config{StringOnly: true})
+			require.NoError(t, err)
+			parser := parser.New(lex.FetchTokensFromString(tc.data))
+			pr := parser.ParseFile()
+			require.Equal(t, 0, len(parser.Errors))
+			check := semantic.NewChecker()
+
+			spr, diagnostics := check.Check(pr)
+			require.Equal(t, false, diagnostics.HasErrors())
+			var l *Lower
+			if i == 0 {
+				l = NewLower(true)
+			} else {
+				l = NewLower(false)
+			}
+			lir, ldiagnostics := l.Lower(spr)
+			require.Equal(t, false, ldiagnostics.HasErrors())
+
+			assert.Equal(t, tc.expected, dump(lir), i)
+		}
 	})
 }

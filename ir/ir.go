@@ -19,3 +19,5 @@ func (*IterNext) instrNode()        {}
 func (*IterKey) instrNode()         {}
 func (*IterValue) instrNode()       {}
 func (*DefinedTypeDecl) instrNode() {}
+func (*StructDecl) instrNode()      {}
+func (*FieldGet) instrNode()        {}

@@ -124,6 +124,20 @@ func (d *dumper) node(indent int, n any) {
 	case *ir.DefinedTypeDecl:
 		d.line(indent, fmt.Sprintf("type %s %s", t.Name, t.Type))
 
+	case *ir.StructDecl:
+		d.line(indent, fmt.Sprintf("type %s struct {", t.Name))
+		for _, f := range t.Fields {
+			if f.Default != "" {
+				d.line(indent+2, fmt.Sprintf("%s %s = %s", f.Name, f.Type, f.Default))
+			} else {
+				d.line(indent+2, fmt.Sprintf("%s %s", f.Name, f.Type))
+			}
+		}
+		d.line(indent, "}\n")
+
+	case *ir.FieldGet:
+		d.line(indent, fmt.Sprintf("%s = field_get %s, %s", t.Result, t.X, t.Selector))
+
 	default:
 		if n == nil {
 			d.line(indent, "(nil intermediate representation)")

@@ -132,3 +132,20 @@ type DefinedTypeDecl struct {
 	Name string
 	Type string
 }
+
+type StructDecl struct {
+	Name   string
+	Fields []FieldDecl
+}
+
+type FieldDecl struct {
+	Name    string
+	Type    string
+	Default string
+}
+
+type FieldGet struct {
+	Result   string
+	X        string
+	Selector string
+}

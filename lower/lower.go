@@ -45,11 +45,11 @@ func (d Diagnostics) HasErrors() bool {
 
 func (l *Lower) decls(decl []semantic.Decl) {
 	for _, v := range decl {
-		l.decl(v)
+		l.decl(v, true)
 	}
 }
 
-func (l *Lower) decl(decl semantic.Decl) {
+func (l *Lower) decl(decl semantic.Decl, isGlobalType bool) {
 	switch t := decl.(type) {
 	case *semantic.FuncDecl:
 		l.funcs = append(l.funcs, l.fn(t))
@@ -67,6 +67,22 @@ func (l *Lower) decl(decl semantic.Decl) {
 			Name: t.Name,
 			Type: t.RawType,
 		})
+
+	case *semantic.StructDecl:
+		sd := &ir.StructDecl{Name: t.Name}
+		for _, f := range t.Fields {
+			sd.Fields = append(sd.Fields, ir.FieldDecl{
+				Name:    f.Name,
+				Type:    f.RawType,
+				Default: f.DefaultRawType,
+			})
+		}
+
+		if isGlobalType {
+			l.types = append(l.types, sd)
+		} else {
+			l.instructions = append(l.instructions, sd)
+		}
 
 	default:
 		l.errors = append(l.errors, Diagnostic{Err: fmt.Errorf("unsupported declaration %T", t)})
@@ -614,7 +630,7 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		}
 
 	case *semantic.DeclStmt:
-		l.decl(stmt.Decl)
+		l.decl(stmt.Decl, false)
 
 	case *semantic.ForStmt:
 		labelIndex := l.labelIndex
@@ -1115,6 +1131,17 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		data.exprKind = kind
 		data.exprType = typ
 		data.exprUnderlyingKind = ukind
+		return
+
+	case *semantic.SelectorExpr:
+		ex := l.lower(expr.X, inputConfig{})
+		t := fmt.Sprintf("t%d", l.tIndex)
+		l.instructions = append(l.instructions, &ir.FieldGet{
+			Result:   t,
+			X:        singleValue(ex.values),
+			Selector: expr.Selector,
+		})
+		data.values = append(data.values, ir.Value(t))
 		return
 
 	default:
