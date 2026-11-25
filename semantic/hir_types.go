@@ -107,10 +107,11 @@ type FuncDecl struct {
 }
 
 type Receiver struct {
-	Name   string
-	Symbol ResolvedSymbol
-	Shared bool
-	Type   Type
+	Name    string
+	Symbol  ResolvedSymbol
+	Shared  bool
+	Type    Type
+	RawType string
 }
 
 type BlockStmt struct {

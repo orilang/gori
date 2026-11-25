@@ -1336,9 +1336,10 @@ func (c *Checker) checkMethodBody(fn *ast.FuncDecl) {
 	}
 
 	rcv := &Receiver{
-		Name:   fn.Receiver.Name.Value,
-		Symbol: resolvedSymbol(symr, true, len(method.FuncType.Results) > 1),
-		Type:   recvType,
+		Name:    fn.Receiver.Name.Value,
+		Symbol:  resolvedSymbol(symr, true, len(method.FuncType.Results) > 1),
+		Type:    recvType,
+		RawType: fn.Receiver.RawType,
 	}
 
 	fd := &FuncDecl{
