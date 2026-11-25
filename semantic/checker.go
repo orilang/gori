@@ -2456,6 +2456,7 @@ func (c *Checker) checkSelectorExpr(expr *ast.SelectorExpr) (Type, Expr) {
 			c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("unknown method %q at %d:%d", expr.Selector.Value, expr.Selector.Line, expr.Selector.Column)})
 			return TInvalid, nil
 		}
+		selx.IsMethod = true
 		return typ, selx
 
 	default:

@@ -220,6 +220,7 @@ type SelectorExpr struct {
 	X        Expr
 	Type     Type
 	Selector string
+	IsMethod bool
 }
 
 type SliceLitExpr struct {
