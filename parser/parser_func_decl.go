@@ -82,6 +82,7 @@ func (p *Parser) parseReceiver(forbidBlankIdentifier bool) *ast.Receiver {
 		recv.Type = &ast.NamedType{
 			Parts: []token.Token{p.expectValidIdent(p.kind(), forbidBlankIdentifier, "expected valid ident")},
 		}
+		recv.RawType = ast.RawType(recv.Type)
 	} else {
 		p.Errors = append(p.Errors, fmt.Errorf("%d:%d: unexpected expression, got %v %q", p.peek().Line, p.peek().Column, p.peek().Kind, p.peek().Value))
 		p.consumeTo(token.RBracket)
