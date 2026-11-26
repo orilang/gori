@@ -899,6 +899,7 @@ func (c *Checker) checkExpr(expr ast.Expr, config exprConfig) (Type, Expr) {
 			selType, selExpr := c.checkExprInCurrentMode(sel.X, exprConfig{})
 			if named, isNamed := selType.(*NamedType); isNamed {
 				if method, isMethod := c.lookupMethodType(named, sel.Selector.Value); isMethod {
+					selx.IsMethod = true
 					if len(t.Args) != len(method.FuncType.Params) {
 						c.errors = append(c.errors, Diagnostic{Err: fmt.Errorf("too many arguments for %q func params, expected %d got %d at %d:%d-%d", method.Name, len(method.FuncType.Params), len(t.Args), t.Start().Line, t.LParen.Column, t.RParen.Column)})
 						return TInvalid, nil
