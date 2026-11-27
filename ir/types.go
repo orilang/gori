@@ -6,11 +6,17 @@ type Program struct {
 }
 
 type Func struct {
-	Name    string
-	Params  []Param
-	Results []Param
-	Blocks  []*Block
-	Label   string
+	Name     string
+	Receiver *Receiver
+	Params   []Param
+	Results  []Param
+	Blocks   []*Block
+	Label    string
+}
+
+type Receiver struct {
+	Name string
+	Type string
 }
 
 type Param struct {
@@ -50,6 +56,13 @@ type Call struct {
 	Name     string
 	Args     []string
 	FromFunc bool
+}
+
+type CallMethod struct {
+	Result   string
+	Name     string
+	Selector string
+	Args     []string
 }
 
 type BranchSub struct {

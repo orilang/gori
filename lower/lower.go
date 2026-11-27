@@ -105,6 +105,9 @@ func (l *Lower) fn(decl *semantic.FuncDecl) *ir.Func {
 	l.blockName = "entry"
 
 	f := &ir.Func{Name: decl.Name}
+	if decl.Receiver != nil {
+		f.Receiver = &ir.Receiver{Name: decl.Receiver.Name, Type: decl.Receiver.RawType}
+	}
 	var param, result []ir.Param
 
 	for _, p := range decl.Params {
@@ -166,9 +169,14 @@ func (l *Lower) lowerStmt(t semantic.Stmt, config inputConfig) (data infos) {
 		irr := &ir.Return{}
 		for _, v := range stmt.Values {
 			st := l.lower(v, config)
-			rt = append(rt, st.values...)
-			for _, rv := range st.values {
-				irr.Values = append(irr.Values, string(rv))
+			if st.isSelectorExpr {
+				selx := l.selectorExpr(false, st.selectors, nil)
+				irr.Values = append(irr.Values, string(selx))
+			} else {
+				rt = append(rt, st.values...)
+				for _, rv := range st.values {
+					irr.Values = append(irr.Values, string(rv))
+				}
 			}
 		}
 
@@ -1046,16 +1054,26 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 	case *semantic.BinaryExpr:
 		left := l.lower(expr.Left, inputConfig{})
 		right := l.lower(expr.Right, inputConfig{})
-		t := fmt.Sprintf("t%d", l.tIndex)
+		lv := singleValue(left.values)
+		rv := singleValue(right.values)
 
+		if left.isSelectorExpr {
+			selx := l.selectorExpr(false, left.selectors, nil)
+			lv = string(selx)
+		}
+		if right.isSelectorExpr {
+			selx := l.selectorExpr(false, right.selectors, nil)
+			rv = string(selx)
+		}
+
+		t := fmt.Sprintf("t%d", l.tIndex)
+		l.tIndex++
 		l.instructions = append(l.instructions, &ir.Binary{
 			Result: t,
 			Op:     token.BinaryOpString(expr.Operator) + "_" + expr.Type.String(),
-			Left:   singleValue(left.values),
-			Right:  singleValue(right.values),
+			Left:   lv,
+			Right:  rv,
 		})
-
-		l.tIndex++
 		data.values = append(data.values, ir.Value(t))
 		kind, typ, ukind := l.exprTypeKind(expr.Type)
 		data.exprKind = kind
@@ -1087,16 +1105,20 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 		}
 
 		callee := l.lower(expr.Callee, inputConfig{})
-		t := fmt.Sprintf("t%d", l.tIndex)
-		l.instructions = append(l.instructions, &ir.Call{
-			Result:   t,
-			Name:     singleValue(callee.values),
-			Args:     args,
-			FromFunc: expr.FromFunc,
-		})
-
-		l.tIndex++
-		data.values = append(data.values, ir.Value(t))
+		if callee.isSelectorExpr {
+			selx := l.selectorExpr(expr.FromFunc, callee.selectors, args)
+			data.values = append(data.values, ir.Value(selx))
+		} else {
+			t := fmt.Sprintf("t%d", l.tIndex)
+			l.tIndex++
+			l.instructions = append(l.instructions, &ir.Call{
+				Result:   t,
+				Name:     singleValue(callee.values),
+				Args:     args,
+				FromFunc: expr.FromFunc,
+			})
+			data.values = append(data.values, ir.Value(t))
+		}
 		kind, typ, ukind := l.exprTypeKind(expr.CalleeType)
 		data.exprKind = kind
 		data.exprType = typ
@@ -1135,13 +1157,8 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 
 	case *semantic.SelectorExpr:
 		ex := l.lower(expr.X, inputConfig{})
-		t := fmt.Sprintf("t%d", l.tIndex)
-		l.instructions = append(l.instructions, &ir.FieldGet{
-			Result:   t,
-			X:        singleValue(ex.values),
-			Selector: expr.Selector,
-		})
-		data.values = append(data.values, ir.Value(t))
+		data.isSelectorExpr = true
+		data.selectors = append(data.selectors, singleValue(ex.values), expr.Selector)
 		return
 
 	default:
@@ -1149,6 +1166,27 @@ func (l *Lower) lowerExpr(t semantic.Expr) (data infos) {
 	}
 
 	return
+}
+
+// selectorExpr sets instructions for call methods of field selector and returns ir.Value
+func (l *Lower) selectorExpr(isFromFunc bool, selectors, args []string) ir.Value {
+	t := fmt.Sprintf("t%d", l.tIndex)
+	l.tIndex++
+	if isFromFunc {
+		l.instructions = append(l.instructions, &ir.CallMethod{
+			Result:   t,
+			Name:     selectors[0],
+			Selector: selectors[1],
+			Args:     args,
+		})
+	} else {
+		l.instructions = append(l.instructions, &ir.FieldGet{
+			Result:   t,
+			X:        selectors[0],
+			Selector: selectors[1],
+		})
+	}
+	return ir.Value(t)
 }
 
 // exprTypeKind returns expression kind based on its type

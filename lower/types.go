@@ -62,6 +62,8 @@ type infos struct {
 	exprType       semantic.Type
 	// Used only when exprKind == exprKindNamedType
 	exprUnderlyingKind exprKind
+	isSelectorExpr     bool
+	selectors          []string
 }
 
 type forStmtKind int

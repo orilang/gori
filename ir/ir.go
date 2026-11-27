@@ -5,6 +5,7 @@ func (*Binary) instrNode()          {}
 func (*Return) instrNode()          {}
 func (*Const) instrNode()           {}
 func (*Call) instrNode()            {}
+func (*CallMethod) instrNode()      {}
 func (*Branch) instrNode()          {}
 func (*Label) instrNode()           {}
 func (*Jump) instrNode()            {}

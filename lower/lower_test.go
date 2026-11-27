@@ -4832,6 +4832,103 @@ entry:
 
 `,
 			},
+			{
+				data: `package main
+
+type Name string
+
+type User struct {
+    value Name
+}
+
+func (u User) name() Name {
+    return u.value
+}
+
+func getName(u User) Name {
+    return u.name()
+}`,
+				expected: `type Name string
+type User struct {
+  value Name
+}
+
+func getName(u:User) -> Name
+entry:
+    t0 = call_method u, name()
+    return t0
+
+func (u:User) name() -> Name
+entry:
+    t0 = field_get u, value
+    return t0
+
+`,
+			},
+			{
+				data: `package main
+
+type User struct {
+    value int
+}
+
+func (u User) name(a int) int {
+    return u.value + a
+}
+
+func getName(u User) int {
+    return u.name(int(1))
+}`,
+				expected: `type User struct {
+  value int
+}
+
+func getName(u:User) -> int
+entry:
+    t0 = const_int 1
+    t1 = call_method u, name(t0)
+    return t1
+
+func (u:User) name(a:int) -> int
+entry:
+    t0 = field_get u, value
+    t1 = add_int t0, a
+    return t1
+
+`,
+			},
+			{
+				data: `package main
+
+type User struct {
+    value int
+}
+
+func (u User) name() int {
+    return u.value * u.value
+}
+
+func getName(u User) int {
+    return u.name()
+}`,
+				expected: `type User struct {
+  value int
+}
+
+func getName(u:User) -> int
+entry:
+    t0 = call_method u, name()
+    return t0
+
+func (u:User) name() -> int
+entry:
+    t0 = field_get u, value
+    t1 = field_get u, value
+    t2 = mul_int t0, t1
+    return t2
+
+`,
+			},
 		}
 
 		for i, tc := range tests {

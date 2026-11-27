@@ -28,7 +28,7 @@ func (d *dumper) node(indent int, n any) {
 		}
 
 	case *ir.Func:
-		d.line(indent, "func "+t.Name+d.funcDecl("arg", t.Params)+d.funcDecl("", t.Results))
+		d.line(indent, d.funcDecl(true, t.Receiver, t.Name, t.Params, t.Results))
 		if t.Blocks != nil {
 			_, _ = fmt.Fprintf(d.w, "%s:\n", t.Label)
 			for _, block := range t.Blocks {
@@ -61,6 +61,9 @@ func (d *dumper) node(indent int, n any) {
 		} else {
 			d.line(indent, fmt.Sprintf("%s = %s(%s)", t.Result, t.Name, strings.Join(t.Args, ", ")))
 		}
+
+	case *ir.CallMethod:
+		d.line(indent, fmt.Sprintf("%s = call_method %s, %s(%s)", t.Result, t.Name, t.Selector, strings.Join(t.Args, ", ")))
 
 	case *ir.Branch:
 		var branches []string
@@ -154,33 +157,42 @@ func (d *dumper) line(indent int, s string) {
 	d.w.WriteString("\n")
 }
 
-func (d *dumper) funcDecl(kind string, param []ir.Param) string {
+func (d *dumper) funcDecl(printFn bool, receiver *ir.Receiver, name string, params, results []ir.Param) string {
 	var l []string
-	if kind == "arg" {
-		for _, v := range param {
-			l = append(l, v.Name+":"+v.Type)
+
+	final := name
+	if printFn {
+		if receiver != nil {
+			final = fmt.Sprintf("func (%s:%s) %s", receiver.Name, receiver.Type, name)
+		} else {
+			final = "func " + name
 		}
-		return "(" + strings.Join(l, ", ") + ")"
 	}
 
-	switch len(param) {
+	for _, v := range params {
+		l = append(l, v.Name+":"+v.Type)
+	}
+	final = final + "(" + strings.Join(l, ", ") + ")"
+
+	switch len(results) {
 	case 0:
-		return ""
+		return final
 
 	case 1:
-		if param[0].Name == "" {
-			return " -> " + param[0].Type
+		if results[0].Name == "" {
+			return final + " -> " + results[0].Type
 		}
-		return " -> (" + param[0].Name + ":" + param[0].Type + ")"
+		return final + " -> (" + results[0].Name + ":" + results[0].Type + ")"
 
 	default:
-		for _, v := range param {
+		l = nil
+		for _, v := range results {
 			if v.Name == "" {
 				l = append(l, v.Type)
 			} else {
 				l = append(l, v.Name+":"+v.Type)
 			}
 		}
-		return " -> (" + strings.Join(l, ", ") + ")"
+		return final + " -> (" + strings.Join(l, ", ") + ")"
 	}
 }
