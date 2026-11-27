@@ -35,6 +35,7 @@ type Receiver struct {
 	Name     token.Token
 	SharedKW token.Token
 	Type     Type
+	RawType  string
 	RParen   token.Token
 }
 
